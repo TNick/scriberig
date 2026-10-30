@@ -70,7 +70,7 @@ describe("agent workspace", () => {
       toolOutput: "full" as const,
       prompt: "shown" as const,
     };
-    const library = { models: [], profiles: [] };
+    const library = { models: [] };
     let state = createAgentWorkspaceState();
     state = storeAgentPresentation(state, presentation);
     state = storeAgentModelLibrary(state, library);

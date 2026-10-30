@@ -136,6 +136,7 @@ fn migration_route_maps_canonical_detail() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -162,6 +163,7 @@ fn typed_operation_route_preserves_correlation() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -195,6 +197,7 @@ fn typed_plan_lifecycle_route_invokes_runtime_handler() {
                 })
             },
         )),
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -220,6 +223,41 @@ fn typed_plan_lifecycle_route_invokes_runtime_handler() {
     );
 }
 
+/// Routes the public retry operation through the shared plan dispatcher.
+#[test]
+fn typed_plan_retry_route_dispatches_shared_operation() {
+    let state = HttpState {
+        service: Fixture,
+        principal: scriberig_app::Principal::new("test-user"),
+        allowed_origin: None,
+        project_store: None,
+        allowed_project_roots: Vec::new(),
+        plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
+        fixture: DevelopmentFixture {
+            root_entity: EntityId::from_bytes([1; 16]),
+            child_entities: Vec::new(),
+            snapshot: SnapshotId::new([1; 32]),
+        },
+    };
+    let request = scriberig_protocol::SessionPlanRetryRequest {
+        session: scriberig_protocol::SessionReference {
+            id: EntityId::from_bytes([2; 16]).to_string(),
+        },
+        plan: EntityId::from_bytes([3; 16]).to_string(),
+        node: EntityId::from_bytes([4; 16]).to_string(),
+        expected_revision: 8,
+    };
+    let body = serde_json::to_string(&request).expect("encode retry request");
+    let response = dispatch(&state, "plan_retry", &body, "plan-retry".to_owned())
+        .expect("typed protocol response");
+    assert_eq!(response["correlation_id"], "plan-retry");
+    assert_eq!(
+        response["response"]["Error"]["code"],
+        "UnsupportedOperation"
+    );
+}
+
 /// Verifies HTTP preference operations carry the trusted local principal.
 #[test]
 fn typed_preference_operations_use_the_http_principal() {
@@ -230,6 +268,7 @@ fn typed_preference_operations_use_the_http_principal() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -271,6 +310,7 @@ fn typed_operation_route_rejects_unknown_operation() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -293,6 +333,7 @@ fn direct_project_route_preserves_project_errors() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -315,3 +356,6 @@ fn cors_origin_policy_rejects_wildcards_and_unknown_origins() {
     assert!(allowed_origin(head, Some("https://other.example")).is_none());
     assert!(allowed_origin(head, Some("*")).is_none());
 }
+
+#[path = "http_tests/plan_evolution.rs"]
+mod plan_evolution;

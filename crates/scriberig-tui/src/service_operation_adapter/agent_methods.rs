@@ -2,11 +2,11 @@
 
 macro_rules! operation_agent_methods {
     () => {
-        /// Reads the credential-safe model library through the shared application.
+        /// Reads upstream safe model snapshots through the shared application.
         ///
         /// - `context`: Authorized caller context.
         ///
-        /// Public model and profile descriptors without provider credentials.
+        /// Upstream model display rows without provider credentials.
         ///
         /// Returns an authorization or model-library configuration error.
         /// # Returns
@@ -17,11 +17,11 @@ macro_rules! operation_agent_methods {
             &self,
             context: &ApplicationContext,
         ) -> Result<scriberig_protocol::ModelLibraryResponse, ApplicationError> {
-            let library =
+            let models =
                 scriberig_app::AgentConsoleBackend::agent_model_library(&self.service, context)?;
-            Ok(super::service_application::query::model_library_response(
-                library,
-            ))
+            let mut response = super::service_application::query::model_library_response(models);
+            response.provider_readiness = self.agent_runner.provider_readiness();
+            Ok(response)
         }
 
         /// Updates the selected session model through the shared application.

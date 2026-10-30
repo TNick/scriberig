@@ -2,6 +2,29 @@
 
 use super::*;
 
+/// Creates a safe model metadata fixture for presentation actions.
+///
+/// # Returns
+/// A neutral upstream metadata snapshot for model control fixtures.
+fn model_metadata_snapshot() -> scriberig_protocol::PublicModelMetadataSnapshot {
+    scriberig_protocol::PublicModelMetadataSnapshot {
+        schema_version: "rpi-safe-model-snapshot-v1".to_owned(),
+        api_id: "openai-completions".to_owned(),
+        reasoning: false,
+        input: vec![scriberig_protocol::PublicModelInputModality::Text],
+        cost: scriberig_protocol::PublicModelCostSnapshot {
+            input: 0.0,
+            output: 0.0,
+            cache_read: 0.0,
+            cache_write: 0.0,
+            tiers: Vec::new(),
+        },
+        cost_configured: false,
+        context_window: 4096,
+        max_tokens: 1024,
+    }
+}
+
 /// Verifies shared preferences fill untouched controls and preserve local choices.
 #[test]
 fn shared_preferences_resolve_beneath_local_tui_overrides() {
@@ -85,20 +108,18 @@ fn tool_output_cycle_requests_only_missing_result_detail() {
         }),
         overlay: Some(crate::overlay::Overlay::Palette(
             crate::overlay::palette::PaletteState {
-                query: String::new(),
                 local_actions: vec![crate::overlay::palette::PaletteItem {
                     id: "toggle-tool-output".to_owned(),
                     label: "Toggle tool result summaries".to_owned(),
                     source: crate::overlay::palette::ActionSource::Local,
                 }],
                 semantic_actions: Vec::new(),
-                selected: 0,
             },
         )),
         ..TuiState::default()
     };
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "toggle-tool-output");
 
     assert_eq!(
         effects,
@@ -114,14 +135,22 @@ fn tool_output_cycle_requests_only_missing_result_detail() {
     );
     assert!(state.shell_message.contains("Loading"));
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::state_presentation::activate_palette_control(
+        &mut state,
+        "toggle-tool-output",
+    )
+    .expect("tool output toggle");
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(
         state.tool_output_visibility,
         crate::state::ToolOutputVisibility::Hidden
     );
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::state_presentation::activate_palette_control(
+        &mut state,
+        "toggle-tool-output",
+    )
+    .expect("tool output toggle");
 
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(
@@ -136,20 +165,18 @@ fn tool_invocation_detail_toggle_is_presentation_only() {
     let mut state = TuiState {
         overlay: Some(crate::overlay::Overlay::Palette(
             crate::overlay::palette::PaletteState {
-                query: String::new(),
                 local_actions: vec![crate::overlay::palette::PaletteItem {
                     id: "toggle-tool-invocation".to_owned(),
                     label: "Toggle tool call detail".to_owned(),
                     source: crate::overlay::palette::ActionSource::Local,
                 }],
                 semantic_actions: Vec::new(),
-                selected: 0,
             },
         )),
         ..TuiState::default()
     };
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "toggle-tool-invocation");
 
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(
@@ -207,11 +234,10 @@ fn plan_assignment_picker_reports_lost_session_context() {
     let model = scriberig_protocol::PublicModelDescriptor {
         id: "descriptor-a".to_owned(),
         display_name: "Model A".to_owned(),
-        provider_profile: "provider-a".to_owned(),
+        provider_id: "provider-a".to_owned(),
         provider_model_id: "model-a".to_owned(),
-        capabilities: scriberig_protocol::PublicModelCapabilities::default(),
         thinking_levels: Vec::new(),
-        default_thinking_level: None,
+        metadata_snapshot: model_metadata_snapshot(),
     };
     let mut state = TuiState {
         plan_assignment_target: Some(crate::state::PlanAssignmentTarget {
@@ -221,8 +247,8 @@ fn plan_assignment_picker_reports_lost_session_context() {
         }),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
+                provider_readiness: Vec::new(),
                 models: vec![model],
-                profiles: Vec::new(),
             },
         ),
         ..TuiState::default()
@@ -252,11 +278,10 @@ fn plan_assignment_uses_selected_model_after_reordering() {
         |id: &str, provider: &str, model_id: &str| scriberig_protocol::PublicModelDescriptor {
             id: id.to_owned(),
             display_name: id.to_owned(),
-            provider_profile: provider.to_owned(),
+            provider_id: provider.to_owned(),
             provider_model_id: model_id.to_owned(),
-            capabilities: scriberig_protocol::PublicModelCapabilities::default(),
             thinking_levels: Vec::new(),
-            default_thinking_level: None,
+            metadata_snapshot: model_metadata_snapshot(),
         };
     let mut state = TuiState {
         plan_assignment_target: Some(crate::state::PlanAssignmentTarget {
@@ -274,11 +299,11 @@ fn plan_assignment_uses_selected_model_after_reordering() {
         }),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
+                provider_readiness: Vec::new(),
                 models: vec![
                     model("descriptor-b", "provider-b", "model-b"),
                     model("descriptor-a", "provider-a", "model-a"),
                 ],
-                profiles: Vec::new(),
             },
         ),
         ..TuiState::default()
@@ -292,7 +317,9 @@ fn plan_assignment_uses_selected_model_after_reordering() {
         effects.as_slice(),
         [Effect::SetPlanNodeAssignment(request)]
             if request.assignment.as_ref().is_some_and(|assignment| {
-                assignment.provider_id == "provider-a" && assignment.model_id == "model-a"
+                assignment.provider_id == "provider-a"
+                    && assignment.model_id == "model-a"
+                    && assignment.thinking_level.is_none()
             })
     ));
 }
@@ -313,18 +340,17 @@ fn navigation_and_presentation_changes_do_not_cancel_operations() {
     );
     state.overlay = Some(crate::overlay::Overlay::Palette(
         crate::overlay::palette::PaletteState {
-            query: String::new(),
             local_actions: vec![crate::overlay::palette::PaletteItem {
                 id: "toggle-tool-invocation".to_owned(),
                 label: "Toggle tool call detail".to_owned(),
                 source: crate::overlay::palette::ActionSource::Local,
             }],
             semantic_actions: Vec::new(),
-            selected: 0,
         },
     ));
 
-    let preference_effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let preference_effects =
+        crate::state::activate_palette_item(&mut state, "toggle-tool-invocation");
     let navigation_effects = crate::state::reduce(
         &mut state,
         crate::action::Action::ActivateLocation(crate::selection::NavigationLocation::default()),

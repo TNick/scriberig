@@ -336,7 +336,7 @@ export function storeAgentSession(
 
 /** Stores the safe public model library without persisting provider secrets.
  * @param state Current agent workspace state.
- * @param library Safe model descriptors and profiles.
+ * @param library Safe upstream-derived model descriptors.
  * @returns Updated workspace state.
  */
 export function storeAgentModelLibrary(

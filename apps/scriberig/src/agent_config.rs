@@ -1,5 +1,12 @@
 //! Resolves and displays local agent configuration.
 
+/// Resolves an explicitly selected `ScribeRig` secret through host policy.
+pub(crate) type AuthorizedCredentialProvider =
+    std::sync::Arc<dyn scriberig_secrets::CredentialProvider>;
+
+/// Exact upstream model, host credential adapter, and configured state.
+pub(crate) type ResolvedProviderSetup = (rpi_ai::Model, Option<AuthorizedCredentialProvider>, bool);
+
 /// Prints the effective local-agent settings and their sources.
 ///
 /// - `args`: Output format selected for the inspection command.
@@ -43,39 +50,39 @@ pub fn resolve_current_config()
     resolver.resolve(&std::collections::BTreeMap::new())
 }
 
-/// Builds the effective configured provider without reading its credential.
+/// Builds the upstream model and host credential adapter without reading secrets.
 ///
-/// Provider settings and whether a credential reference was configured, or no
-/// provider when `base_url` is absent.
+/// Upstream model, optional host credential adapter, and configured flag, or
+/// no model when `base_url` is absent.
 ///
 /// Returns safe configuration or credential-reference validation errors.
 /// # Returns
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-pub fn resolve_provider_config() -> Result<
-    Option<(scriberig_agent_runtime::provider::ProviderConfig, bool)>,
-    scriberig_cli::config::ConfigError,
-> {
+pub fn resolve_provider_config()
+-> Result<Option<ResolvedProviderSetup>, scriberig_cli::config::ConfigError> {
     let config = resolve_current_config()?;
     let Some(base_url) = config_optional_string(&config, "base_url") else {
         return Ok(None);
     };
     let reference = config_credential(&config)?;
-    let credentials = credential_source_for_check(reference.as_ref()).map_err(|error| {
-        scriberig_cli::config::ConfigError {
-            message: error.to_string(),
-        }
-    })?;
-    Ok(Some((
-        scriberig_agent_runtime::provider::ProviderConfig::new(
-            config_string(&config, "provider"),
-            base_url,
-            config_string(&config, "model"),
-            credentials,
-        ),
-        reference.is_some(),
-    )))
+    let credentials =
+        authorized_credential_provider_for_check(reference.as_ref()).map_err(|error| {
+            scriberig_cli::config::ConfigError {
+                message: error.to_string(),
+            }
+        })?;
+    let provider = config_string(&config, "provider");
+    let model_id = config_string(&config, "model");
+    let model = rpi_ai::Model::new(
+        model_id.clone(),
+        model_id,
+        rpi_ai::Api::OpenaiCompletions,
+        provider,
+        base_url,
+    );
+    Ok(Some((model, credentials, reference.is_some())))
 }
 
 /// Resolves layered settings and applies them to one parsed run command.
@@ -223,12 +230,12 @@ fn config_credential(
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-pub fn credential_source(
+pub fn authorized_credential_provider(
     args: &scriberig_cli::RunArgs,
-) -> Result<scriberig_agent_runtime::provider::CredentialSource, scriberig_secrets::SecretError> {
+) -> Result<Option<AuthorizedCredentialProvider>, scriberig_secrets::SecretError> {
     use scriberig_secrets::{Binding, ExecutionMode, SecretRef, SecretUseContext};
     let Some(reference) = &args.credential else {
-        return Ok(scriberig_agent_runtime::provider::CredentialSource::None);
+        return Ok(None);
     };
     let base_url = args
         .base_url
@@ -257,7 +264,7 @@ pub fn credential_source(
     } else {
         None
     };
-    authorized_credential_source(reference, context, invocation_binding)
+    build_authorized_credential_provider(reference, context, invocation_binding).map(Some)
 }
 
 /// Creates the ordinary live-policy credential source used by diagnostics.
@@ -271,12 +278,12 @@ pub fn credential_source(
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-pub fn credential_source_for_check(
+pub fn authorized_credential_provider_for_check(
     reference: Option<&scriberig_secrets::SecretRef>,
-) -> Result<scriberig_agent_runtime::provider::CredentialSource, scriberig_secrets::SecretError> {
+) -> Result<Option<AuthorizedCredentialProvider>, scriberig_secrets::SecretError> {
     use scriberig_secrets::{ExecutionMode, SecretUseContext};
     let Some(reference) = reference else {
-        return Ok(scriberig_agent_runtime::provider::CredentialSource::None);
+        return Ok(None);
     };
     let context = SecretUseContext {
         project_root: std::env::current_dir()
@@ -285,7 +292,7 @@ pub fn credential_source_for_check(
         purpose: "model_provider".to_owned(),
         mode: ExecutionMode::Interactive,
     };
-    authorized_credential_source(reference, context, None)
+    build_authorized_credential_provider(reference, context, None).map(Some)
 }
 
 /// Wraps a reference with the selected identity and live policy locations.
@@ -301,11 +308,11 @@ pub fn credential_source_for_check(
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-fn authorized_credential_source(
+fn build_authorized_credential_provider(
     reference: &scriberig_secrets::SecretRef,
     context: scriberig_secrets::SecretUseContext,
     invocation_binding: Option<scriberig_secrets::Binding>,
-) -> Result<scriberig_agent_runtime::provider::CredentialSource, scriberig_secrets::SecretError> {
+) -> Result<AuthorizedCredentialProvider, scriberig_secrets::SecretError> {
     let provider = scriberig_secrets::registry::AuthorizedCredential {
         reference: reference.clone(),
         context,
@@ -313,11 +320,7 @@ fn authorized_credential_source(
         invocation_binding,
         resolver: std::sync::Arc::new(scriberig_secrets::SourceResolver),
     };
-    Ok(
-        scriberig_agent_runtime::provider::CredentialSource::Authorized(std::sync::Arc::new(
-            provider,
-        )),
-    )
+    Ok(std::sync::Arc::new(provider))
 }
 
 /// Reads one required string setting from resolved configuration.

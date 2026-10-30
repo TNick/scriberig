@@ -59,7 +59,6 @@ fn streamed_output_is_operation_scoped_and_yields_to_durable_text() {
                 },
             },
             draft: String::new(),
-            editor: scriberig_tui_kit::Composer::new(),
             pending_prompt: None,
             pending: false,
             error: None,
@@ -82,6 +81,7 @@ fn streamed_output_is_operation_scoped_and_yields_to_durable_text() {
             activity_kind: scriberig_session::AgentActivityKind::ToolInvocation,
             state: scriberig_session::AgentActivityState::Running,
             summary: "tool started".to_owned(),
+            ordinal: 1,
         },
     );
     reduce_application_event(
@@ -148,6 +148,7 @@ fn streamed_output_is_operation_scoped_and_yields_to_durable_text() {
             activity_kind: scriberig_session::AgentActivityKind::ToolInvocation,
             state: scriberig_session::AgentActivityState::Completed,
             summary: "tool completed".to_owned(),
+            ordinal: 2,
         },
     );
 
@@ -239,6 +240,7 @@ fn live_worker_activity_is_structural_and_deduplicated_after_refresh() {
             activity_kind: scriberig_session::AgentActivityKind::RuntimeStatus,
             state,
             summary: summary.to_owned(),
+            ordinal: 0,
         };
     let mut state = TuiState {
         session: LoadState::Loading { request_id: 3 },

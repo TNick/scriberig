@@ -224,7 +224,7 @@ fn review_and_apply(
     base_snapshot: scriberig_core::SnapshotId,
     candidate: &str,
 ) -> scriberig_core::SnapshotId {
-    tui.send(b"/changes\r");
+    tui.send_slow(b"/changes\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
     let review = tui.screen();
     assert!(review.contains("validation: Passed"), "{review}");

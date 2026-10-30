@@ -8,6 +8,60 @@ use scriberig_session::{Plan, PlanStatus};
 use super::validation::{invalid_plan, revision_conflict};
 
 impl<B: ApplicationBackend> ApplicationService<B> {
+    /// Retries one failed node after validating dependencies and entry gates.
+    ///
+    /// - `self`: Application service owning durable plan state.
+    /// - `context`: Authorized caller context.
+    /// - `request`: Session, plan, node, and observed plan revision.
+    ///
+    /// The authoritative updated plan with the failed attempt retained.
+    ///
+    /// Returns a revision conflict, invalid retry, lookup, or persistence error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn retry_plan_node(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanRetryRequest,
+    ) -> Result<Plan, ApplicationError> {
+        let mut session = self.read_session(
+            context,
+            &crate::SessionRequest {
+                session: request.session,
+            },
+        )?;
+        let plan = session
+            .plans
+            .iter_mut()
+            .find(|plan| plan.id == request.plan)
+            .ok_or_else(|| ApplicationError::NotFound {
+                subject: request.plan.to_string(),
+            })?;
+        if plan.revision != request.expected_revision {
+            return Err(revision_conflict(request.plan));
+        }
+        let results = session
+            .branches
+            .iter()
+            .filter_map(|branch| branch.result.clone())
+            .collect::<Vec<_>>();
+        plan.retry_failed_node(request.node, &results)
+            .map_err(|error| invalid_plan(format!("invalid node retry: {error:?}")))?;
+        let updated = plan.clone();
+        self.compare_and_swap_plan(context, &session, request.plan, request.expected_revision)?;
+        self.operations.publish_plan_activity(
+            request.session,
+            request.plan,
+            Some(request.node),
+            scriberig_session::SessionActivityKind::PlanRevised,
+            scriberig_session::SessionActivityState::Completed,
+            "Plan node retry requested",
+        );
+        Ok(updated)
+    }
+
     /// Starts automatic advancement for one observed plan revision.
     ///
     /// - `self`: Application service owning durable plan state.

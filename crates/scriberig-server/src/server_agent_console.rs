@@ -2,67 +2,72 @@
 
 use scriberig_app::{AgentConsoleBackend, ApplicationBackend, ApplicationContext};
 use scriberig_protocol::{
-    ModelLibraryResponse, PublicModelCapabilities, PublicModelDescriptor, PublicModelProfile,
-    PublicThinkingLevelDescriptor, SessionExecutionSelection,
+    ModelLibraryResponse, PublicModelCostSnapshot, PublicModelCostTierSnapshot,
+    PublicModelDescriptor, PublicModelInputModality, PublicModelMetadataSnapshot,
+    SessionExecutionSelection,
 };
 
-/// Reads the configured credential-safe model library.
+/// Reads the upstream-derived model compatibility projection.
 ///
 /// - `self`: Shared application service.
 /// - `context`: Trusted capability context.
 ///
-/// Protocol-safe model descriptors and profiles.
+/// Protocol-safe upstream-derived model display rows.
 ///
 /// Returns authorization or application configuration failures.
 pub(super) fn model_library<B: ApplicationBackend>(
     service: &scriberig_app::ApplicationService<B>,
     context: &ApplicationContext,
 ) -> Result<ModelLibraryResponse, scriberig_app::ApplicationError> {
-    let library = AgentConsoleBackend::agent_model_library(service, context)?;
+    let models = AgentConsoleBackend::agent_model_library(service, context)?;
     Ok(ModelLibraryResponse {
-        models: library
-            .models
+        provider_readiness: Vec::new(),
+        models: models
             .into_iter()
             .map(|model| PublicModelDescriptor {
-                id: model.id.as_str().to_owned(),
+                id: scriberig_protocol::model_row_id(&model.provider_id, &model.model_id),
                 display_name: model.display_name,
-                provider_profile: model.provider_profile,
-                provider_model_id: model.provider_model_id,
-                capabilities: PublicModelCapabilities {
-                    streaming: model.capabilities.streaming,
-                    tool_calls: model.capabilities.tool_calls,
-                    structured_output: model.capabilities.structured_output,
-                },
+                provider_id: model.provider_id,
+                provider_model_id: model.model_id,
                 thinking_levels: model
                     .thinking_levels
                     .into_iter()
-                    .map(|level| PublicThinkingLevelDescriptor {
-                        id: level.id.as_str().to_owned(),
-                        label: level.label,
-                        description: level.description,
-                        order: level.order,
-                    })
+                    .map(|level| level.as_str().to_owned())
                     .collect(),
-                default_thinking_level: model
-                    .default_thinking_level
-                    .map(|value| value.as_str().to_owned()),
-            })
-            .collect(),
-        profiles: library
-            .profiles
-            .into_iter()
-            .map(|profile| PublicModelProfile {
-                id: profile.id,
-                display_name: profile.display_name,
-                model: profile.model.as_str().to_owned(),
-                connection: profile.connection,
-                credential: profile
-                    .credential
-                    .map(|credential| scriberig_protocol::ModelCredentialRef { id: credential.id }),
-                default_thinking_level: profile
-                    .default_thinking_level
-                    .map(|value| value.as_str().to_owned()),
-                enabled: profile.enabled,
+                metadata_snapshot: PublicModelMetadataSnapshot {
+                    schema_version: model.schema_version,
+                    api_id: model.api_id,
+                    reasoning: model.reasoning,
+                    input: model
+                        .input
+                        .into_iter()
+                        .map(|modality| match modality {
+                            rpi_ai::InputModality::Text => PublicModelInputModality::Text,
+                            rpi_ai::InputModality::Image => PublicModelInputModality::Image,
+                        })
+                        .collect(),
+                    cost: PublicModelCostSnapshot {
+                        input: model.cost.rates.input,
+                        output: model.cost.rates.output,
+                        cache_read: model.cost.rates.cache_read,
+                        cache_write: model.cost.rates.cache_write,
+                        tiers: model
+                            .cost
+                            .tiers
+                            .into_iter()
+                            .map(|tier| PublicModelCostTierSnapshot {
+                                input: tier.rates.input,
+                                output: tier.rates.output,
+                                cache_read: tier.rates.cache_read,
+                                cache_write: tier.rates.cache_write,
+                                input_tokens_above: tier.input_tokens_above,
+                            })
+                            .collect(),
+                    },
+                    cost_configured: model.cost_configured,
+                    context_window: model.context_window,
+                    max_tokens: model.max_tokens,
+                },
             })
             .collect(),
     })
@@ -140,6 +145,8 @@ pub(super) fn set_session_thinking_level<B: ApplicationBackend>(
 /// - `session`: Serialized session identity.
 /// - `branch`: Serialized branch identity.
 /// - `invocation`: Serialized model invocation identity.
+/// - `offset`: Optional Unicode-scalar cursor for full detail paging.
+/// - `max_chars`: Optional maximum page character count.
 ///
 /// Bounded request data captured before provider serialization.
 ///
@@ -150,6 +157,8 @@ pub(super) fn model_request_detail<B: ApplicationBackend>(
     session: &str,
     branch: &str,
     invocation: &str,
+    offset: Option<u64>,
+    max_chars: Option<u32>,
 ) -> Result<scriberig_protocol::ModelRequestDetailResponse, scriberig_app::ApplicationError> {
     let session_id = parse_session(session)?;
     let branch_id = parse_entity(branch, "model request detail")?;
@@ -161,7 +170,12 @@ pub(super) fn model_request_detail<B: ApplicationBackend>(
         branch_id,
         invocation_id,
     )?;
-    Ok(project_model_request(invocation_id.to_string(), &request))
+    Ok(project_model_request(
+        invocation_id.to_string(),
+        &request,
+        offset,
+        max_chars,
+    ))
 }
 
 /// Reads expanded bounded detail for one durable tool result.
@@ -243,6 +257,8 @@ fn parse_entity(
 ///
 /// - `invocation`: Stable model invocation identity.
 /// - `request`: Captured safe request projection.
+/// - `offset`: Optional Unicode-scalar offset for a detail page.
+/// - `max_chars`: Optional detail-page character limit.
 ///
 /// Protocol detail with provider-neutral fields only.
 /// # Returns
@@ -250,11 +266,34 @@ fn parse_entity(
 fn project_model_request(
     invocation: String,
     request: &scriberig_session::ModelRequestProjection,
+    offset: Option<u64>,
+    max_chars: Option<u32>,
 ) -> scriberig_protocol::ModelRequestDetailResponse {
-    scriberig_protocol::ModelRequestDetailResponse {
+    let mut response = scriberig_protocol::ModelRequestDetailResponse {
         invocation,
         model: request.model.clone(),
+        provider_id: request.provider_id.clone(),
+        provider_profile: request.provider_profile.clone(),
         thinking_level: request.thinking_level.clone(),
+        profile: request.profile.as_ref().map(|reference| {
+            scriberig_protocol::ModelContextRevisionReference {
+                identity: reference.identity.clone(),
+                revision: reference.revision.clone(),
+            }
+        }),
+        active_components: request
+            .active_components
+            .iter()
+            .map(
+                |reference| scriberig_protocol::ModelContextRevisionReference {
+                    identity: reference.identity.clone(),
+                    revision: reference.revision.clone(),
+                },
+            )
+            .collect(),
+        context_fingerprint: request.context_fingerprint.clone(),
+        request_fingerprint: request.request_fingerprint.clone(),
+        model_execution_configuration: request.model_execution_configuration.clone(),
         messages: request
             .messages
             .iter()
@@ -272,8 +311,40 @@ fn project_model_request(
                 parameters: tool.parameters.clone(),
             })
             .collect(),
+        applied_settings: request.applied_settings.clone(),
+        applied_settings_fingerprint: request.applied_settings_fingerprint.clone(),
         truncated: request.truncated,
+        content_complete: request.content_complete,
+        fragments: Vec::new(),
+        offset: None,
+        total_chars: None,
+        next_offset: None,
+    };
+    if offset.is_some() || max_chars.is_some() {
+        let page = scriberig_app::agent_console::request_page::model_request_detail_page(
+            request,
+            offset.unwrap_or(0),
+            max_chars.unwrap_or(16_384),
+        );
+        response.fragments = page
+            .fragments
+            .into_iter()
+            .map(|fragment| scriberig_protocol::ModelRequestDetailFragment {
+                kind: fragment.kind,
+                index: fragment.index,
+                parent_index: fragment.parent_index,
+                field: fragment.field,
+                field_offset: fragment.field_offset,
+                role: fragment.role,
+                text: fragment.text,
+            })
+            .collect();
+        response.content_complete = page.content_complete;
+        response.offset = Some(page.offset);
+        response.total_chars = Some(page.total_chars);
+        response.next_offset = page.next_offset;
     }
+    response
 }
 
 /// Converts the shared selection into its public protocol projection.
@@ -306,6 +377,9 @@ pub(super) fn selection_response(
     }
 }
 
+#[cfg(test)]
+#[path = "server_agent_console_model_projection_tests.rs"]
+mod model_projection_tests;
 #[cfg(test)]
 #[path = "server_agent_console_tests.rs"]
 mod tests;

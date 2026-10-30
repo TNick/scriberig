@@ -1,6 +1,5 @@
 //! Resolves the active project workspace from agent tool evidence.
 
-use scriberig_agent_runtime::AgentMessage;
 use scriberig_app::ApplicationError;
 
 /// Extracts the exact workspace returned by the project workspace tool.
@@ -18,34 +17,38 @@ use scriberig_app::ApplicationError;
 pub(super) fn workspace_from_result(
     result: &scriberig_agent_runtime::AgentResult,
 ) -> Result<Option<scriberig_tui::AgentWorkspace>, ApplicationError> {
-    let Some(tool) = result
-        .messages
+    let Some(workspace) = result
+        .tool_evidence
         .iter()
         .rev()
-        .find_map(|message| match message {
-            AgentMessage::Tool(tool)
-                if tool.object_type.as_deref() == Some("project_workspace") =>
-            {
-                Some(tool)
-            }
-            _ => None,
-        })
+        .find(|evidence| evidence.name == "project_workspace" && !evidence.failed)
+        .and_then(|evidence| serde_json::from_slice::<serde_json::Value>(&evidence.output).ok())
     else {
         return Ok(None);
     };
     let manifest_id = result
-        .messages
+        .tool_evidence
         .iter()
-        .find_map(|message| match message {
-            AgentMessage::Tool(tool) if tool.object_type.as_deref() == Some("project_scan") => {
-                tool.handles.get(1).cloned()
-            }
-            _ => None,
+        .find(|evidence| evidence.name == "project_scan" && !evidence.failed)
+        .and_then(|evidence| serde_json::from_slice::<serde_json::Value>(&evidence.output).ok())
+        .and_then(|output| {
+            output
+                .get("handles")?
+                .as_array()?
+                .get(1)?
+                .as_str()
+                .map(str::to_owned)
         })
         .ok_or_else(|| ApplicationError::Internal {
             message: "project workspace has no reviewed manifest reference".into(),
         })?;
-    let [project, snapshot, root] = tool.handles.as_slice() else {
+    let handles = workspace
+        .get("handles")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| ApplicationError::Internal {
+            message: "project workspace result omitted its handles".into(),
+        })?;
+    let [project, snapshot, root] = handles.as_slice() else {
         return Err(ApplicationError::Internal {
             message: "project workspace result must contain project, snapshot, and root".into(),
         });
@@ -54,17 +57,23 @@ pub(super) fn workspace_from_result(
         message: message.to_owned(),
     };
     let project = project
+        .as_str()
+        .ok_or_else(|| parse_error("invalid workspace project handle"))?
         .parse()
         .map_err(|error| parse_error(&format!("invalid workspace project: {error}")))?;
     let snapshot = snapshot
+        .as_str()
+        .ok_or_else(|| parse_error("invalid workspace snapshot handle"))?
         .parse()
         .map_err(|error| parse_error(&format!("invalid workspace snapshot: {error}")))?;
     let root = root
+        .as_str()
+        .ok_or_else(|| parse_error("invalid workspace root handle"))?
         .parse()
         .map_err(|error| parse_error(&format!("invalid workspace root: {error}")))?;
-    let name = tool
-        .summary
-        .as_deref()
+    let name = workspace
+        .get("summary")
+        .and_then(serde_json::Value::as_str)
         .and_then(|summary| summary.strip_prefix("active semantic workspace "))
         .and_then(|summary| summary.split_once(" at snapshot ").map(|(name, _)| name))
         .ok_or_else(|| parse_error("project workspace result omitted its name"))?;

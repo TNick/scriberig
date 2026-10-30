@@ -5,6 +5,9 @@ use super::*;
 #[path = "commands/session_argument.rs"]
 mod session_argument;
 
+#[path = "commands/plan_command.rs"]
+mod plan_command;
+
 /// Routes supported console commands to shared picker and preference actions.
 ///
 /// - `state`: Current TUI state used by the shared action reducers.
@@ -26,12 +29,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
         return None;
     };
     match command {
-        "/model" => {
-            super::super::state_model_picker::activate_model_picker_action(state, "model-picker")
-        }
-        "/thinking" => {
-            super::super::state_model_picker::activate_model_picker_action(state, "thinking-picker")
-        }
+        "/model" | "/thinking" => Some(vec![Effect::None]),
         "/view reasoning" => super::super::state_presentation::activate_presentation_action(
             state,
             "toggle-reasoning",
@@ -111,7 +109,6 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                 return Some(vec![Effect::None]);
             };
             state.primary_view = crate::selection::PrimaryView::Explorer;
-            state.focus = crate::state::Focus::Explorer;
             state.cursor = 0;
             let request_id = state.next_request_id;
             state.next_request_id = state.next_request_id.saturating_add(1);
@@ -122,177 +119,22 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                 continuation: None,
             }])
         }
-        _ if descriptor.name == "/plan" => {
-            let argument = command.strip_prefix("/plan").unwrap_or_default().trim();
-            if argument.is_empty() {
-                state.conversation_composer.error = Some(
-                    "Use /plan <goal>, /plan show, or /plan start|pause|resume|stop|complete."
-                        .to_owned(),
-                );
-                return Some(vec![Effect::None]);
-            }
-            if argument == "show" {
-                let Some(session) = state.session_snapshot.as_ref() else {
-                    state.conversation_composer.error =
-                        Some("Load a session before showing a plan.".to_owned());
-                    return Some(vec![Effect::None]);
-                };
-                let selected_plan = match state.conversation_cursor {
-                    Some(crate::view::conversation::ConversationSource::Plan(plan)) => Some(plan),
-                    Some(crate::view::conversation::ConversationSource::PlanNode(node)) => session
-                        .plans
-                        .iter()
-                        .find(|plan| plan.nodes.iter().any(|item| item.id == node))
-                        .map(|plan| plan.id),
+        _ if descriptor.name == "/plan" => Some(plan_command::plan_command(
+            state,
+            command.strip_prefix("/plan").unwrap_or_default().trim(),
+        )),
+        _ if descriptor.name == "/assign" => {
+            let node = if state.primary_view == crate::selection::PrimaryView::Plan {
+                state.plan_cursor.and_then(|selection| selection.node)
+            } else {
+                match state.conversation_cursor {
+                    Some(crate::view::conversation::ConversationSource::PlanNode(node)) => {
+                        Some(node)
+                    }
                     _ => None,
-                };
-                let plan = selected_plan
-                    .and_then(|id| session.plans.iter().find(|plan| plan.id == id))
-                    .or_else(|| session.plans.last());
-                let Some(plan) = plan else {
-                    state.conversation_composer.error =
-                        Some("This session has no plan yet.".to_owned());
-                    return Some(vec![Effect::None]);
-                };
-                let completed = plan
-                    .nodes
-                    .iter()
-                    .filter(|node| node.result.is_some())
-                    .count();
-                state.shell_message = format!(
-                    "Plan: {} · {:?} · revision {} · {}/{} results · {} dependencies",
-                    plan.goal,
-                    plan.status,
-                    plan.revision,
-                    completed,
-                    plan.nodes.len(),
-                    plan.dependencies.len()
-                );
-                return Some(vec![Effect::None]);
-            }
-            if let Some(reason) = argument.strip_prefix("replan ").map(str::trim)
-                && !reason.is_empty()
-            {
-                let Some(session) = state.session_snapshot.as_ref() else {
-                    state.conversation_composer.error =
-                        Some("Load a session before revising a plan.".to_owned());
-                    return Some(vec![Effect::None]);
-                };
-                let selected_plan = match state.conversation_cursor {
-                    Some(crate::view::conversation::ConversationSource::Plan(plan)) => Some(plan),
-                    Some(crate::view::conversation::ConversationSource::PlanNode(node)) => session
-                        .plans
-                        .iter()
-                        .find(|plan| plan.nodes.iter().any(|item| item.id == node))
-                        .map(|plan| plan.id),
-                    _ => None,
-                };
-                let plan = selected_plan
-                    .and_then(|id| session.plans.iter().find(|plan| plan.id == id))
-                    .or_else(|| session.plans.last());
-                let Some(plan) = plan else {
-                    state.conversation_composer.error =
-                        Some("Create a plan before revising it.".to_owned());
-                    return Some(vec![Effect::None]);
-                };
-                let title = reason.lines().next().unwrap_or("Replanned work");
-                let title = title.chars().take(80).collect::<String>();
-                return Some(vec![Effect::Replan(scriberig_app::PlanReplanRequest {
-                    session: session.id,
-                    plan: plan.id,
-                    expected_revision: plan.revision,
-                    additions: vec![scriberig_app::PlanNodeDraft {
-                        key: "replan-addition".to_owned(),
-                        parent_index: None,
-                        title,
-                        purpose: reason.to_owned(),
-                        expected_result: Some(scriberig_session::ExpectedResult {
-                            kind: "summary".to_owned(),
-                            requires_handle: false,
-                        }),
-                        semantic_scope: Vec::new(),
-                        assignment: None,
-                    }],
-                    dependencies: Vec::new(),
-                    removed_dependencies: Vec::new(),
-                    superseded: Vec::new(),
-                    assignment_changes: Vec::new(),
-                    preserved_terminal_nodes: plan
-                        .nodes
-                        .iter()
-                        .filter(|node| node.result.is_some())
-                        .map(|node| node.id)
-                        .collect(),
-                    reason: reason.to_owned(),
-                })]);
-            }
-            if let Some(action) = match argument {
-                "start" => Some(scriberig_app::PlanLifecycleAction::Start),
-                "pause" => Some(scriberig_app::PlanLifecycleAction::Pause),
-                "resume" => Some(scriberig_app::PlanLifecycleAction::Resume),
-                "stop" => Some(scriberig_app::PlanLifecycleAction::Stop),
-                "complete" => Some(scriberig_app::PlanLifecycleAction::Complete),
-                _ => None,
-            } {
-                let Some(session) = state.session_snapshot.as_ref() else {
-                    state.conversation_composer.error =
-                        Some("Load a session before controlling a plan.".to_owned());
-                    return Some(vec![Effect::None]);
-                };
-                let selected_plan = match state.conversation_cursor {
-                    Some(crate::view::conversation::ConversationSource::Plan(plan)) => Some(plan),
-                    Some(crate::view::conversation::ConversationSource::PlanNode(node)) => session
-                        .plans
-                        .iter()
-                        .find(|plan| plan.nodes.iter().any(|item| item.id == node))
-                        .map(|plan| plan.id),
-                    _ => None,
-                };
-                let plan = selected_plan
-                    .and_then(|id| session.plans.iter().find(|plan| plan.id == id))
-                    .or_else(|| session.plans.last());
-                let Some(plan) = plan else {
-                    state.conversation_composer.error =
-                        Some("Create a plan before changing its lifecycle.".to_owned());
-                    return Some(vec![Effect::None]);
-                };
-                return Some(vec![Effect::PlanLifecycle {
-                    request: scriberig_app::PlanLifecycleRequest {
-                        session: session.id,
-                        plan: plan.id,
-                        expected_revision: plan.revision,
-                    },
-                    action,
-                }]);
-            }
-            let crate::state::ConversationTarget::Existing {
-                session,
-                reply_anchor,
-            } = state.conversation_composer.target
-            else {
-                state.conversation_composer.error =
-                    Some("Start a conversation before creating a plan.".to_owned());
-                return Some(vec![Effect::None]);
-            };
-            let draft = match plan::parse_plan_argument(argument) {
-                Ok(draft) => draft,
-                Err(message) => {
-                    state.conversation_composer.error = Some(message);
-                    return Some(vec![Effect::None]);
                 }
             };
-            Some(vec![Effect::CreatePlan(scriberig_app::PlanCreateRequest {
-                session,
-                anchor: reply_anchor,
-                goal: draft.goal,
-                nodes: draft.nodes,
-                dependencies: draft.dependencies,
-            })])
-        }
-        _ if descriptor.name == "/assign" => {
-            let Some(crate::view::conversation::ConversationSource::PlanNode(node)) =
-                state.conversation_cursor
-            else {
+            let Some(node) = node else {
                 state.conversation_composer.error =
                     Some("Select a plan node before using /assign.".to_owned());
                 return Some(vec![Effect::None]);
@@ -312,9 +154,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                 node,
                 expected_revision: plan.revision,
             });
-            if let crate::inspector::LoadState::Ready(library) = &state.model_library {
-                let library = library.clone();
-                super::super::state_model_picker::show_plan_assignment_picker(state, &library);
+            if matches!(state.model_library, crate::inspector::LoadState::Ready(_)) {
                 return Some(vec![Effect::None]);
             }
             if matches!(
@@ -377,6 +217,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                     request_id,
                     entity,
                     snapshot: None,
+                    switch_view: true,
                 },
             ))
         }

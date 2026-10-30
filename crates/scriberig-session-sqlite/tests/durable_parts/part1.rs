@@ -2,6 +2,179 @@
 
 use super::*;
 
+#[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "The persistence regression verifies one canonical graph across reload."
+)]
+/// Confirms plan graphs are split across universal immutable revisions.
+fn plan_storage_uses_independent_universal_objects() {
+    use scriberig_core::RootName;
+    use scriberig_store::{RevisionStore, RootStore, SnapshotStore};
+
+    let path = std::env::temp_dir().join(format!(
+        "scriberig-semantic-plan-{}.sqlite",
+        EntityId::new()
+    ));
+    let session_id = EntityId::from_bytes([51; 16]);
+    let root_branch = EntityId::from_bytes([52; 16]);
+    let plan_id = EntityId::from_bytes([53; 16]);
+    let node_id = EntityId::from_bytes([54; 16]);
+    let store = SqliteSessionStore::open(&path).expect("open store");
+    let mut plan = Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead {
+            branch: root_branch,
+        },
+        "persist independent plan objects",
+    )
+    .expect("plan");
+    plan.add_node(PlanNode {
+        id: node_id,
+        parent: Some(scriberig_session::PlanNodeParent::Branch(root_branch)),
+        title: "inspect graph".to_owned(),
+        purpose: "verify semantic object ownership".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("add node");
+    let gate_id = EntityId::from_bytes([55; 16]);
+    plan.add_gate(scriberig_session::PlanGate {
+        id: gate_id,
+        owner: node_id,
+        phase: scriberig_session::PlanGatePhase::Entry,
+        requirement: scriberig_session::PlanGateRequirement::EvidencePresent {
+            kind: scriberig_session::PlanEvidenceKind::Artifact,
+        },
+        waiver: None,
+    })
+    .expect("add gate");
+    plan.attach_evidence(scriberig_session::PlanEvidenceAssociation {
+        id: EntityId::from_bytes([56; 16]),
+        owner: scriberig_session::PlanEvidenceOwner::Gate(gate_id),
+        role: scriberig_session::PlanEvidenceRole::Supports,
+        evidence: scriberig_session::PlanEvidenceReference {
+            kind: scriberig_session::PlanEvidenceKind::Artifact,
+            reference: scriberig_session::PlanSemanticReference {
+                entity: EntityId::from_bytes([58; 16]),
+                revision: None,
+                snapshot: None,
+            },
+            attributes: std::collections::BTreeMap::default(),
+        },
+        note: None,
+        actor: None,
+    })
+    .expect("attach evidence");
+    plan.update_summary(scriberig_session::PlanNodeSummary {
+        id: EntityId::from_bytes([57; 16]),
+        node: node_id,
+        text: "artifact is available".to_owned(),
+        sources: Vec::new(),
+    })
+    .expect("update summary");
+    store
+        .save(&Session {
+            id: session_id,
+            branches: vec![Branch::new(root_branch, "root").expect("branch")],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        })
+        .expect("save session");
+
+    let semantic_store =
+        scriberig_store_sqlite::SqliteStore::open(&path).expect("open universal store");
+    let root =
+        RootName::new(format!("scriberig-plan-{session_id}-{plan_id}")).expect("plan root name");
+    let snapshot = semantic_store
+        .read_root(&root)
+        .expect("canonical plan root exists");
+    let mappings = semantic_store.iter(snapshot).expect("plan objects");
+    let plan_revision_id = mappings
+        .iter()
+        .find_map(|(entity, revision)| (*entity == plan_id).then_some(*revision))
+        .expect("plan object mapping");
+    let node_revision_id = mappings
+        .iter()
+        .find_map(|(entity, revision)| (*entity == node_id).then_some(*revision))
+        .expect("independent node mapping");
+    let plan_revision = semantic_store
+        .get(plan_revision_id)
+        .expect("read plan revision")
+        .expect("plan revision exists");
+    let node_revision = semantic_store
+        .get(node_revision_id)
+        .expect("read node revision")
+        .expect("node revision exists");
+    let semantic_objects = mappings
+        .iter()
+        .map(|(entity, revision_id)| {
+            let revision = semantic_store
+                .get(*revision_id)
+                .expect("read semantic revision")
+                .expect("semantic revision exists");
+            scriberig_session::PlanSemanticRevision {
+                entity: *entity,
+                object_type: revision.object_type().clone(),
+                revision: revision.id(),
+                payload: revision.payload().to_vec(),
+            }
+        })
+        .collect();
+    let semantic_snapshot = scriberig_session::PlanSemanticSnapshot {
+        plan: plan_id,
+        snapshot: Some(snapshot),
+        objects: semantic_objects,
+    };
+    let plan_payload: serde_json::Value =
+        serde_json::from_slice(plan_revision.payload()).expect("plan payload JSON");
+
+    assert_eq!(
+        plan_revision.object_type().as_str(),
+        "scriberig.session.plan"
+    );
+    assert_eq!(
+        node_revision.object_type().as_str(),
+        "scriberig.session.plan-node"
+    );
+    assert!(plan_payload.get("nodes").is_none());
+    assert!(plan_payload.get("dependencies").is_none());
+    assert!(plan_payload.get("history").is_none());
+    assert!(mappings.len() > 2);
+    let exact_nodes = semantic_snapshot.node_refs().expect("exact node refs");
+    assert_eq!(exact_nodes.len(), 1);
+    assert_eq!(exact_nodes[0].entity, node_id);
+    assert_eq!(exact_nodes[0].revision, node_revision_id);
+    let decoded = semantic_snapshot
+        .into_plan(Vec::new())
+        .expect("decode plan with gate, evidence, and summary");
+    assert_eq!(decoded.gates.len(), 1);
+    assert_eq!(decoded.evidence.len(), 1);
+    assert_eq!(decoded.summaries.len(), 1);
+    assert_eq!(
+        decoded
+            .evaluate_gate(gate_id)
+            .expect("evaluate gate")
+            .status,
+        scriberig_session::PlanGateStatus::Satisfied
+    );
+    drop(semantic_store);
+    drop(store);
+    let _ = std::fs::remove_file(path);
+}
+
 /// Verifies plan compare and swap merges new worker branch.
 #[test]
 fn plan_compare_and_swap_merges_new_worker_branch() {
@@ -153,145 +326,5 @@ fn execution_selection_compare_and_swap_is_atomic() {
     );
 }
 
-/// Proves concurrent coordinator claims serialize to one durable winner.
-#[test]
-#[allow(clippy::too_many_lines)]
-fn concurrent_plan_coordinator_claims_have_one_winner() {
-    let session_id = EntityId::from_bytes([211; 16]);
-    let root_id = EntityId::from_bytes([212; 16]);
-    let plan_id = EntityId::from_bytes([213; 16]);
-    let store = Arc::new(SqliteSessionStore::open_in_memory().expect("open store"));
-    let mut plan = Plan::new(
-        plan_id,
-        session_id,
-        scriberig_session::ContinuationAnchor::BranchHead { branch: root_id },
-        "coordinate work",
-    )
-    .expect("plan");
-    let node_id = EntityId::from_bytes([216; 16]);
-    plan.add_node(PlanNode {
-        id: node_id,
-        parent: Some(scriberig_session::PlanNodeParent::Branch(root_id)),
-        title: "worker".to_owned(),
-        purpose: "isolated work".to_owned(),
-        expected_result: None,
-        semantic_scope: Vec::new(),
-        status: PlanNodeStatus::Planned,
-        branch: None,
-        result: None,
-        superseded_by: None,
-        assignment: None,
-        claim: None,
-        claim_generation: 0,
-    })
-    .expect("add worker node");
-    plan.transition(scriberig_session::PlanStatus::Planned)
-        .expect("plan plan");
-    plan.transition(scriberig_session::PlanStatus::Running)
-        .expect("run plan");
-    let initial_revision = plan.revision;
-    store
-        .save(&Session {
-            id: session_id,
-            branches: vec![Branch::new(root_id, "root").expect("root")],
-            goals: Vec::new(),
-            tasks: Vec::new(),
-            plans: vec![plan],
-            execution: scriberig_session::SessionExecutionSelection::default(),
-        })
-        .expect("save initial plan");
-    let mut first = store
-        .load(session_id)
-        .expect("load first snapshot")
-        .expect("session");
-    let mut second = first.clone();
-    first.plans[0]
-        .claim_coordinator(EntityId::from_bytes([214; 16]), "runtime-a")
-        .expect("first claim");
-    second.plans[0]
-        .claim_coordinator(EntityId::from_bytes([215; 16]), "runtime-b")
-        .expect("second claim");
-
-    let first_store = Arc::clone(&store);
-    let first_claim = std::thread::spawn(move || {
-        first_store.compare_and_swap_plan(&first, plan_id, initial_revision)
-    });
-    let second_store = Arc::clone(&store);
-    let second_claim = std::thread::spawn(move || {
-        second_store.compare_and_swap_plan(&second, plan_id, initial_revision)
-    });
-    let outcomes = [
-        first_claim.join().expect("first operation"),
-        second_claim.join().expect("second operation"),
-    ];
-
-    assert_eq!(outcomes.iter().filter(|result| result.is_ok()).count(), 1);
-    assert_eq!(
-        outcomes
-            .iter()
-            .filter(|result| matches!(
-                result,
-                Err(scriberig_session::PlanStoreError::RevisionConflict { .. })
-            ))
-            .count(),
-        1
-    );
-    let stored = store
-        .load(session_id)
-        .expect("reload plan")
-        .expect("session");
-    assert!(stored.plans[0].coordinator_claim.is_some());
-
-    let expected_worker_revision = stored.plans[0].revision;
-    let worker_branch = EntityId::from_bytes([217; 16]);
-    let mut first_worker = stored.clone();
-    let mut second_worker = stored;
-    first_worker.plans[0]
-        .start_node(
-            node_id,
-            worker_branch,
-            EntityId::from_bytes([218; 16]),
-            "worker-a",
-            &[],
-        )
-        .expect("first worker claim");
-    second_worker.plans[0]
-        .start_node(
-            node_id,
-            worker_branch,
-            EntityId::from_bytes([219; 16]),
-            "worker-b",
-            &[],
-        )
-        .expect("second worker claim proposal");
-    let first_store = Arc::clone(&store);
-    let first_claim = std::thread::spawn(move || {
-        first_store.compare_and_swap_plan(&first_worker, plan_id, expected_worker_revision)
-    });
-    let second_store = Arc::clone(&store);
-    let second_claim = std::thread::spawn(move || {
-        second_store.compare_and_swap_plan(&second_worker, plan_id, expected_worker_revision)
-    });
-    let outcomes = [
-        first_claim.join().expect("first worker operation"),
-        second_claim.join().expect("second worker operation"),
-    ];
-
-    assert_eq!(outcomes.iter().filter(|result| result.is_ok()).count(), 1);
-    assert_eq!(
-        outcomes
-            .iter()
-            .filter(|result| matches!(
-                result,
-                Err(scriberig_session::PlanStoreError::RevisionConflict { .. })
-            ))
-            .count(),
-        1
-    );
-    let stored = store
-        .load(session_id)
-        .expect("reload worker claim")
-        .expect("session");
-    assert_eq!(stored.plans[0].nodes[0].branch, Some(worker_branch));
-    assert!(stored.plans[0].nodes[0].claim.is_some());
-}
+#[path = "coordinator_claims.rs"]
+mod coordinator_claims;

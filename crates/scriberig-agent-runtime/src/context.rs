@@ -1,10 +1,64 @@
 //! Compiles deterministic, branch-scoped provider-neutral model context.
 
-use crate::provider::{ModelMessage, ToolDefinition};
+/// Identifies the semantic author of a compiled context message.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ContextMessageRole {
+    /// ScribeRig-authored runtime instruction.
+    System,
+    /// Human-authored branch instruction.
+    User,
+}
 
+/// One ScribeRig-compiled context component before upstream projection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ModelMessage {
+    /// Semantic author of the context text.
+    pub role: ContextMessageRole,
+    /// Text compiled from `ScribeRig` branch state.
+    pub content: String,
+}
+
+impl ModelMessage {
+    /// Creates a human-authored context component.
+    ///
+    /// # Parameters
+    /// - `content`: User-authored branch instruction.
+    ///
+    /// # Returns
+    /// A user-role context message.
+    #[must_use]
+    pub fn user(content: impl Into<String>) -> Self {
+        Self {
+            role: ContextMessageRole::User,
+            content: content.into(),
+        }
+    }
+
+    /// Creates a ScribeRig-authored runtime instruction.
+    ///
+    /// # Parameters
+    /// - `content`: Runtime instruction compiled from semantic state.
+    ///
+    /// # Returns
+    /// A system-role context message.
+    #[must_use]
+    pub fn system(content: impl Into<String>) -> Self {
+        Self {
+            role: ContextMessageRole::System,
+            content: content.into(),
+        }
+    }
+}
+
+#[path = "context/components.rs"]
+mod components;
 #[path = "context/fingerprint.rs"]
 mod fingerprint;
+#[path = "context/tool_identity.rs"]
+mod tool_identity;
+pub use components::{ResolvedContextComponent, resolve_active_context_components};
 pub use fingerprint::RequestFingerprintInput;
+pub use tool_identity::tool_catalog_identity;
 
 /// One bounded semantic activity item available to a branch compiler.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -61,6 +115,8 @@ pub struct BranchExecutionContext {
     pub session: String,
     /// Stable branch reference.
     pub branch: String,
+    /// Structural role of this branch in the canonical session tree.
+    pub branch_role: BranchRole,
     /// Exact durable source point used to compile inherited conversation.
     pub continuation_anchor: Option<String>,
     /// Branch purpose or delegated goal.
@@ -77,6 +133,19 @@ pub struct BranchExecutionContext {
     pub project_scope: Option<ProjectSemanticScope>,
     /// Current-branch semantic activities.
     pub activities: Vec<ContextActivity>,
+}
+
+/// Identifies whether an execution branch is the root or a child in its
+/// canonical `ScribeRig` session tree.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum BranchRole {
+    /// The branch has no structural parent.
+    Root,
+    /// The branch has the given structural parent branch.
+    NonRoot {
+        /// Stable reference to the immediate parent branch.
+        parent: String,
+    },
 }
 
 /// Identifies one durable result admitted to a worker's context.
@@ -126,6 +195,7 @@ impl BranchExecutionContext {
         Self {
             session: session.into(),
             branch: branch.into(),
+            branch_role: BranchRole::Root,
             continuation_anchor: None,
             purpose: purpose.into(),
             instruction: instruction.into(),
@@ -135,6 +205,21 @@ impl BranchExecutionContext {
             project_scope: None,
             activities: Vec::new(),
         }
+    }
+
+    /// Sets the structural role from the canonical session branch topology.
+    ///
+    /// - `self`: Context being configured.
+    /// - `branch_role`: Root or child role with its actual parent reference.
+    ///
+    /// The context with the selected branch role.
+    ///
+    /// # Returns
+    /// The execution context with this branch role.
+    #[must_use]
+    pub fn with_branch_role(mut self, branch_role: BranchRole) -> Self {
+        self.branch_role = branch_role;
+        self
     }
 
     /// Resolves a durable session anchor into branch-local context activities.
@@ -287,4 +372,4 @@ impl BranchExecutionContext {
 
 #[path = "context/compiler.rs"]
 mod compiler;
-pub use compiler::{CompiledContext, ContextCompiler, ContextPolicy, tool_catalog_identity};
+pub use compiler::{CompiledContext, ContextCompiler, ContextPolicy};

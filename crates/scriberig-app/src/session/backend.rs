@@ -3,8 +3,9 @@
 use super::{
     AgentCommandRequest, AgentContinuationAccepted, AgentContinueAtRequest, ApplicationContext,
     ApplicationError, EntityId, NewSessionAgentRequest, NewSessionAgentStart, OperationId,
-    PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest,
-    PlanReplanRequest, Session, SessionRequest,
+    PlanAssignmentRequest, PlanCreateRequest, PlanDecomposeRequest, PlanLifecycleAction,
+    PlanLifecycleRequest, PlanNextStepRequest, PlanReplanRequest, PlanRetryRequest,
+    PlanSemanticMutationRequest, Session, SessionRequest,
 };
 
 /// Owns session and agent operations at the application boundary.
@@ -232,6 +233,92 @@ pub trait SessionBackend {
     ) -> Result<scriberig_session::Plan, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "plan lifecycle".to_owned(),
+        })
+    }
+
+    /// Retries one failed node through shared plan validation and persistence.
+    ///
+    /// - `_context`: Authorized caller context.
+    /// - `_request`: Session, plan, node, and observed plan revision.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns unsupported-operation or a structured retry/persistence error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn retry_plan_node(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanRetryRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan node retry".to_owned(),
+        })
+    }
+
+    /// Adds ordinary work to a running plan through shared validation.
+    ///
+    /// - `_context`: Authorized caller context.
+    /// - `_request`: Plan revision and the next work item's semantic fields.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns unsupported-operation or structured plan errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn add_plan_next_step(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanNextStepRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan next step".to_owned(),
+        })
+    }
+
+    /// Decomposes a plan node through shared validation and persistence.
+    ///
+    /// - `_context`: Authorized caller context.
+    /// - `_request`: Parent, exact revision, children, and completion policy.
+    ///
+    /// The authoritative plan with its structural children and typed gates.
+    ///
+    /// Returns unsupported-operation or structured plan errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn decompose_plan_node(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanDecomposeRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan node decomposition".to_owned(),
+        })
+    }
+
+    /// Applies one summary, evidence, gate, or waiver mutation.
+    ///
+    /// - `_context`: Authorized caller context.
+    /// - `_request`: Exact plan revision and typed semantic mutation.
+    ///
+    /// The authoritative updated plan.
+    /// # Returns
+    /// The updated plan.
+    /// # Errors
+    /// Returns unsupported-operation or structured plan errors.
+    fn mutate_plan_semantics(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanSemanticMutationRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan semantic mutation".to_owned(),
         })
     }
 

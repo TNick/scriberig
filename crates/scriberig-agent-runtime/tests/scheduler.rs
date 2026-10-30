@@ -32,6 +32,13 @@ fn worker_models() -> Vec<Model> {
             "provider",
             "https://example.test",
         ),
+        Model::new(
+            "fallback-model",
+            "Fallback Model",
+            Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
     ]
 }
 
@@ -68,6 +75,8 @@ fn scheduler_plan() -> (Plan, EntityId, EntityId, EntityId) {
             branch: None,
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: None,
             claim: None,
             claim_generation: 0,
@@ -115,6 +124,8 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
             branch: None,
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: Some(ModelAssignment {
                 provider_id: "provider".to_owned(),
                 model_id: model.to_owned(),
@@ -151,8 +162,8 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
     assert_eq!(batch.completed, dispatch);
     assert_eq!(batch.failed, [] as [scriberig_core::EntityId; 0]);
     assert_eq!(batch.results.len(), 2);
-    assert_eq!(batch.results[0].result_handles, vec!["profile:alpha"]);
-    assert_eq!(batch.results[1].result_handles, vec!["profile:beta"]);
+    assert_eq!(batch.results[0].result_handles, vec!["provider:provider"]);
+    assert_eq!(batch.results[1].result_handles, vec!["provider:provider"]);
     assert!(
         plan.nodes
             .iter()
@@ -193,13 +204,18 @@ fn failed_candidate_integration_retains_structured_conflict_code() {
         failure.summary.as_deref(),
         Some("notes.txt has conflicting updates")
     );
+    let failed_node = plan
+        .nodes
+        .iter()
+        .find(|node| node.id == ready)
+        .expect("failed node");
+    assert_eq!(failed_node.status, PlanNodeStatus::Failed);
     assert_eq!(
-        plan.nodes
-            .iter()
-            .find(|node| node.id == ready)
-            .unwrap()
-            .status,
-        PlanNodeStatus::Failed
+        failed_node
+            .last_failure
+            .as_ref()
+            .map(|reference| reference.reference.entity),
+        Some(failure.id)
     );
 }
 

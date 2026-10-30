@@ -11,13 +11,27 @@
 pub fn compact_result_handles(result: &scriberig_agent_runtime::AgentResult) -> Vec<String> {
     let mut primary = Vec::new();
     let mut details = Vec::new();
-    for message in result.messages.iter().rev() {
-        let recent = match message {
-            scriberig_agent_runtime::AgentMessage::Tool(tool) => &tool.handles,
-            scriberig_agent_runtime::AgentMessage::Child(child) => &child.handles,
-            scriberig_agent_runtime::AgentMessage::User(_) => continue,
+    for evidence in result.tool_evidence.iter().rev() {
+        if evidence.failed {
+            continue;
+        }
+        let Ok(output) = serde_json::from_slice::<serde_json::Value>(&evidence.output) else {
+            continue;
         };
-        for handle in recent {
+        let handles = output
+            .get("handles")
+            .and_then(serde_json::Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(serde_json::Value::as_str)
+            .map(str::to_owned)
+            .chain(
+                evidence
+                    .child_branch
+                    .map(|branch| format!("branch:{branch}")),
+            )
+            .collect::<Vec<_>>();
+        for handle in &handles {
             if !primary.contains(handle) && !details.contains(handle) {
                 let destination = if is_primary_handle(handle) {
                     &mut primary
@@ -67,28 +81,33 @@ fn is_primary_handle(handle: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::compact_result_handles;
-    use scriberig_agent_core::ToolResult;
-    use scriberig_agent_runtime::{AgentMessage, AgentResult};
-    use scriberig_core::EntityId;
+    use scriberig_agent_runtime::AgentResult;
+    use scriberig_app::ToolExecutionEvidence;
 
     /// Keeps validation and candidate references when detail handles fill the bounded result.
     #[test]
     fn primary_candidate_handles_survive_detail_compaction() {
         let result = AgentResult {
             output: String::new(),
-            tool_evidence: Vec::new(),
             model_requests: Vec::new(),
-            messages: vec![AgentMessage::Tool(ToolResult {
-                entity: EntityId::from_bytes([0; 16]),
-                revision: None,
-                snapshot: None,
-                object_type: None,
-                summary: None,
-                handles: (0..20)
-                    .map(|index| format!("create:src/{index}.rs"))
-                    .chain(["candidate:c1".to_owned(), "validation:passed".to_owned()])
-                    .collect(),
-            })],
+            tool_evidence: vec![ToolExecutionEvidence {
+                ordinal: 0,
+                name: "project_propose".to_owned(),
+                input: Vec::new(),
+                presentation_input: None,
+                presentation_label: None,
+                category: None,
+                output: serde_json::json!({
+                    "handles": (0..20)
+                        .map(|index| format!("create:src/{index}.rs"))
+                        .chain(["candidate:c1".to_owned(), "validation:passed".to_owned()])
+                        .collect::<Vec<_>>(),
+                })
+                .to_string()
+                .into_bytes(),
+                failed: false,
+                child_branch: None,
+            }],
         };
 
         let handles = compact_result_handles(&result);

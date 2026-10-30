@@ -8,6 +8,10 @@ description = "Integrated Scriberig executable composition root."
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+isolated-plugin-worker = ["scriberig-agent-runtime/isolated-plugin-worker"]
+
 [[bin]]
 name = "srig"
 path = "src/main.rs"
@@ -29,8 +33,13 @@ scriberig-session = { path = "../../crates/scriberig-session" }
 scriberig-tui = { path = "../../crates/scriberig-tui" }
 scriberig-client = { path = "../../crates/scriberig-client" }
 scriberig-core = { path = "../../crates/scriberig-core" }
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "4a52baf41a19a889ca96c0f38369f7482f26973e" }
-rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "4a52baf41a19a889ca96c0f38369f7482f26973e" }
+rpi-ai = { workspace = true }
+rpi-agent = { workspace = true }
+rpi-model-runtime = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+async-trait = "0.1"
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["rt"] }
 scriberig-query = { path = "../../crates/scriberig-query" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

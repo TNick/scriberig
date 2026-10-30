@@ -1,45 +1,57 @@
 /** @file Defines safe model library and execution selection protocol values. */
-/** One thinking capability advertised by a model. */
-export interface ThinkingLevelDescriptor {
-  id: string;
-  label: string;
-  description?: string;
-  order: number;
+/** One supported input modality in the upstream safe metadata snapshot. */
+export type ModelInputModality = "text" | "image";
+/** Typed pricing metadata copied from the upstream safe model snapshot. */
+export interface ModelCostSnapshot {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  tiers: readonly ModelCostTierSnapshot[];
 }
-/** Safe generation capabilities advertised by a model. */
-export interface ModelCapabilities {
-  streaming: boolean;
-  toolCalls: boolean;
-  structuredOutput: boolean;
+/** One upstream pricing tier. */
+export interface ModelCostTierSnapshot {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  inputTokensAbove: number;
 }
-/** Provider model descriptor without resolved credential values. */
+/** Display-safe fields from the versioned upstream model snapshot. */
+export interface ModelMetadataSnapshot {
+  schemaVersion: "rpi-safe-model-snapshot-v1";
+  apiId: string;
+  reasoning: boolean;
+  input: readonly ModelInputModality[];
+  cost: ModelCostSnapshot;
+  costConfigured: boolean;
+  contextWindow: number;
+  maxTokens: number;
+}
+/** Provider model descriptor without resolved credential values.
+ * `id` is the Rust `rpi1` UTF-8 length-prefixed provider/model row key.
+ */
 export interface ModelDescriptor {
   id: string;
   displayName: string;
   providerId: string;
   modelId: string;
-  capabilities: ModelCapabilities;
-  thinkingLevels: readonly ThinkingLevelDescriptor[];
-  defaultThinkingLevel?: string;
+  thinkingLevels: readonly string[];
+  metadataSnapshot: ModelMetadataSnapshot;
 }
-/** Safe reference to a configured credential. */
-export interface CredentialRef {
-  id: string;
+/** Safe provider credential readiness reported by the host. */
+export type ProviderCredentialReadiness =
+  "not_required" | "available" | "missing" | "denied" | "unsupported" | "catalog_header";
+/** Readiness for one provider/model endpoint without credential material. */
+export interface ProviderReadiness {
+  providerId: string;
+  modelId: string;
+  credential: ProviderCredentialReadiness;
 }
-/** Curated model entry clients may select. */
-export interface ModelProfile {
-  id: string;
-  displayName: string;
-  model: string;
-  connection: string;
-  credential?: CredentialRef;
-  defaultThinkingLevel?: string;
-  enabled: boolean;
-}
-/** Credential-safe descriptors and curated model profiles. */
+/** Credential-safe upstream-derived model display rows. */
 export interface ModelLibraryResponse {
   models: readonly ModelDescriptor[];
-  profiles: readonly ModelProfile[];
+  providerReadiness?: readonly ProviderReadiness[];
 }
 /** Session model mutation with its independent optimistic revision. */
 export interface SessionModelSelectionRequest {

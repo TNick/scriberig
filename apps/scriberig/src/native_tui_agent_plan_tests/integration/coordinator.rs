@@ -38,12 +38,10 @@ fn run_candidate_plan(conflict: bool) {
         StoreInspectionBackend::new(Arc::clone(&fixture.store)),
         StoreOperationProvider::new(Arc::clone(&fixture.store)),
     );
-    let library = scriberig_app::model_library_from_json(None, "integration-model")
-        .expect("worker model library");
+    let upstream_models = upstream_model_catalog("local", &["integration-model"]);
     let service = ApplicationService::new(backend)
         .with_session_store(session_store.clone())
-        .with_model_library(library.clone())
-        .with_upstream_models(upstream_model_catalog("local", &["integration-model"]));
+        .with_upstream_models(upstream_models);
     let session_id = EntityId::new();
     let root_branch = EntityId::new();
     let mut root = Branch::new(root_branch, "root").expect("root branch");
@@ -69,7 +67,7 @@ fn run_candidate_plan(conflict: bool) {
     )
     .expect("save session");
     let assignment = Some(ModelAssignment {
-        provider_id: "integration-provider".to_owned(),
+        provider_id: "local".to_owned(),
         model_id: "integration-model".to_owned(),
         thinking_level: None,
     });
@@ -136,6 +134,7 @@ fn run_candidate_plan(conflict: bool) {
         conflict,
         siblings: std::sync::Barrier::new(2),
     };
+    let upstream_models = service.upstream_models();
     scriberig_agent_runtime::coordinator::PlanCoordinator::run_until_idle(
         &service,
         &context,
@@ -146,7 +145,7 @@ fn run_candidate_plan(conflict: bool) {
             .expect("coordinator claim")
             .id,
         &executor,
-        service.upstream_models(),
+        &upstream_models,
         "integration-model",
         2,
         EntityId::new,

@@ -1,9 +1,7 @@
 //! Scripts a provider-neutral PHP self-extension scenario for product gates.
 
-use scriberig_agent_runtime::provider::{
-    FinishReason, MessageRole, ModelRequest, ModelResponse, ProviderAdapter, ProviderError,
-    ProviderMetadata, ToolCall,
-};
+use rpi_ai::{AssistantMessage, Context, Model};
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 use serde_json::{Value, json};
 
 use crate::deterministic_provider::{BootstrapProvider, parse_handles};
@@ -52,49 +50,57 @@ pub(super) struct SemanticScope {
     pub snapshot: String,
 }
 
-impl ProviderAdapter for PhpSelfHostingProvider {
-    /// Returns the next ordinary tool call for onboarding or PHP implementation.
+impl PhpSelfHostingProvider {
+    /// Produces the next semantic scenario message from the upstream context.
     ///
-    /// - `self`: Configured deterministic product-gate scenario.
-    /// - `request`: Normalized model request from the shared runtime.
+    /// - `context`: Exact upstream context supplied for the provider call.
+    /// - `model`: Selected upstream model that will emit the response.
     ///
-    /// One normal provider tool call or a concise branch result.
-    ///
-    /// Returns an error when exact project scope or expected tool results are absent.
     /// # Returns
-    /// The operation result.
+    /// The next scripted response, or a safe scenario failure.
+    ///
     /// # Errors
-    /// Returns an error when the operation fails.
-    fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
-        let prompt = user_prompt(request);
+    /// Returns an error when required semantic scope or scenario state is absent.
+    pub(super) fn respond(
+        self,
+        context: &Context,
+        model: &Model,
+    ) -> Result<AssistantMessage, String> {
+        let prompt = user_prompt(context);
         if prompt.to_lowercase().contains("onboard") {
             if self.cancellation == Some(CancellationPhase::Onboarding) {
-                await_test_release()?;
+                await_test_release().map_err(|error| error.to_string())?;
             }
-            return BootstrapProvider.complete(request);
+            return BootstrapProvider::respond(context, model);
         }
         let phase_delay = self.cancellation == Some(CancellationPhase::Discovery)
-            && request_contains(request, "ARCHITECTURE_DISCOVERY_TASK");
+            && prompt.contains("ARCHITECTURE_DISCOVERY_TASK");
         let implementation_delay = self.cancellation == Some(CancellationPhase::Implementation)
-            && request_contains(request, "PHP_IMPLEMENTATION_TASK");
+            && prompt.contains("PHP_IMPLEMENTATION_TASK");
         if phase_delay || implementation_delay {
-            await_test_release()?;
+            await_test_release().map_err(|error| error.to_string())?;
         }
-        let scope = project_scope(request)?;
+        let scope = project_scope(context).map_err(|error| error.to_string())?;
         if !prompt.to_lowercase().contains("php") {
-            return Err(ProviderError::Configuration(
-                "PHP self-hosting scenario received an unexpected request".to_owned(),
-            ));
+            return Err("PHP self-hosting scenario received an unexpected request".to_owned());
         }
         let is_architecture = prompt.contains("ARCHITECTURE_DISCOVERY_TASK");
         let is_implementation = prompt.contains("PHP_IMPLEMENTATION_TASK");
         if is_architecture {
-            return branches::architecture_branch(request, &scope);
+            return branches::architecture_branch(context, model, &scope)
+                .map_err(|error| error.to_string());
         }
         if is_implementation {
-            return branches::implementation_branch(request, &scope, self.validation);
+            return branches::implementation_branch(context, model, &scope, self.validation)
+                .map_err(|error| error.to_string());
         }
-        branches::root_branch(request, &scope, self.validation != ValidationMode::Normal)
+        branches::root_branch(
+            context,
+            model,
+            &scope,
+            self.validation != ValidationMode::Normal,
+        )
+        .map_err(|error| error.to_string())
     }
 }
 
@@ -106,13 +112,6 @@ impl ProviderAdapter for PhpSelfHostingProvider {
 /// `true` when the marker occurs in any request message.
 /// # Returns
 /// The operation result.
-fn request_contains(request: &ModelRequest, anchor: &str) -> bool {
-    request
-        .messages
-        .iter()
-        .any(|message| message.content.contains(anchor))
-}
-
 /// Holds a cancellation scenario response until the PTY test releases its synchronization gate.
 ///
 /// Unit after the test writes its release marker, or immediately outside gated PTY tests.
@@ -122,20 +121,20 @@ fn request_contains(request: &ModelRequest, anchor: &str) -> bool {
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-fn await_test_release() -> Result<(), ProviderError> {
+fn await_test_release() -> Result<(), HostConfigurationError> {
     let Ok(path) = std::env::var("SCRIBE_AGENT_TEST_PROVIDER_GATE") else {
         return Ok(());
     };
     let path = std::path::PathBuf::from(path);
     let waiting = path.with_extension("waiting");
     std::fs::write(&waiting, b"provider reached the cancellation gate").map_err(|error| {
-        ProviderError::Configuration(format!("cannot mark provider gate as waiting: {error}"))
+        HostConfigurationError::Scenario(format!("cannot mark scenario gate as waiting: {error}"))
     })?;
     loop {
         match std::fs::metadata(&path) {
             Ok(_) => {
                 std::fs::remove_file(&waiting).map_err(|error| {
-                    ProviderError::Configuration(format!(
+                    HostConfigurationError::Scenario(format!(
                         "cannot remove provider gate waiting marker: {error}"
                     ))
                 })?;
@@ -145,7 +144,7 @@ fn await_test_release() -> Result<(), ProviderError> {
                 std::thread::sleep(std::time::Duration::from_millis(10));
             }
             Err(error) => {
-                return Err(ProviderError::Configuration(format!(
+                return Err(HostConfigurationError::Scenario(format!(
                     "cannot inspect test provider release marker: {error}"
                 )));
             }
@@ -155,41 +154,31 @@ fn await_test_release() -> Result<(), ProviderError> {
 
 /// Extracts the user prompt from a normalized request.
 ///
-/// - `request`: Current provider request.
+/// - `context`: Current provider request.
 ///
 /// - `super`: Parent module visibility marker.
 ///   First user message or an empty string.
 /// # Returns
 /// The operation result.
-pub(super) fn user_prompt(request: &ModelRequest) -> &str {
-    request
-        .messages
-        .iter()
-        .rev()
-        .find(|message| message.role == MessageRole::User)
-        .map_or("", |message| message.content.as_str())
+pub(super) fn user_prompt(context: &Context) -> String {
+    crate::scenario_helpers::user_prompt(context)
 }
 
 /// Returns normalized tool result contents in conversation order.
 ///
-/// - `request`: Current provider request.
+/// - `context`: Current provider request.
 ///
 /// - `super`: Parent module visibility marker.
 ///   Tool observation content slices.
 /// # Returns
 /// The operation result.
-pub(super) fn tool_messages(request: &ModelRequest) -> Vec<&str> {
-    request
-        .messages
-        .iter()
-        .filter(|message| message.role == MessageRole::Tool)
-        .map(|message| message.content.as_str())
-        .collect()
+pub(super) fn tool_messages(context: &Context) -> Vec<String> {
+    crate::scenario_helpers::tool_messages(context)
 }
 
 /// Reads exact project/snapshot scope from compiled branch context.
 ///
-/// - `request`: Current provider request.
+/// - `context`: Current provider request.
 ///
 /// - `super`: Parent module visibility marker.
 ///   Exact semantic project and snapshot references.
@@ -199,17 +188,14 @@ pub(super) fn tool_messages(request: &ModelRequest) -> Vec<&str> {
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-pub(super) fn project_scope(request: &ModelRequest) -> Result<SemanticScope, ProviderError> {
-    let content = request
-        .messages
-        .iter()
-        .find(|message| message.role == MessageRole::System)
-        .map(|message| message.content.as_str())
-        .unwrap_or_default();
-    let scope = content
+pub(super) fn project_scope(context: &Context) -> Result<SemanticScope, HostConfigurationError> {
+    let system_prompt = context.system_prompt.as_deref().unwrap_or_default();
+    let scope = system_prompt
         .split_once("semantic_project_scope:")
         .map(|(_, scope)| scope)
-        .ok_or_else(|| ProviderError::Configuration("exact project scope is missing".to_owned()))?;
+        .ok_or_else(|| {
+            HostConfigurationError::Scenario("exact project scope is missing".to_owned())
+        })?;
     let value = |key: &str| {
         scope
             .split_whitespace()
@@ -235,7 +221,7 @@ pub(super) fn project_scope(request: &ModelRequest) -> Result<SemanticScope, Pro
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-pub(super) fn semantic_entity(message: &str) -> Result<String, ProviderError> {
+pub(super) fn semantic_entity(message: &str) -> Result<String, HostConfigurationError> {
     parse_handles(message)?
         .iter()
         .filter_map(|handle| serde_json::from_str::<Value>(handle).ok())
@@ -264,23 +250,14 @@ pub(super) fn handle_with_prefix(message: &str, prefix: &str) -> Option<String> 
 ///
 /// - `name`: Registered trusted tool identifier.
 /// - `arguments`: Structured tool arguments.
+/// - `model`: Upstream model producing the tool call.
 ///
 /// - `super`: Parent module visibility marker.
 ///   Normal tool-call response.
 /// # Returns
 /// The operation result.
-pub(super) fn tool_call(name: &str, arguments: Value) -> ModelResponse {
-    ModelResponse {
-        text: None,
-        tool_calls: vec![ToolCall {
-            id: format!("self-host-{name}"),
-            name: name.to_owned(),
-            arguments,
-        }],
-        finish_reason: FinishReason::ToolCall,
-        usage: None,
-        metadata: ProviderMetadata::default(),
-    }
+pub(super) fn tool_call(model: &Model, name: &str, arguments: Value) -> AssistantMessage {
+    crate::scenario_helpers::tool_call(model, name, arguments)
 }
 
 /// Creates a normal child-branch request through the model tool contract.
@@ -289,18 +266,21 @@ pub(super) fn tool_call(name: &str, arguments: Value) -> ModelResponse {
 /// - `prompt`: Explicit child instructions.
 /// - `capabilities`: Narrow child capabilities.
 /// - `expected_result`: Compact `BranchResult` contract.
+/// - `model`: Upstream model producing the delegation request.
 ///
 /// - `super`: Parent module visibility marker.
 ///   Provider response requesting a nested branch.
 /// # Returns
 /// The operation result.
 pub(super) fn delegate(
+    model: &Model,
     purpose: &str,
     prompt: &str,
     capabilities: &[&str],
     expected_result: &str,
-) -> ModelResponse {
+) -> AssistantMessage {
     tool_call(
+        model,
         "delegate",
         json!({"purpose":purpose,"prompt":prompt,"capabilities":capabilities,"expected_result":expected_result}),
     )
@@ -309,19 +289,14 @@ pub(super) fn delegate(
 /// Creates a concise terminal model response.
 ///
 /// - `text`: Durable assistant result text.
+/// - `model`: Upstream model producing the final response.
 ///
 /// - `super`: Parent module visibility marker.
 ///   Normal stop response.
 /// # Returns
 /// The operation result.
-pub(super) fn final_response(text: &str) -> ModelResponse {
-    ModelResponse {
-        text: Some(text.to_owned()),
-        tool_calls: Vec::new(),
-        finish_reason: FinishReason::Stop,
-        usage: None,
-        metadata: ProviderMetadata::default(),
-    }
+pub(super) fn final_response(model: &Model, text: &str) -> AssistantMessage {
+    crate::scenario_helpers::final_response(model, text)
 }
 
 /// Creates a normalized malformed-response error.
@@ -332,6 +307,6 @@ pub(super) fn final_response(text: &str) -> ModelResponse {
 ///   Provider malformed-response error.
 /// # Returns
 /// The operation result.
-pub(super) fn malformed(message: &str) -> ProviderError {
-    ProviderError::MalformedResponse(message.to_owned())
+pub(super) fn malformed(message: &str) -> HostConfigurationError {
+    HostConfigurationError::Scenario(message.to_owned())
 }

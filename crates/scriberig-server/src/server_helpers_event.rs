@@ -156,12 +156,14 @@ pub fn event_from_application(event: ApplicationEvent) -> Event {
             activity_kind,
             state,
             summary,
+            ordinal,
         } => {
             typed_activity_kind = Some(activity_kind);
             typed_activity_state = Some(state);
             operation = Some(value);
             metadata.push(("branch".to_owned(), branch));
             metadata.push(("summary".to_owned(), summary));
+            metadata.push(("ordinal".to_owned(), ordinal.to_string()));
             EventKind::AgentActivity
         }
     };
@@ -275,6 +277,7 @@ mod tests {
             activity_kind: scriberig_session::AgentActivityKind::ToolInvocation,
             state: scriberig_session::AgentActivityState::Running,
             summary: "Tool: search".to_owned(),
+            ordinal: 3,
         });
 
         assert_eq!(event.kind, EventKind::AgentActivity);
@@ -295,6 +298,7 @@ mod tests {
             vec![
                 ("branch".to_owned(), "branch-1".to_owned()),
                 ("summary".to_owned(), "Tool: search".to_owned()),
+                ("ordinal".to_owned(), "3".to_owned()),
             ]
         );
     }

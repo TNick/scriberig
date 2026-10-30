@@ -8,18 +8,28 @@ description = "Integrated agent execution, orchestration, and model-provider run
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+isolated-plugin-worker = ["dep:rpi-extensions"]
+
 [dependencies]
 scriberig-secrets = { path = "../scriberig-secrets" }
 zeroize = "1"
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-core = { path = "../scriberig-core" }
+scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 blake3 = "1.8"
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "4a52baf41a19a889ca96c0f38369f7482f26973e" }
+rpi-ai = { workspace = true }
+rpi-model-runtime = { workspace = true }
+rpi-agent = { workspace = true }
+rpi-extensions = { workspace = true, optional = true }
+async-trait = "0.1"
+tokio = { version = "1", features = ["rt", "macros"] }
+tokio-util = { version = "0.7", features = ["rt"] }
 
 [lints]
 workspace = true
@@ -27,3 +37,4 @@ workspace = true
 [dev-dependencies]
 scriberig-store = { path = "../scriberig-store" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
+scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }

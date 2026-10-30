@@ -9,10 +9,9 @@ mod access_tests;
 use rpi_ai::{Api, Model, ThinkingLevel, ThinkingLevelMap};
 use scriberig_app::{
     AgentCommandRequest, AgentConsoleBackend, ApplicationContext, ApplicationError,
-    ApplicationService, CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary,
-    ModelProfile, PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleRequest, PlanNodeDraft,
-    SessionBackend, SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
-    ThinkingLevelDescriptor, ThinkingLevelId,
+    ApplicationService, PlanAssignmentRequest, PlanChildDraft, PlanCreateRequest,
+    PlanDecomposeRequest, PlanLifecycleRequest, PlanNextStepRequest, PlanNodeDraft, SessionBackend,
+    SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
 };
 use scriberig_core::EntityId;
 
@@ -22,6 +21,19 @@ use scriberig_core::EntityId;
 /// # Returns
 /// The operation result.
 fn session_upstream_models() -> Vec<Model> {
+    let mut model_a = Model::new(
+        "native-a",
+        "Model A",
+        Api::AnthropicMessages,
+        "local",
+        "https://example.test",
+    );
+    model_a.thinking_level_map = Some(ThinkingLevelMap::from([
+        (ThinkingLevel::Minimal, None),
+        (ThinkingLevel::Low, Some("low".to_owned())),
+        (ThinkingLevel::Medium, Some("medium".to_owned())),
+        (ThinkingLevel::High, Some("high".to_owned())),
+    ]));
     let mut model_b = Model::new(
         "native-b",
         "Model B",
@@ -32,97 +44,16 @@ fn session_upstream_models() -> Vec<Model> {
     model_b.thinking_level_map = Some(ThinkingLevelMap::from([
         (ThinkingLevel::Minimal, None),
         (ThinkingLevel::Low, Some("low".to_owned())),
-        (ThinkingLevel::Medium, None),
+        (ThinkingLevel::Medium, Some("steady".to_owned())),
         (ThinkingLevel::High, None),
     ]));
-    vec![
-        Model::new(
-            "native-a",
-            "Model A",
-            Api::AnthropicMessages,
-            "local",
-            "https://example.test",
-        ),
-        model_b,
-    ]
-}
-
-/// Creates model profiles with independent thinking-level capabilities.
-///
-/// A validated model library used by selection tests.
-///
-/// # Panics
-/// Panics when the static fixture violates the model library contract.
-/// # Returns
-/// The operation result.
-fn session_model_library() -> ModelLibrary {
-    let first = ModelDescriptor {
-        id: ModelId::new("model-a").expect("model id"),
-        display_name: "Model A".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "native-a".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![
-            ThinkingLevelDescriptor {
-                id: ThinkingLevelId::new("medium").expect("thinking id"),
-                label: "Careful".to_owned(),
-                description: None,
-                order: 0,
-            },
-            ThinkingLevelDescriptor {
-                id: ThinkingLevelId::new("high").expect("thinking id"),
-                label: "Extended".to_owned(),
-                description: None,
-                order: 1,
-            },
-        ],
-        default_thinking_level: Some(ThinkingLevelId::new("medium").expect("thinking id")),
-    };
-    let second = ModelDescriptor {
-        id: ModelId::new("model-b").expect("model id"),
-        display_name: "Model B".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "native-b".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![ThinkingLevelDescriptor {
-            id: ThinkingLevelId::new("low").expect("thinking id"),
-            label: "Steady".to_owned(),
-            description: None,
-            order: 0,
-        }],
-        default_thinking_level: Some(ThinkingLevelId::new("low").expect("thinking id")),
-    };
-    let profiles = vec![
-        ModelProfile {
-            id: "profile-a".to_owned(),
-            display_name: "Model A".to_owned(),
-            model: first.id.clone(),
-            connection: "local".to_owned(),
-            credential: Some(CredentialRef {
-                id: "secret-ref-a".to_owned(),
-            }),
-            default_thinking_level: Some(ThinkingLevelId::new("medium").expect("thinking id")),
-            enabled: true,
-        },
-        ModelProfile {
-            id: "profile-b".to_owned(),
-            display_name: "Model B".to_owned(),
-            model: second.id.clone(),
-            connection: "local".to_owned(),
-            credential: None,
-            default_thinking_level: Some(ThinkingLevelId::new("low").expect("thinking id")),
-            enabled: true,
-        },
-    ];
-    ModelLibrary::new(vec![first, second], profiles).expect("model library")
+    vec![model_a, model_b]
 }
 
 /// Verifies session model operations validate thinking levels and reject stale writes.
 #[test]
-fn session_model_selection_uses_library_and_mutation_revision() {
-    let service = ApplicationService::new(Fixture)
-        .with_model_library(session_model_library())
-        .with_upstream_models(session_upstream_models());
+fn session_model_selection_uses_upstream_catalog_and_mutation_revision() {
+    let service = ApplicationService::new(Fixture).with_upstream_models(session_upstream_models());
     let context = session_context();
     let session = EntityId::from_bytes([24; 16]);
     service
@@ -169,7 +100,7 @@ fn session_model_selection_uses_library_and_mutation_revision() {
         )
         .expect("switch model and fall back");
     assert_eq!(selected.revision, 3);
-    assert_eq!(selected.thinking_level.as_deref(), Some("low"));
+    assert_eq!(selected.thinking_level.as_deref(), Some("medium"));
 
     let conflict = service
         .set_session_model(
@@ -203,9 +134,58 @@ fn session_model_selection_uses_library_and_mutation_revision() {
     assert_replayed_selection_history(&service, &context, session, &selected);
     let available = service
         .agent_model_library(&context)
-        .expect("authorized model library");
-    assert_eq!(available.profiles.len(), 2);
-    assert!(!format!("{available:?}").contains("resolved-secret"));
+        .expect("authorized model snapshots");
+    assert_eq!(available.len(), 2);
+}
+
+/// Projects updates and removals from a shared upstream live catalog.
+#[test]
+fn upstream_safe_model_snapshots_track_live_catalog_updates_and_removals() {
+    let context = session_context();
+    let initial_model = Model::new(
+        "model-before-refresh",
+        "Initial model",
+        Api::AnthropicMessages,
+        "provider-before-refresh",
+        "https://example.test",
+    );
+    let catalog = rpi_model_runtime::ModelCatalog::new();
+    catalog.replace_provider_models("provider-before-refresh", vec![initial_model]);
+    let service = ApplicationService::new(Fixture).with_model_catalog(catalog.clone());
+    let initial_models = service
+        .agent_model_library(&context)
+        .expect("initial upstream model projection");
+
+    assert_eq!(initial_models.len(), 1);
+    assert_eq!(initial_models[0].model_id, "model-before-refresh");
+
+    let refreshed_model = Model::new(
+        "model-after-refresh",
+        "Refreshed model",
+        Api::OpenaiCompletions,
+        "provider-after-refresh",
+        "https://example.test",
+    );
+    catalog.reconcile_models(vec![refreshed_model]);
+    let refreshed_models = service
+        .agent_model_library(&context)
+        .expect("refreshed upstream model projection");
+
+    assert_eq!(refreshed_models.len(), 1);
+    assert_eq!(refreshed_models[0].provider_id, "provider-after-refresh");
+    assert_eq!(refreshed_models[0].model_id, "model-after-refresh");
+    assert_eq!(refreshed_models[0].display_name, "Refreshed model");
+    assert!(
+        !refreshed_models
+            .iter()
+            .any(|model| model.model_id == "model-before-refresh")
+    );
+
+    catalog.reconcile_models(Vec::new());
+    let removed_models = service
+        .agent_model_library(&context)
+        .expect("model projection after provider removal");
+    assert_eq!(removed_models, []);
 }
 
 /// Verifies typed live selection events include model and fallback activity.
@@ -234,7 +214,7 @@ fn assert_selection_events(service: &ApplicationService<Fixture>, session: Entit
     }));
     assert!(selection_events.iter().any(|(kind, summary)| {
         *kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && summary == "Thinking level selected: low"
+            && summary == "Thinking level selected: medium"
     }));
 }
 
@@ -256,17 +236,17 @@ fn assert_replayed_selection_history(
     assert_eq!(reloaded.execution.history, selected.history);
     assert!(reloaded.execution.history.iter().any(|change| {
         change.kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && change.thinking_level.as_deref() == Some("low")
+            && change.thinking_level.as_deref() == Some("medium")
     }));
     assert!(reloaded.execution.history.iter().any(|change| {
         change.revision == 3
             && change.kind == scriberig_session::AgentActivityKind::ModelSelectionChanged
-            && change.model_id.as_deref() == Some("model-b")
+            && change.model_id.as_deref() == Some("native-b")
     }));
     assert!(reloaded.execution.history.iter().any(|change| {
         change.revision == 3
             && change.kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && change.thinking_level.as_deref() == Some("low")
+            && change.thinking_level.as_deref() == Some("medium")
     }));
 }
 

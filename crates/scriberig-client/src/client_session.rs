@@ -7,8 +7,10 @@ use scriberig_protocol::{
     AgentPresentationPreferencesSetRequest, BranchReference, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
     Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanLifecycleRequest, SessionPlanReplanRequest, SessionReadRequest, SessionReadResponse,
-    SessionReference, ToolResultDetailRequest, ToolResultDetailResponse,
+    SessionPlanDecomposeRequest, SessionPlanLifecycleRequest, SessionPlanNextStepRequest,
+    SessionPlanReplanRequest, SessionPlanRetryRequest, SessionPlanSemanticMutationRequest,
+    SessionReadRequest, SessionReadResponse, SessionReference, ToolResultDetailRequest,
+    ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
@@ -91,6 +93,92 @@ impl<T: ProtocolTransport> Client<T> {
     /// Returns an error when the operation fails.
     pub fn replan(&self, request: SessionPlanReplanRequest) -> Result<SessionPlan, ClientError> {
         match self.send(Request::PlanReplan(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Retries one failed plan node at an observed plan revision.
+    ///
+    /// - `request`: Session, plan, node, and expected revision.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn retry_plan_node(
+        &self,
+        request: SessionPlanRetryRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanRetry(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Adds ordinary work to a running plan at its observed revision.
+    ///
+    /// - `request`: Session, plan, revision, and the next work item.
+    ///
+    /// The authoritative updated plan projection.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn add_plan_next_step(
+        &self,
+        request: SessionPlanNextStepRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanNextStep(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Decomposes one plan node into structural child work.
+    ///
+    /// - `request`: Parent, revision, children, and completion requirement.
+    ///
+    /// The authoritative updated plan projection.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn decompose_plan_node(
+        &self,
+        request: SessionPlanDecomposeRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanDecompose(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Applies one typed summary, evidence, gate, or waiver mutation.
+    ///
+    /// - `request`: Exact plan revision and semantic mutation.
+    ///
+    /// The authoritative updated plan projection.
+    /// # Returns
+    /// The updated plan.
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn mutate_plan_semantics(
+        &self,
+        request: SessionPlanSemanticMutationRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanSemanticMutation(request))?.response {
             Response::Plan(plan) => Ok(plan),
             Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
@@ -212,6 +300,45 @@ impl<T: ProtocolTransport> Client<T> {
                 session: SessionReference { id: session.into() },
                 branch: BranchReference { id: branch.into() },
                 invocation: invocation.into(),
+                offset: None,
+                max_chars: None,
+            }))?
+            .response
+        {
+            Response::ModelRequestDetail(response) => Ok(response),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads one explicitly bounded page of complete safe model request text.
+    ///
+    /// - `session`: Stable session identity.
+    /// - `branch`: Stable branch identity.
+    /// - `invocation`: Stable model-invocation identity.
+    /// - `offset`: Unicode-scalar offset in the ordered text stream.
+    /// - `max_chars`: Requested character bound, capped by the server.
+    ///
+    /// Request metadata and one text page.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn model_request_detail_page(
+        &self,
+        session: impl Into<String>,
+        branch: impl Into<String>,
+        invocation: impl Into<String>,
+        offset: u64,
+        max_chars: u32,
+    ) -> Result<ModelRequestDetailResponse, ClientError> {
+        match self
+            .send(Request::ModelRequestDetail(ModelRequestDetailRequest {
+                session: SessionReference { id: session.into() },
+                branch: BranchReference { id: branch.into() },
+                invocation: invocation.into(),
+                offset: Some(offset),
+                max_chars: Some(max_chars),
             }))?
             .response
         {

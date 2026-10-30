@@ -48,6 +48,8 @@ fn plan_integration_merges_candidates_without_promoting_project_state() {
             branch: None,
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: None,
             claim: None,
             claim_generation: 0,
@@ -131,6 +133,35 @@ fn plan_integration_merges_candidates_without_promoting_project_state() {
             .iter()
             .any(|handle| handle.starts_with("merged_candidate:"))
     );
+    let durable = read_durable();
+    for title in ["left", "right"] {
+        let branch = durable
+            .branches
+            .iter()
+            .find(|branch| branch.title == title)
+            .expect("worker branch persisted");
+        let invocation = branch
+            .model_invocations
+            .first()
+            .expect("worker model invocation persisted");
+        assert_eq!(invocation.provider_id.as_deref(), Some("fallback-provider"));
+        assert_eq!(
+            invocation.provider_model_id.as_deref(),
+            Some("fallback-model")
+        );
+        assert!(
+            branch
+                .activity
+                .iter()
+                .any(|activity| { *activity == ExecutionActivity::ModelInvocation(invocation.id) })
+        );
+        let request = invocation
+            .request
+            .as_ref()
+            .expect("request detail persisted");
+        assert_eq!(request.provider_id.as_deref(), Some("fallback-provider"));
+        assert_eq!(request.model, "fallback-model");
+    }
     assert!(
         store
             .read_root(&scriberig_core::RootName::new("main").expect("root"))
@@ -304,6 +335,57 @@ impl PlanWorkerExecutor for CandidateWorkers<'_> {
             produced_changes: Vec::new(),
             validations: Vec::new(),
             unresolved_questions: Vec::new(),
+        })
+    }
+
+    /// Returns provider requests separately for coordinator-owned persistence.
+    /// # Parameters
+    /// - `node`: Claimed plan node.
+    /// - `claim`: Exclusive branch claim.
+    /// - `execution`: Upstream-resolved provider/model pair.
+    /// - `context`: Exact compiled worker context.
+    /// # Returns
+    /// The semantic result with bounded request evidence.
+    /// # Errors
+    /// Returns worker failures from the underlying execution.
+    fn execute_with_context_and_requests(
+        &self,
+        node: &PlanNode,
+        claim: &WorkerClaim,
+        execution: &scriberig_app::ResolvedPlanExecution,
+        context: &scriberig_agent_runtime::plan_context::PlanWorkerContext,
+    ) -> Result<PlanWorkerExecutionResult, String> {
+        let result = self.execute_with_context(node, claim, execution, context)?;
+        let model_requests = if node.title == "integrate" {
+            Vec::new()
+        } else {
+            vec![scriberig_session::ModelRequestProjection {
+                ordinal: 0,
+                model: execution.model_id.clone(),
+                provider_id: Some(execution.provider_id.clone()),
+                provider_profile: None,
+                thinking_level: execution
+                    .thinking_level
+                    .map(|level| level.as_str().to_owned()),
+                profile: None,
+                active_components: Vec::new(),
+                context_fingerprint: None,
+                request_fingerprint: None,
+                model_execution_configuration: None,
+                messages: Vec::new(),
+                full_messages: None,
+                tools: Vec::new(),
+                full_tools: None,
+                content_complete: false,
+                applied_settings: None,
+                applied_settings_fingerprint: None,
+                truncated: false,
+            }]
+        };
+        Ok(PlanWorkerExecutionResult {
+            result,
+            model_requests,
+            tool_evidence: Vec::new(),
         })
     }
 }

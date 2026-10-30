@@ -30,6 +30,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         request: &PlanReplanRequest,
     ) -> Result<Plan, ApplicationError> {
         validate_replan_drafts(&request.additions)?;
+        let catalog_snapshot = self.model_catalog.snapshot();
         let mut session = self.read_session(
             context,
             &crate::SessionRequest {
@@ -70,7 +71,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         let mut additions = Vec::with_capacity(request.additions.len());
         for (index, draft) in request.additions.iter().enumerate() {
             if let Some(assignment) = &draft.assignment {
-                validate_assignment(&self.upstream_models, assignment)?;
+                validate_assignment(&catalog_snapshot.models, assignment)?;
             }
             additions.push(PlanNode {
                 id: node_ids[index],
@@ -89,6 +90,8 @@ impl<B: ApplicationBackend> ApplicationService<B> {
                 branch: None,
                 result: None,
                 superseded_by: None,
+                abandon_reason: None,
+                last_failure: None,
                 assignment: draft.assignment.clone(),
                 claim: None,
                 claim_generation: 0,
@@ -119,7 +122,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
             .collect::<Result<Vec<_>, _>>()?;
         for (_, assignment) in &request.assignment_changes {
             if let Some(assignment) = assignment {
-                validate_assignment(&self.upstream_models, assignment)?;
+                validate_assignment(&catalog_snapshot.models, assignment)?;
             }
         }
         plan.replan(
@@ -164,6 +167,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         request: &PlanCreateRequest,
     ) -> Result<Plan, ApplicationError> {
         validate_proposal(request)?;
+        let catalog_snapshot = self.model_catalog.snapshot();
         let mut session = self.read_session(
             context,
             &crate::SessionRequest {
@@ -189,7 +193,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
             .collect::<Vec<_>>();
         for (index, draft) in request.nodes.iter().enumerate() {
             if let Some(assignment) = &draft.assignment {
-                validate_assignment(&self.upstream_models, assignment)?;
+                validate_assignment(&catalog_snapshot.models, assignment)?;
             }
             let parent = draft
                 .parent_index
@@ -207,6 +211,8 @@ impl<B: ApplicationBackend> ApplicationService<B> {
                 branch: None,
                 result: None,
                 superseded_by: None,
+                abandon_reason: None,
+                last_failure: None,
                 assignment: draft.assignment.clone(),
                 claim: None,
                 claim_generation: 0,
@@ -251,8 +257,9 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         context: &ApplicationContext,
         request: &crate::PlanAssignmentRequest,
     ) -> Result<Plan, ApplicationError> {
+        let catalog_snapshot = self.model_catalog.snapshot();
         if let Some(assignment) = &request.assignment {
-            validate_assignment(&self.upstream_models, assignment)?;
+            validate_assignment(&catalog_snapshot.models, assignment)?;
         }
         let mut session = self.read_session(
             context,

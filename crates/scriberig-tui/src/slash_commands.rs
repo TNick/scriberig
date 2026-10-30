@@ -34,6 +34,11 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
         argument_hint: "",
     },
     SlashCommandDescriptor {
+        name: "/theme",
+        summary: "Choose the upstream terminal theme",
+        argument_hint: "",
+    },
+    SlashCommandDescriptor {
         name: "/view",
         summary: "Change activity presentation",
         argument_hint: " <kind>",

@@ -19,8 +19,6 @@ pub enum InputPurpose {
 pub struct InputState {
     /// Current input value.
     pub text: String,
-    /// Reusable editor that owns cursor and safe text presentation behavior.
-    pub editor: Box<scriberig_tui_kit::Composer>,
     /// Safe validation message retained while input remains active.
     pub error: Option<String>,
     /// Semantic operation that consumes the submitted text.
@@ -28,26 +26,16 @@ pub struct InputState {
 }
 
 impl InputState {
-    /// Inserts input data, including pasted text, at the editor cursor.
+    /// Appends input data after making terminal controls visible.
     ///
     /// - `text`: Input text inserted at the editor cursor.
     pub fn append(&mut self, text: &str) {
-        self.sync_editor();
-        self.editor.insert_text(text);
-        self.editor.text().as_str().clone_into(&mut self.text);
+        self.text
+            .push_str(&crate::inspector::sanitize_external_text(text));
     }
     /// Removes the final Unicode scalar from the input.
     pub fn backspace(&mut self) {
-        self.sync_editor();
-        self.editor.delete_backward();
-        self.editor.text().as_str().clone_into(&mut self.text);
-    }
-
-    /// Restores editor content after direct state initialization.
-    fn sync_editor(&self) {
-        if self.editor.text().as_str() != self.text {
-            self.editor.replace_text(&self.text);
-        }
+        self.text.pop();
     }
 }
 

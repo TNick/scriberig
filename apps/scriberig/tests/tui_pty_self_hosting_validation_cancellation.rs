@@ -199,7 +199,7 @@ fn is_candidate_validation_workspace(root: &Path) -> bool {
 ///
 /// - `tui`: Active product process.
 fn cancel_active_agent(tui: &mut TuiPty) {
-    tui.send(b"/operations\r");
+    tui.send_slow(b"/operations\r");
     assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),

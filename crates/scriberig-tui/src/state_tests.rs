@@ -1,10 +1,9 @@
 //! Tests the module's deterministic behavior.
 
-use super::{Focus, TuiState, reduce};
-use crate::action::{Action, Direction};
+use super::{TuiState, reduce};
+use crate::action::Action;
 use crate::effect::Effect;
-use crate::event::{Key, KeyCode, Modifiers, TuiEvent};
-use crate::overlay::{Overlay, palette::PaletteState};
+use crate::overlay::Overlay;
 use crate::selection::PrimaryView;
 use crate::view::history::{HistoryModel, HistoryRow};
 use scriberig_core::{EntityId, SnapshotId};
@@ -15,42 +14,23 @@ fn default_state_opens_conversation_home() {
     assert_eq!(TuiState::default().primary_view, PrimaryView::Conversation);
 }
 
-/// Verifies resize events update only terminal presentation state.
-#[test]
-fn resize_updates_state() {
-    let mut state = TuiState::default();
-    state.apply_event(&TuiEvent::Resize {
-        width: 72,
-        height: 24,
-    });
-    assert_eq!(state.terminal_size, (72, 24));
-    assert!(!state.should_quit);
-}
-
-/// Verifies ordinary conversation typing is not treated as a quit command.
+/// Verifies printable input edits the conversation draft instead of quitting.
 #[test]
 fn printable_q_edits_conversation_draft() {
     let mut state = TuiState::default();
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('q'),
-        modifiers: Modifiers::default(),
-    }));
+    reduce(&mut state, Action::InputChanged("q".to_owned()));
     assert!(!state.should_quit);
     assert_eq!(state.conversation_composer.draft, "q");
 }
 
-/// Verifies the upstream-backed editor inserts at a Unicode-aware cursor.
+/// Verifies composer draft updates preserve the semantic reply target.
 #[test]
-fn conversation_editor_moves_and_deletes_without_changing_reply_target() {
+fn conversation_draft_updates_without_changing_reply_target() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::InputChanged("a界b".to_owned()));
-    reduce(
-        &mut state,
-        Action::ComposerCursorMoved(scriberig_tui_kit::CursorMotion::Left),
-    );
     reduce(&mut state, Action::InputChanged("x".to_owned()));
 
-    assert_eq!(state.conversation_composer.draft, "a界xb");
+    assert_eq!(state.conversation_composer.draft, "a界bx");
     assert_eq!(
         state.conversation_composer.target,
         super::ConversationTarget::NewSession
@@ -67,31 +47,22 @@ fn conversation_editor_sanitizes_pasted_control_sequences() {
     assert!(!state.conversation_composer.draft.contains('\u{1b}'));
 }
 
-/// Verifies the control-C quit chord stops the runtime.
+/// Verifies the quit action stops the runtime.
 #[test]
-fn control_c_sets_quit_flag() {
+fn quit_action_sets_quit_flag() {
     let mut state = TuiState::default();
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('c'),
-        modifiers: Modifiers {
-            control: true,
-            ..Modifiers::default()
-        },
-    }));
+    reduce(&mut state, Action::QuitRequested);
     assert!(state.should_quit);
 }
 
-/// Verifies the global quit chord also works while Explorer owns focus.
+/// Verifies quitting is independent of the active semantic view.
 #[test]
-fn control_c_quits_from_explorer_focus() {
+fn quit_action_is_global_across_views() {
     let mut state = TuiState {
-        focus: Focus::Explorer,
+        primary_view: PrimaryView::Session,
         ..TuiState::default()
     };
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('\u{3}'),
-        modifiers: Modifiers::default(),
-    }));
+    reduce(&mut state, Action::QuitRequested);
     assert!(state.should_quit);
 }
 
@@ -100,28 +71,9 @@ fn control_c_quits_from_explorer_focus() {
 fn input_consumes_printable_keys() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::FindOpened);
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('q'),
-        modifiers: Modifiers::default(),
-    }));
+    reduce(&mut state, Action::InputChanged("q".to_owned()));
     assert_eq!(state.input_text(), Some("q"));
     assert!(!state.should_quit);
-}
-
-/// Verifies focus cycles without changing semantic history.
-#[test]
-fn focus_cycles_independently_of_navigation() {
-    let mut state = TuiState::default();
-    let history = state.navigation.clone();
-    reduce(&mut state, Action::FocusNext);
-    assert_eq!(state.focus, Focus::Inspector);
-    reduce(&mut state, Action::FocusNext);
-    assert_eq!(state.focus, Focus::Explorer);
-    reduce(&mut state, Action::FocusNext);
-    assert_eq!(state.focus, Focus::Primary);
-    reduce(&mut state, Action::FocusPrevious);
-    assert_eq!(state.focus, Focus::Explorer);
-    assert_eq!(state.navigation, history);
 }
 
 /// Verifies overlays own input and close without changing navigation.
@@ -145,36 +97,32 @@ fn paste_is_input_data() {
     assert!(!state.should_quit);
 }
 
-/// Verifies pasted text is retained by the command palette.
+/// Verifies palette rows keep stable command IDs without local filtering state.
 #[test]
-fn palette_paste_updates_filter_text() {
+fn palette_paste_does_not_own_filter_text() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::PaletteOpened);
     reduce(&mut state, Action::Paste("REF".into()));
-    assert_eq!(
-        state.overlay,
-        Some(Overlay::Palette(PaletteState {
-            query: "REF".to_owned(),
-            ..PaletteState::default()
-        }))
+    assert!(matches!(state.overlay, Some(Overlay::Palette(_))));
+    let Some(Overlay::Palette(palette)) = state.overlay.as_ref() else {
+        return;
+    };
+    assert!(
+        palette
+            .local_actions
+            .iter()
+            .any(|item| item.id == "refresh")
     );
 }
 
-/// Verifies palette cursor movement and activation stay local to the overlay.
+/// Verifies palette activation consumes a stable action ID from upstream selection.
 #[test]
-fn palette_selection_moves_and_activates() {
+fn palette_activation_uses_stable_action_id() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::PaletteOpened);
-    reduce(&mut state, Action::CursorMoved(Direction::Next));
-    assert_eq!(
-        state.overlay.as_ref().and_then(|overlay| match overlay {
-            Overlay::Palette(palette) => Some(palette.selected),
-            _ => None,
-        }),
-        Some(1)
-    );
-    let effects = reduce(&mut state, Action::Activated);
-    assert_eq!(effects, vec![Effect::None]);
+    let effects = crate::state::activate_palette_item(&mut state, "quit");
+    assert_eq!(effects, vec![Effect::RequestQuit]);
+    assert!(state.should_quit);
     assert!(state.overlay.is_none());
 }
 
@@ -190,10 +138,7 @@ fn palette_history_activation_closes_overlay() {
         ..TuiState::default()
     };
     reduce(&mut state, Action::PaletteOpened);
-    for _ in 0..5 {
-        reduce(&mut state, Action::CursorMoved(Direction::Next));
-    }
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "history");
     assert_eq!(
         effects,
         vec![Effect::History {
@@ -218,8 +163,7 @@ fn palette_opens_agent_composer_for_selection() {
         ..TuiState::default()
     };
     reduce(&mut state, Action::PaletteOpened);
-    reduce(&mut state, Action::InputChanged("start-agent".to_owned()));
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "start-agent");
     assert_eq!(effects, vec![Effect::None]);
     assert!(matches!(
         state.session_composer,
@@ -237,8 +181,7 @@ fn palette_opens_agent_composer_for_selection() {
 fn palette_opens_bootstrap_agent_composer_without_selection() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::PaletteOpened);
-    reduce(&mut state, Action::InputChanged("start-agent".to_owned()));
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "start-agent");
     assert_eq!(effects, vec![Effect::None]);
     assert!(matches!(
         state.session_composer,
@@ -265,10 +208,7 @@ fn palette_diff_collects_target_snapshot() {
         ..TuiState::default()
     };
     reduce(&mut state, Action::PaletteOpened);
-    for _ in 0..6 {
-        reduce(&mut state, Action::CursorMoved(Direction::Next));
-    }
-    reduce(&mut state, Action::Activated);
+    crate::state::activate_palette_item(&mut state, "diff");
     reduce(&mut state, Action::Paste(target.to_string()));
 
     assert_eq!(
@@ -290,7 +230,6 @@ fn history_row_activation_inspects_historical_entity() {
     let entity = EntityId::from_bytes([9; 16]);
     let snapshot = SnapshotId::new([3; 32]);
     let mut state = TuiState {
-        focus: Focus::Primary,
         primary_view: PrimaryView::History,
         history: crate::inspector::LoadState::Ready(HistoryModel {
             snapshot,

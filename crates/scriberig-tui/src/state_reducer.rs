@@ -3,7 +3,6 @@
 #![allow(clippy::wildcard_imports)]
 use super::state_actions::activate_current;
 use super::state_cursor_reducer::reduce_cursor;
-use super::state_cursor_reducer::reduce_focus;
 use super::state_reducer_tail::reduce_tail;
 use super::*;
 use crate::{overlay::palette::PaletteState, state::ConnectionState};

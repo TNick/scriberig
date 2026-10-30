@@ -28,7 +28,7 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     ///
     /// - `context`: Caller capabilities and request context.
     ///
-    /// Upstream-derived model descriptors and Scriberig curated profiles.
+    /// Upstream-derived model descriptor projection.
     ///
     /// Returns permission-denied when the caller cannot use agent models.
     /// # Returns
@@ -38,35 +38,14 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     fn agent_model_library(
         &self,
         context: &ApplicationContext,
-    ) -> Result<crate::ModelLibrary, ApplicationError> {
+    ) -> Result<Vec<rpi_model_runtime::SafeModelSnapshot>, ApplicationError> {
         authorize_model_library_read(context)?;
-        let mut library = self.model_library.clone();
-        for model in &mut library.models {
-            let resolved = rpi_model_runtime::resolve_selection(
-                &self.upstream_models,
-                &rpi_model_runtime::ModelSelection {
-                    provider_id: model.provider_profile.clone(),
-                    model_id: model.provider_model_id.clone(),
-                    thinking: rpi_ai::ThinkingLevel::Off,
-                },
-            )
-            .map_err(|error| invalid_selection(error.to_string()))?;
-            let upstream = &self.upstream_models[resolved.catalog_index];
-            model.thinking_levels = upstream
-                .supported_thinking_levels()
-                .into_iter()
-                .enumerate()
-                .map(|(order, level)| crate::ThinkingLevelDescriptor {
-                    id: crate::ThinkingLevelId::new(level.as_str())
-                        .expect("upstream thinking name parses upstream"),
-                    label: level.as_str().to_owned(),
-                    description: None,
-                    order: u32::try_from(order).unwrap_or(u32::MAX),
-                })
-                .collect();
-            model.default_thinking_level = None;
-        }
-        crate::ModelLibrary::new(library.models, library.profiles).map_err(invalid_selection)
+        let catalog_snapshot = self.model_catalog.snapshot();
+        Ok(catalog_snapshot
+            .models
+            .iter()
+            .map(rpi_model_runtime::safe_model_snapshot)
+            .collect())
     }
 
     /// Reads shared user presentation defaults without touching session state.
@@ -114,17 +93,16 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
             .compare_and_swap(principal, expected_revision, preferences)
     }
 
-    /// Changes the model profile used by future session invocations.
+    /// Changes the provider/model pair used by future session invocations.
     ///
-    /// A canonical current level is retained. Otherwise the configured profile
-    /// default is selected and clamped by the upstream model.
+    /// A canonical current level is retained and clamped by the upstream model.
     ///
     /// - `context`: Caller capabilities and request context.
-    /// - `request`: Session, observed selection revision, and profile id.
+    /// - `request`: Session, observed revision, provider id, and model id.
     ///
     /// The updated session selection.
     ///
-    /// Returns permission, model/profile validation, stale-revision, or
+    /// Returns permission, upstream selection validation, stale-revision, or
     /// persistence failures.
     /// # Returns
     /// The operation result.
@@ -150,11 +128,37 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
             &request.model_id,
             session.execution.thinking_level.as_deref(),
         )?;
-        let thinking = session
-            .execution
-            .thinking_level
-            .as_ref()
-            .map(|_| effective_thinking.as_str().to_owned());
+        let thinking = if session.execution.thinking_level.is_some() {
+            Some(effective_thinking.as_str().to_owned())
+        } else {
+            let supported = model.supported_thinking_levels();
+            let explicit = model.thinking_level_map.as_ref().and_then(|map| {
+                [
+                    rpi_ai::ThinkingLevel::Medium,
+                    rpi_ai::ThinkingLevel::High,
+                    rpi_ai::ThinkingLevel::Low,
+                    rpi_ai::ThinkingLevel::Minimal,
+                    rpi_ai::ThinkingLevel::Xhigh,
+                    rpi_ai::ThinkingLevel::Max,
+                ]
+                .into_iter()
+                .find(|level| matches!(map.get(level), Some(Some(_))))
+            });
+            explicit
+                .or_else(|| {
+                    supported
+                        .iter()
+                        .find(|level| **level == rpi_ai::ThinkingLevel::Medium)
+                        .copied()
+                })
+                .or_else(|| {
+                    supported
+                        .iter()
+                        .find(|level| **level != rpi_ai::ThinkingLevel::Off)
+                        .copied()
+                })
+                .map(|level| level.as_str().to_owned())
+        };
         session
             .execution
             .replace(
@@ -243,8 +247,8 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
             .model_id
             .as_deref()
             .ok_or_else(|| invalid_selection("select a model first"))?;
-        let requested = crate::ThinkingLevelId::new(request.thinking_level.clone())
-            .map_err(invalid_selection)?;
+        let requested = rpi_ai::ThinkingLevel::parse_name(&request.thinking_level)
+            .ok_or_else(|| invalid_selection("thinking level id is not supported upstream"))?;
         let (model, effective) =
             self.resolve_upstream_model(provider_id, model_id, Some(requested.as_str()))?;
         let effective = effective.as_str().to_owned();
@@ -334,13 +338,6 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     }
 }
 
-/// Resolves the stable caller identity required for shared preferences.
-///
-/// - `context`: Authorized application request context.
-///
-/// The stable principal identifier.
-///
-/// Returns invalid-request when the caller has no principal identity.
 /// Creates an empty session for selection before the first agent message.
 ///
 /// - `id`: Stable identity supplied by the caller.

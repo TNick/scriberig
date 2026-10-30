@@ -2,8 +2,8 @@
 
 use scriberig_core::EntityId;
 use scriberig_session::{
-    Branch, BranchStatus, CacheDisposition, ModelAssignment, ModelInvocation, Plan, PlanNode,
-    PlanNodeStatus, SelectionStoreError, Session, SessionStore,
+    Branch, BranchResult, BranchStatus, CacheDisposition, ModelAssignment, ModelInvocation, Plan,
+    PlanNode, PlanNodeStatus, SelectionStoreError, Session, SessionStore,
 };
 use scriberig_session_sqlite::SqliteSessionStore;
 use std::sync::Arc;
@@ -89,6 +89,7 @@ fn session_graph_survives_reopen() {
             agent_profile: None,
             context_fingerprint: Some("context-fingerprint".to_owned()),
             provider_profile: Some("provider-a".to_owned()),
+            provider_id: None,
             model: Some("model-a".to_owned()),
             model_profile: Some("profile-a".to_owned()),
             provider_model_id: Some("native-model-a".to_owned()),
@@ -181,6 +182,7 @@ fn plan_dependencies_and_assignments_survive_reopen() {
     };
     let mut plan = Plan {
         id: EntityId::from_bytes([36; 16]),
+        source_snapshot: None,
         session: Some(EntityId::from_bytes([38; 16])),
         anchor: Some(scriberig_session::ContinuationAnchor::BranchHead { branch: root }),
         goal: "durable plan".to_owned(),
@@ -199,6 +201,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                 branch: Some(worker),
                 result: None,
                 superseded_by: None,
+                abandon_reason: None,
+                last_failure: None,
                 assignment: Some(ModelAssignment {
                     provider_id: "provider-a".to_owned(),
                     model_id: "model-a".to_owned(),
@@ -229,6 +233,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                 branch: None,
                 result: None,
                 superseded_by: None,
+                abandon_reason: None,
+                last_failure: None,
                 assignment: Some(ModelAssignment {
                     provider_id: "provider-b".to_owned(),
                     model_id: "model-b".to_owned(),
@@ -248,12 +254,17 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                 branch: None,
                 result: None,
                 superseded_by: None,
+                abandon_reason: None,
+                last_failure: None,
                 assignment: None,
                 claim: None,
                 claim_generation: 0,
             },
         ],
         dependencies: Vec::new(),
+        summaries: Vec::new(),
+        evidence: Vec::new(),
+        gates: Vec::new(),
         coordinator: Some(first),
         coordinator_cursor: Some(first),
         coordinator_claim: Some(scriberig_session::CoordinatorClaim {
@@ -363,3 +374,7 @@ fn plan_dependencies_and_assignments_survive_reopen() {
 
 #[path = "durable_parts/part1.rs"]
 mod part1;
+#[path = "durable_parts/plan_attempt_recovery.rs"]
+mod plan_attempt_recovery;
+#[path = "durable_parts/request_provenance.rs"]
+mod request_provenance;

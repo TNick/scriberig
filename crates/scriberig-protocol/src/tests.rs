@@ -150,7 +150,7 @@ fn references_and_requests_round_trip() {
         selection: None,
     });
     session_plan_contracts_round_trip();
-    model_contracts_round_trip();
+    tests_additional::model_contracts_round_trip();
 }
 
 /// Verifies session and plan contracts round trip.
@@ -173,6 +173,8 @@ fn session_snapshot_contracts_round_trip() {
     round_trip(&SessionPlan {
         id: "plan-1".to_owned(),
         revision: 4,
+        exact_revision: None,
+        snapshot: None,
         goal: "complete work".to_owned(),
         status: SessionPlanStatus::Running,
         anchor: Some(SessionContinuationAnchor::BranchResult {
@@ -186,6 +188,11 @@ fn session_snapshot_contracts_round_trip() {
             title: "inspect".to_owned(),
             purpose: "inspect selected entities".to_owned(),
             status: SessionPlanNodeStatus::Running,
+            exact_revision: None,
+            effective_status: Some(SessionPlanNodeStatus::Running),
+            contains_ignored: false,
+            contains_abandoned: false,
+            abandon_reason: None,
             branch: Some("branch-2".to_owned()),
             result: None,
             superseded_by: None,
@@ -207,12 +214,25 @@ fn session_snapshot_contracts_round_trip() {
                 generation: 1,
                 assignment: None,
             }),
+            summary_id: None,
+            summary_preview: None,
+            dependency_blockers: Vec::new(),
+            entry_gates: SessionPlanGateCounts::default(),
+            completion_gates: SessionPlanGateCounts::default(),
+            evidence_count: 0,
+            can_retry: false,
+            last_failure: None,
         }],
         dependencies: vec![SessionPlanDependency {
             prerequisite: "node-0".to_owned(),
             dependent: "node-1".to_owned(),
             fulfilled_by: Some("result-0".to_owned()),
         }],
+        root_nodes: vec!["node-1".to_owned()],
+        status_counts: SessionPlanStatusCounts::default(),
+        gates: Vec::new(),
+        evidence: Vec::new(),
+        summaries: Vec::new(),
         coordinator: Some("branch-1".to_owned()),
         coordinator_cursor: Some("node-1".to_owned()),
         coordinator_claim: Some(SessionCoordinatorClaim {
@@ -227,11 +247,18 @@ fn session_snapshot_contracts_round_trip() {
             status: SessionPlanStatus::Paused,
             nodes: Vec::new(),
             dependencies: Vec::new(),
+            summaries: Vec::new(),
+            gates: Vec::new(),
+            evidence: Vec::new(),
             reason: Some("validation follow-up".to_owned()),
         }],
     });
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "One integration contract checks each request family in the shared protocol."
+)]
 /// Verifies session plan mutation requests round trip.
 fn session_plan_contracts_round_trip() {
     session_snapshot_contracts_round_trip();
@@ -273,7 +300,7 @@ fn session_plan_contracts_round_trip() {
         }),
     });
     round_trip(&SessionPlanReplanRequest {
-        session,
+        session: session.clone(),
         plan: "plan-1".to_owned(),
         expected_revision: 6,
         additions: Vec::new(),
@@ -291,82 +318,54 @@ fn session_plan_contracts_round_trip() {
         preserved_terminal_nodes: Vec::new(),
         reason: "new information".to_owned(),
     });
-}
-
-/// Verifies model, prompt, and presentation contracts round trip.
-fn model_contracts_round_trip() {
-    round_trip(&ModelRequestDetailRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
-        branch: BranchReference {
-            id: "branch-1".to_owned(),
-        },
-        invocation: "invocation-1".to_owned(),
-    });
-    round_trip(&ModelRequestDetailResponse {
-        invocation: "invocation-1".to_owned(),
-        model: "model-1".to_owned(),
-        thinking_level: Some("careful".to_owned()),
-        messages: vec![ModelRequestMessageDetail {
-            role: "user".to_owned(),
-            content: "safe prompt".to_owned(),
-        }],
-        tools: vec![ModelRequestToolDetail {
-            name: "inspect".to_owned(),
-            description: "Inspect an entity".to_owned(),
-            parameters: Some("{}".to_owned()),
-        }],
-        truncated: false,
-    });
-    round_trip(&ModelLibraryRequest::default());
-    round_trip(&SessionModelSelectionRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
+    round_trip(&SessionPlanRetryRequest {
+        session: session.clone(),
+        plan: "plan-1".to_owned(),
+        node: "node-a".to_owned(),
         expected_revision: 7,
-        provider_id: "provider-1".to_owned(),
-        model_id: "model-1".to_owned(),
     });
-    round_trip(&SessionThinkingSelectionRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
+    round_trip(&SessionPlanNextStepRequest {
+        session: session.clone(),
+        plan: "plan-1".to_owned(),
         expected_revision: 8,
-        thinking_level: "extended".to_owned(),
+        title: "follow-up".to_owned(),
+        purpose: "continue discovered work".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        assignment: None,
     });
-    round_trip(&ModelLibraryResponse {
-        models: vec![PublicModelDescriptor {
-            id: "model-1".to_owned(),
-            display_name: "Safe Model Name".to_owned(),
-            provider_profile: "provider-1".to_owned(),
-            provider_model_id: "provider-model-1".to_owned(),
-            capabilities: PublicModelCapabilities {
-                streaming: true,
-                tool_calls: true,
-                structured_output: false,
-            },
-            thinking_levels: vec![PublicThinkingLevelDescriptor {
-                id: "deep-dive".to_owned(),
-                label: "Deep dive".to_owned(),
-                description: None,
-                order: 0,
+    round_trip(&SessionPlanDecomposeRequest {
+        session: session.clone(),
+        plan: "plan-1".to_owned(),
+        parent: "node-parent".to_owned(),
+        expected_revision: 9,
+        children: vec![SessionPlanChildDraft {
+            title: "child".to_owned(),
+            purpose: "complete one part".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            assignment: None,
+        }],
+        required: true,
+    });
+    round_trip(&SessionPlanSemanticMutationRequest {
+        session,
+        plan: "plan-1".to_owned(),
+        expected_revision: 10,
+        mutation: SessionPlanSemanticMutation::UpdateSummary {
+            node: "node-a".to_owned(),
+            text: "Current progress".to_owned(),
+            sources: vec![SessionSemanticReference {
+                entity: "source-a".to_owned(),
+                revision: Some("rev_001122".to_owned()),
+                snapshot: Some("snap_001122".to_owned()),
             }],
-            default_thinking_level: Some("deep-dive".to_owned()),
-        }],
-        profiles: vec![PublicModelProfile {
-            id: "profile-1".to_owned(),
-            display_name: "Primary".to_owned(),
-            model: "model-1".to_owned(),
-            connection: "connection-1".to_owned(),
-            credential: Some(ModelCredentialRef {
-                id: "secret-ref-1".to_owned(),
-            }),
-            default_thinking_level: Some("deep-dive".to_owned()),
-            enabled: true,
-        }],
+        },
     });
 }
 
 #[path = "tests_additional.rs"]
 mod tests_additional;
+#[path = "tests_models.rs"]
+mod tests_models;
+use tests_models::model_metadata_snapshot;

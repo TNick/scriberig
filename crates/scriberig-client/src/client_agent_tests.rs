@@ -42,12 +42,19 @@ fn empty_plan() -> scriberig_protocol::SessionPlan {
     scriberig_protocol::SessionPlan {
         id: "plan-1".to_owned(),
         revision: 1,
+        exact_revision: None,
+        snapshot: None,
         goal: "goal".to_owned(),
         status: scriberig_protocol::SessionPlanStatus::Planned,
         anchor: None,
         root_branch: "branch-1".to_owned(),
         nodes: Vec::new(),
         dependencies: Vec::new(),
+        root_nodes: Vec::new(),
+        status_counts: scriberig_protocol::SessionPlanStatusCounts::default(),
+        gates: Vec::new(),
+        evidence: Vec::new(),
+        summaries: Vec::new(),
         coordinator: None,
         coordinator_cursor: None,
         coordinator_claim: None,
@@ -171,8 +178,12 @@ fn exact_continuation_request_keeps_historical_anchor() {
     ));
 }
 
-/// Uses typed plan creation, lifecycle, and assignment protocol operations.
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "The test exercises each typed plan client request through one fixture."
+)]
+/// Uses typed plan creation, lifecycle, assignment, and retry operations.
 fn plan_client_methods_send_shared_application_requests() {
     let observed = Arc::new(Mutex::new(None));
     let client = Client::new(FixtureTransport {
@@ -227,5 +238,85 @@ fn plan_client_methods_send_shared_application_requests() {
     assert!(matches!(
         observed.lock().expect("request").as_ref(),
         Some(Request::PlanAssignment(_))
+    ));
+    assert!(
+        client
+            .retry_plan_node(scriberig_protocol::SessionPlanRetryRequest {
+                session: SessionReference {
+                    id: "session-1".to_owned(),
+                },
+                plan: "plan-1".to_owned(),
+                node: "node-1".to_owned(),
+                expected_revision: 2,
+            })
+            .is_ok()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanRetry(_))
+    ));
+    assert!(
+        client
+            .add_plan_next_step(scriberig_protocol::SessionPlanNextStepRequest {
+                session: SessionReference {
+                    id: "session-1".to_owned(),
+                },
+                plan: "plan-1".to_owned(),
+                expected_revision: 3,
+                title: "next".to_owned(),
+                purpose: "do follow-up work".to_owned(),
+                expected_result: None,
+                semantic_scope: Vec::new(),
+                assignment: None,
+            })
+            .is_ok()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanNextStep(_))
+    ));
+    assert!(
+        client
+            .decompose_plan_node(scriberig_protocol::SessionPlanDecomposeRequest {
+                session: SessionReference {
+                    id: "session-1".to_owned(),
+                },
+                plan: "plan-1".to_owned(),
+                parent: "node-1".to_owned(),
+                expected_revision: 4,
+                children: vec![scriberig_protocol::SessionPlanChildDraft {
+                    title: "child".to_owned(),
+                    purpose: "work".to_owned(),
+                    expected_result: None,
+                    semantic_scope: Vec::new(),
+                    assignment: None,
+                }],
+                required: true,
+            })
+            .is_ok()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanDecompose(_))
+    ));
+    assert!(
+        client
+            .mutate_plan_semantics(scriberig_protocol::SessionPlanSemanticMutationRequest {
+                session: SessionReference {
+                    id: "session-1".to_owned(),
+                },
+                plan: "plan-1".to_owned(),
+                expected_revision: 5,
+                mutation: scriberig_protocol::SessionPlanSemanticMutation::UpdateSummary {
+                    node: "node-1".to_owned(),
+                    text: "Progress summary".to_owned(),
+                    sources: Vec::new(),
+                },
+            },)
+            .is_ok()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanSemanticMutation(_))
     ));
 }

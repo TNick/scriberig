@@ -25,16 +25,23 @@ mod session_plan_tests;
 /// Session tree containing ordered activity and compact result handles.
 /// # Returns
 /// The operation result.
+/// # Errors
+/// Returns the plan projection error when a session plan is invalid.
 pub(super) fn session_response(
     session: scriberig_session::Session,
-) -> scriberig_protocol::SessionReadResponse {
+) -> Result<scriberig_protocol::SessionReadResponse, scriberig_app::ApplicationError> {
     let session_id = session.id;
     let execution = session.execution;
+    let results = session
+        .branches
+        .iter()
+        .filter_map(|branch| branch.result.clone())
+        .collect::<Vec<_>>();
     let plans = session
         .plans
         .into_iter()
-        .map(session_plan::project)
-        .collect();
+        .map(|plan| session_plan::project(plan, Some(&results)))
+        .collect::<Result<Vec<_>, _>>()?;
     let mut branches = session
         .branches
         .into_iter()
@@ -85,7 +92,7 @@ pub(super) fn session_response(
         })
         .collect::<Vec<_>>();
     branches.sort_by(|left, right| left.id.cmp(&right.id));
-    scriberig_protocol::SessionReadResponse {
+    Ok(scriberig_protocol::SessionReadResponse {
         session: scriberig_protocol::SessionReference {
             id: session_id.to_string(),
         },
@@ -109,7 +116,7 @@ pub(super) fn session_response(
                 })
                 .collect(),
         },
-    }
+    })
 }
 
 /// Extracts stable result handles without exposing canonical result payloads.

@@ -7,7 +7,6 @@ use std::collections::{BTreeSet, HashSet};
 use crate::{
     action::Action,
     effect::Effect,
-    event::TuiEvent,
     explorer::ExplorerModel,
     inspector::{InspectorModel, LoadState},
     navigation::NavigationState,
@@ -15,17 +14,6 @@ use crate::{
     selection::EntitySelection,
 };
 use scriberig_app::RuntimeCapability;
-
-/// The visible shell pane receiving keyboard focus.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Focus {
-    /// The semantic explorer pane.
-    Explorer,
-    /// The primary content pane.
-    Primary,
-    /// The inspector pane.
-    Inspector,
-}
 
 /// Describes the presentation connection to the semantic service.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -114,6 +102,8 @@ pub struct TransientAgentActivity {
     pub state: scriberig_session::AgentActivityState,
     /// Safe bounded user-facing summary.
     pub summary: String,
+    /// Monotonic arrival ordinal within the producing invocation.
+    pub ordinal: u64,
 }
 
 /// Holds bounded, operation-scoped assistant output until durable refresh.
@@ -173,7 +163,6 @@ pub enum ConversationTarget {
 /// # Public members
 /// - `target`: Stable session or continuation target.
 /// - `draft`: Current complete safe user draft.
-/// - `editor`: Upstream-backed cursor and editing state.
 /// - `pending_prompt`: Submitted text retained for failure recovery.
 /// - `pending`: Whether submission awaits refresh.
 /// - `error`: Safe submission error for display.
@@ -186,8 +175,6 @@ pub struct ConversationComposerState {
     pub target: ConversationTarget,
     /// Multiline user-authored draft.
     pub draft: String,
-    /// Upstream-backed editor state for cursor, selection, and safe rendering.
-    pub editor: scriberig_tui_kit::Composer,
     /// Submitted prompt retained while a new conversation is being accepted.
     pub pending_prompt: Option<String>,
     /// Whether an accepted submission is awaiting session refresh.
@@ -197,51 +184,55 @@ pub struct ConversationComposerState {
 }
 
 impl ConversationComposerState {
-    /// Inserts ordinary text at the editor cursor and synchronizes the draft.
+    /// Appends input or removes the final character for an empty input.
     ///
     /// # Parameters
     /// - `text`: Text entered by the user.
     pub fn insert_text(&mut self, text: &str) {
-        self.sync_editor();
         if text.is_empty() {
-            self.editor.delete_backward();
+            self.draft.pop();
         } else {
-            self.editor.insert_text(text);
+            self.draft.push_str(text);
         }
-        self.editor.text().as_str().clone_into(&mut self.draft);
     }
 
-    /// Inserts a paste payload as data and synchronizes the full draft.
+    /// Appends a paste payload as data.
+    ///
+    /// Terminal escape and control sequences are escaped before insertion so a
+    /// paste cannot drive the upstream renderer or editor.
     ///
     /// # Parameters
     /// - `text`: Pasted text, including any line breaks.
     pub fn paste_text(&mut self, text: &str) {
-        self.sync_editor();
-        self.editor.paste_text(text);
-        self.editor.text().as_str().clone_into(&mut self.draft);
-    }
-
-    /// Moves the editor cursor without changing the semantic reply target.
-    ///
-    /// # Parameters
-    /// - `motion`: Requested cursor movement.
-    pub fn move_cursor(&mut self, motion: scriberig_tui_kit::CursorMotion) {
-        self.sync_editor();
-        self.editor.move_cursor(motion);
+        self.draft.push_str(&sanitize_paste(text));
     }
 
     /// Clears the draft and resets the editor cursor.
     pub fn clear_draft(&mut self) {
         self.draft.clear();
-        self.editor.clear();
     }
+}
 
-    /// Restores editor text when tests or application transitions replace draft.
-    fn sync_editor(&self) {
-        if self.editor.text().as_str() != self.draft {
-            self.editor.replace_text(&self.draft);
+/// Escapes terminal control sequences in a paste payload.
+///
+/// Line breaks and tabs remain literal; other control characters are rendered
+/// as their escaped form so they cannot act as terminal commands.
+///
+/// # Parameters
+/// - `text`: Raw pasted text.
+///
+/// # Returns
+/// Safe text suitable for insertion into a composer.
+pub(crate) fn sanitize_paste(text: &str) -> String {
+    let mut sanitized = String::with_capacity(text.len());
+    for character in text.chars() {
+        if character == '\n' || character == '\t' || !character.is_control() {
+            sanitized.push(character);
+        } else {
+            sanitized.extend(character.escape_default());
         }
     }
+    sanitized
 }
 
 /// Retains one stable selected node while its model assignment picker is open.
@@ -257,14 +248,10 @@ pub struct PlanAssignmentTarget {
 
 /// Runtime and presentation state for the initial TUI shell.
 #[allow(clippy::struct_excessive_bools)] // Independent UI toggles are persisted presentation preferences.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TuiState {
     /// Whether the event loop should terminate.
     pub should_quit: bool,
-    /// The most recently observed terminal dimensions.
-    pub terminal_size: (u16, u16),
-    /// The pane that currently owns local keyboard focus.
-    pub focus: Focus,
     /// A short status message rendered in the shell.
     pub shell_message: String,
     /// Stable active project identity, when selected.
@@ -281,6 +268,10 @@ pub struct TuiState {
     pub cursor: usize,
     /// Stable semantic selection independent of the visible cursor.
     pub selection: Option<EntitySelection>,
+    /// Stable identity of the selected flat semantic-view row.
+    pub semantic_row_cursor: Option<crate::selection::SemanticRowIdentity>,
+    /// Stable plan/node navigation, independent of the conversation and coordinator cursors.
+    pub plan_cursor: Option<crate::selection::PlanSelection>,
     /// Exact project scope available to the first agent conversation.
     pub agent_selection: Option<scriberig_app::AgentSelection>,
     /// Semantic explorer model.
@@ -313,6 +304,8 @@ pub struct TuiState {
     pub operations: Vec<crate::view::operations::OperationModel>,
     /// Session tree request/result state.
     pub session: LoadState<crate::view::session::SessionModel>,
+    /// Stable selected session row independent of its flattened position.
+    pub session_cursor: Option<crate::view::session::SessionRowIdentity>,
     /// Conversation projection rebuilt from the latest durable session snapshot.
     pub conversation: Option<crate::view::conversation::ConversationModel>,
     /// Latest shared session snapshot used to rebuild local projections.
@@ -332,7 +325,6 @@ pub struct TuiState {
     /// Credential-safe model library available to the interactive picker.
     pub model_library: LoadState<scriberig_protocol::ModelLibraryResponse>,
     /// Whether a pending model-library read was opened from thinking controls.
-    pub thinking_picker_pending: Option<()>,
     /// Selected plan node awaiting an assignment choice.
     pub plan_assignment_target: Option<PlanAssignmentTarget>,
     /// Branch to reveal after the matching agent submission finishes.
@@ -380,16 +372,17 @@ pub(crate) use behavior::{
 mod state_actions;
 #[path = "state_cursor_reducer.rs"]
 mod state_cursor_reducer;
-#[path = "state_model_picker.rs"]
-mod state_model_picker;
+#[path = "state_model_selection.rs"]
+mod state_model_selection;
 #[path = "state_presentation.rs"]
 mod state_presentation;
 #[path = "state_reducer.rs"]
 mod state_reducer;
 #[path = "state_reducer_tail.rs"]
 mod state_reducer_tail;
+pub(crate) use state_actions::activate_palette_item;
 use state_actions::reduce_application_event;
-pub(super) use state_model_picker::{show_model_picker, show_thinking_picker};
+pub(crate) use state_model_selection::{select_model, select_thinking_level};
 pub(super) use state_presentation::activate_palette_control;
 pub use state_reducer::reduce;
 

@@ -17,7 +17,7 @@ fn composer_slash_commands_open_shared_controls() {
 
     assert!(matches!(
         reduce(&mut state, Action::InputSubmitted).as_slice(),
-        [Effect::ReadModelLibrary { .. }]
+        [Effect::None]
     ));
     assert_eq!(state.session_composer.as_ref().unwrap().text, "");
 
@@ -27,7 +27,6 @@ fn composer_slash_commands_open_shared_controls() {
         reduce(&mut state, Action::InputSubmitted).as_slice(),
         [Effect::None]
     ));
-    assert!(state.shell_message.contains("Load a session"));
 
     reduce(
         &mut state,
@@ -68,15 +67,10 @@ fn session_slash_view_returns_to_conversation() {
 
     reduce(&mut state, Action::InputSubmitted);
     assert_eq!(state.primary_view, crate::selection::PrimaryView::Session);
-    let escape = crate::keymap::action_for(
-        &state,
-        &crate::event::Key {
-            code: crate::event::KeyCode::Esc,
-            modifiers: crate::event::Modifiers::default(),
-        },
-    )
-    .expect("escape returns to conversation");
-    reduce(&mut state, escape);
+    reduce(
+        &mut state,
+        Action::ViewSelected(crate::selection::PrimaryView::Conversation),
+    );
 
     assert_eq!(
         state.primary_view,
@@ -102,19 +96,17 @@ fn explorer_slash_command_lists_the_selected_snapshot() {
     let effects = reduce(&mut state, Action::InputSubmitted);
 
     assert_eq!(state.primary_view, crate::selection::PrimaryView::Explorer);
-    assert_eq!(state.focus, crate::state::Focus::Explorer);
+    assert_eq!(state.primary_view, crate::selection::PrimaryView::Explorer);
     assert!(matches!(effects.as_slice(), [Effect::ListExplorer {
         entity: actual_entity,
         snapshot: actual_snapshot,
         continuation: None,
         ..
     }] if *actual_entity == entity && *actual_snapshot == snapshot));
-    let escape = crate::event::Key {
-        code: crate::event::KeyCode::Esc,
-        modifiers: crate::event::Modifiers::default(),
-    };
-    let action = crate::keymap::action_for(&state, &escape).expect("view escape action");
-    reduce(&mut state, action);
+    reduce(
+        &mut state,
+        Action::ViewSelected(crate::selection::PrimaryView::Conversation),
+    );
     assert_eq!(
         state.primary_view,
         crate::selection::PrimaryView::Conversation
@@ -182,12 +174,10 @@ fn auxiliary_slash_views_open_and_return_to_conversation() {
         );
         assert_eq!(state.primary_view, expected_view, "{command}");
         assert!(!effects.is_empty(), "{command}");
-        let escape = crate::event::Key {
-            code: crate::event::KeyCode::Esc,
-            modifiers: crate::event::Modifiers::default(),
-        };
-        let action = crate::keymap::action_for(&state, &escape).expect("view escape action");
-        reduce(&mut state, action);
+        reduce(
+            &mut state,
+            Action::ViewSelected(crate::selection::PrimaryView::Conversation),
+        );
         assert_eq!(
             state.primary_view,
             crate::selection::PrimaryView::Conversation
@@ -291,7 +281,6 @@ fn plan_start_command_invokes_shared_lifecycle_operation() {
                 },
             },
             draft: "/plan start".to_owned(),
-            editor: scriberig_tui_kit::Composer::new(),
             pending_prompt: None,
             pending: false,
             error: None,

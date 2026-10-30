@@ -6,8 +6,9 @@ use crate::{
     AgentStartRequest, CancelOperationRequest, CommandRequest, Event, FindRequest, ListRequest,
     ModelLibraryRequest, ModelRequestDetailRequest, ProjectRequest, QueryRequest,
     SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanLifecycleRequest, SessionPlanReplanRequest, SessionReadRequest,
-    SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
+    SessionPlanDecomposeRequest, SessionPlanLifecycleRequest, SessionPlanNextStepRequest,
+    SessionPlanReplanRequest, SessionPlanRetryRequest, SessionPlanSemanticMutationRequest,
+    SessionReadRequest, SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -56,6 +57,14 @@ pub enum Request {
     PlanAssignment(SessionPlanAssignmentRequest),
     /// Apply one complete durable replan revision.
     PlanReplan(SessionPlanReplanRequest),
+    /// Retry one failed plan node.
+    PlanRetry(SessionPlanRetryRequest),
+    /// Add ordinary work to a running plan.
+    PlanNextStep(SessionPlanNextStepRequest),
+    /// Decompose one plan node into structural children.
+    PlanDecompose(SessionPlanDecomposeRequest),
+    /// Change summaries, evidence, gates, or gate waivers.
+    PlanSemanticMutation(SessionPlanSemanticMutationRequest),
     /// Read a bounded safe model request projection.
     ModelRequestDetail(ModelRequestDetailRequest),
     /// Read bounded safe detail for one tool result.
@@ -75,7 +84,7 @@ pub enum Request {
 }
 
 /// Initial typed responses supported by the remote vertical slice.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub enum Response {
     /// Inspection result.
     Inspect(InspectEntityResponse),
@@ -129,7 +138,7 @@ pub struct RequestEnvelope {
 }
 
 /// Correlated protocol response envelope.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub struct ResponseEnvelope {
     /// Protocol version used by the server.
     pub version: ProtocolVersion,

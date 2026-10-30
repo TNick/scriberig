@@ -2,60 +2,68 @@
 
 use super::*;
 
-/// Converts the application model library into credential-safe wire descriptors.
+/// Converts upstream safe model snapshots into protocol DTOs.
 ///
-/// - `library`: Validated application model library.
+/// - `models`: Upstream-owned display-safe model snapshots.
 ///
-/// Protocol descriptors containing references but no resolved credentials.
+/// Protocol model rows projected at the client boundary.
 /// # Returns
 /// The operation result.
 pub(in crate::service) fn model_library_response(
-    library: scriberig_app::ModelLibrary,
+    models: Vec<rpi_model_runtime::SafeModelSnapshot>,
 ) -> scriberig_protocol::ModelLibraryResponse {
     scriberig_protocol::ModelLibraryResponse {
-        models: library
-            .models
+        provider_readiness: Vec::new(),
+        models: models
             .into_iter()
             .map(|model| scriberig_protocol::PublicModelDescriptor {
-                id: model.id.as_str().to_owned(),
+                id: scriberig_protocol::model_row_id(&model.provider_id, &model.model_id),
                 display_name: model.display_name,
-                provider_profile: model.provider_profile,
-                provider_model_id: model.provider_model_id,
-                capabilities: scriberig_protocol::PublicModelCapabilities {
-                    streaming: model.capabilities.streaming,
-                    tool_calls: model.capabilities.tool_calls,
-                    structured_output: model.capabilities.structured_output,
-                },
+                provider_id: model.provider_id,
+                provider_model_id: model.model_id,
                 thinking_levels: model
                     .thinking_levels
                     .into_iter()
-                    .map(|level| scriberig_protocol::PublicThinkingLevelDescriptor {
-                        id: level.id.as_str().to_owned(),
-                        label: level.label,
-                        description: level.description,
-                        order: level.order,
-                    })
+                    .map(|level| level.as_str().to_owned())
                     .collect(),
-                default_thinking_level: model
-                    .default_thinking_level
-                    .map(|level| level.as_str().to_owned()),
-            })
-            .collect(),
-        profiles: library
-            .profiles
-            .into_iter()
-            .map(|profile| scriberig_protocol::PublicModelProfile {
-                id: profile.id,
-                display_name: profile.display_name,
-                model: profile.model.as_str().to_owned(),
-                connection: profile.connection,
-                credential: profile
-                    .credential
-                    .map(|credential| scriberig_protocol::ModelCredentialRef { id: credential.id }),
-                default_thinking_level: profile
-                    .default_thinking_level
-                    .map(|level| level.as_str().to_owned()),
-                enabled: profile.enabled,
+                metadata_snapshot: scriberig_protocol::PublicModelMetadataSnapshot {
+                    schema_version: model.schema_version,
+                    api_id: model.api_id,
+                    reasoning: model.reasoning,
+                    input: model
+                        .input
+                        .into_iter()
+                        .map(|modality| match modality {
+                            rpi_ai::InputModality::Text => {
+                                scriberig_protocol::PublicModelInputModality::Text
+                            }
+                            rpi_ai::InputModality::Image => {
+                                scriberig_protocol::PublicModelInputModality::Image
+                            }
+                        })
+                        .collect(),
+                    cost: scriberig_protocol::PublicModelCostSnapshot {
+                        input: model.cost.rates.input,
+                        output: model.cost.rates.output,
+                        cache_read: model.cost.rates.cache_read,
+                        cache_write: model.cost.rates.cache_write,
+                        tiers: model
+                            .cost
+                            .tiers
+                            .into_iter()
+                            .map(|tier| scriberig_protocol::PublicModelCostTierSnapshot {
+                                input: tier.rates.input,
+                                output: tier.rates.output,
+                                cache_read: tier.rates.cache_read,
+                                cache_write: tier.rates.cache_write,
+                                input_tokens_above: tier.input_tokens_above,
+                            })
+                            .collect(),
+                    },
+                    cost_configured: model.cost_configured,
+                    context_window: model.context_window,
+                    max_tokens: model.max_tokens,
+                },
             })
             .collect(),
     }

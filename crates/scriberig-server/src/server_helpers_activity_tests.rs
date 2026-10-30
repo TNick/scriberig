@@ -22,6 +22,7 @@ fn activity_projection_redacts_tool_payload_bytes() {
         agent_profile: None,
         context_fingerprint: None,
         provider_profile: None,
+        provider_id: None,
         model: Some("model-a".to_owned()),
         model_profile: None,
         provider_model_id: None,

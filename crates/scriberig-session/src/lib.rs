@@ -148,14 +148,24 @@ pub use branch::{Branch, BranchStatus};
 pub use description::Description;
 pub use error::SessionError;
 pub use execution::{
-    AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity, ModelInvocation,
-    ModelOutput, ModelRequestMessage, ModelRequestProjection, ModelRequestTool, SelectionError,
-    SessionActivityKind, SessionActivityState, SessionExecutionChange, SessionExecutionSelection,
-    ToolActivityKind,
+    AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity,
+    ModelContextRevisionRef, ModelInvocation, ModelOutput, ModelRequestDetailMessage,
+    ModelRequestDetailPart, ModelRequestDetailTool, ModelRequestMessage, ModelRequestProjection,
+    ModelRequestTool, ModelRequestToolCall, SelectionError, SessionActivityKind,
+    SessionActivityState, SessionExecutionChange, SessionExecutionSelection, ToolActivityKind,
 };
 pub use planning::{
-    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanDependency, PlanError, PlanNode,
-    PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
+    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanAbandonReason, PlanAttemptView,
+    PlanDependency, PlanError, PlanEvidenceAssociation, PlanEvidenceKind, PlanEvidenceOwner,
+    PlanEvidenceReference, PlanEvidenceRole, PlanGate, PlanGateCounts, PlanGateEvaluation,
+    PlanGatePhase, PlanGateRequirement, PlanGateStatus, PlanGateWaiver, PlanNode, PlanNodeParent,
+    PlanNodeRollup, PlanNodeRollupIndex, PlanNodeStatus, PlanNodeStatusCounts, PlanNodeSummary,
+    PlanNodeView, PlanRevision, PlanSemanticPredicate, PlanSemanticReference, PlanStatus, PlanView,
+    WorkerClaim,
+    semantic::{
+        PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef, PlanSemanticRevision,
+        PlanSemanticSnapshot,
+    },
 };
 pub use repository::{PlanStoreError, SelectionStoreError, SessionStore};
 pub use turn::{

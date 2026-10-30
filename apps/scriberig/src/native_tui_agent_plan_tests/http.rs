@@ -1,6 +1,7 @@
 //! Exercises plan lifecycle dispatch through the native HTTP protocol contract.
 
 use super::*;
+use crate::native_tui_agent::tests::model_catalog_from_models;
 
 type HttpBackend = ApplicationBackendComposition<
     StoreInspectionBackend<Arc<SqliteStore>>,
@@ -21,17 +22,10 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
         scriberig_session_sqlite::SqliteSessionStore::open(root.join("session.sqlite"))
             .expect("session store"),
     );
-    let model_library = scriberig_app::model_library_from_json(
-        Some(
-            r#"{"models":[{"id":"http-plan-model","display_name":"HTTP Plan Model","provider_model_id":"wire-http-plan-model","thinking_levels":[{"id":"high","label":"Deep"}]}]}"#,
-        ),
-        "http-plan-model",
-    )
-    .expect("worker model library");
+    let upstream_models = upstream_model_catalog("local", &["wire-http-plan-model"]);
     let service = ApplicationService::new(backend)
         .with_session_store(session_store.clone())
-        .with_model_library(model_library.clone())
-        .with_upstream_models(upstream_model_catalog("local", &["wire-http-plan-model"]));
+        .with_upstream_models(upstream_models.clone());
     let session_id = EntityId::new();
     let root_branch = EntityId::new();
     let mut branch = Branch::new(root_branch, "root").expect("root branch");
@@ -75,7 +69,7 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
                 semantic_scope: Vec::new(),
                 assignment: Some(ModelAssignment {
                     provider_id: "local".to_owned(),
-                    model_id: "http-plan-model".to_owned(),
+                    model_id: "wire-http-plan-model".to_owned(),
                     thinking_level: Some("high".to_owned()),
                 }),
             }],
@@ -83,17 +77,23 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
         },
     )
     .expect("create plan");
-    let provider = FakeProvider::from_responses([Ok(final_response("HTTP worker completed."))]);
+    let provider = rpi_ai::providers::faux::FauxScript::new().with_text("HTTP worker completed.");
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([(
-            "local".to_owned(),
-            NativeProvider::Fake(provider.clone()),
+            crate::native_tui_agent::provider_config::catalog::connection_identity(
+                "local",
+                "wire-http-plan-model",
+            ),
+            NativeScenario::Faux(provider.clone()),
         )]),
         model: "http-plan-model".to_owned(),
-        model_library,
-        upstream_models: upstream_model_catalog("local", &["wire-http-plan-model"]),
+        upstream_credentials: None,
+        upstream_enabled: false,
+        model_catalog: model_catalog_from_models(upstream_models),
+        model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
+        continuations: std::sync::Mutex::default(),
     };
     let handler = move |service: &&ApplicationService<HttpBackend>,
                         request_context: &ApplicationContext,
@@ -135,15 +135,22 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
         updated.status,
         scriberig_protocol::SessionPlanStatus::Completed
     );
-    assert_eq!(provider.requests().len(), 1);
-    assert_eq!(provider.requests()[0].model, "wire-http-plan-model");
-    assert_eq!(
-        provider.requests()[0].thinking_level.as_deref(),
-        Some("high")
-    );
     let durable = session_store
         .load(session_id)
         .expect("load durable session");
+    let request = durable
+        .as_ref()
+        .and_then(|session| {
+            session.branches.iter().find_map(|branch| {
+                branch
+                    .model_invocations
+                    .iter()
+                    .find_map(|invocation| invocation.request.as_ref())
+            })
+        })
+        .expect("captured upstream request");
+    assert_eq!(request.model, "wire-http-plan-model");
+    assert_eq!(request.thinking_level.as_deref(), Some("high"));
     assert!(
         durable
             .is_some_and(|value| { value.branches.iter().any(|branch| branch.result.is_some()) })

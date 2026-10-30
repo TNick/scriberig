@@ -1,8 +1,6 @@
-//! Provides a deterministic post-manifest onboarding failure scenario.
+//! Scripts a deterministic post-manifest onboarding failure scenario.
 
-use scriberig_agent_runtime::provider::{
-    ModelRequest, ModelResponse, ProviderAdapter, ProviderError,
-};
+use rpi_ai::{Context, Model};
 
 use crate::deterministic_provider::BootstrapProvider;
 
@@ -10,27 +8,30 @@ use crate::deterministic_provider::BootstrapProvider;
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct BootstrapImportFailureProvider;
 
-impl ProviderAdapter for BootstrapImportFailureProvider {
-    /// Runs normal onboarding tools with one invalid reviewed-manifest reference.
+impl BootstrapImportFailureProvider {
+    /// Runs onboarding and corrupts the reviewed manifest reference.
     ///
-    /// - `self`: Deterministic failure scenario.
-    /// - `request`: Normalized model request from the agent runtime.
+    /// # Parameters
+    /// - `context`: Exact upstream provider context.
+    /// - `model`: Exact upstream model bound to the scenario.
     ///
-    /// Normal bootstrap response until shared import validation rejects the reference.
-    ///
-    /// Returns the bootstrap provider's structured failure.
     /// # Returns
-    /// The operation result.
+    /// The bootstrap response, with an invalid manifest reference when importing.
+    ///
     /// # Errors
-    /// Returns an error when the operation fails.
-    fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
-        let mut response = BootstrapProvider.complete(request)?;
-        if let Some(import) = response
-            .tool_calls
-            .iter_mut()
-            .find(|call| call.name == "project_import")
-        {
-            import.arguments["manifest_id"] = serde_json::Value::String("0".repeat(64));
+    /// Returns the bootstrap scenario error when required tool evidence is absent.
+    pub(super) fn respond(
+        context: &Context,
+        model: &Model,
+    ) -> Result<rpi_ai::AssistantMessage, String> {
+        let mut response = BootstrapProvider::respond(context, model)?;
+        for content in &mut response.content {
+            let rpi_ai::types::Content::ToolCall(call) = content else {
+                continue;
+            };
+            if call.name == "project_import" {
+                call.arguments["manifest_id"] = serde_json::Value::String("0".repeat(64));
+            }
         }
         Ok(response)
     }

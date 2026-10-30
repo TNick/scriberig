@@ -37,6 +37,7 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             )
         });
     }
+    let is_model_library = matches!(&request, scriberig_protocol::Request::ModelLibrary(_));
     let lifecycle_handler = state.plan_lifecycle_handler.as_ref().map(|handler| {
         let handler = std::sync::Arc::clone(handler);
         std::sync::Arc::new(
@@ -48,7 +49,7 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             },
         ) as std::sync::Arc<crate::http::PlanLifecycleHandler<&S>>
     });
-    let response = Dispatcher::for_principal(&state.service, state.principal.clone())
+    let mut response = Dispatcher::for_principal(&state.service, state.principal.clone())
         .dispatch_with_plan_lifecycle(
             scriberig_protocol::RequestEnvelope {
                 version: scriberig_protocol::ProtocolVersion::default(),
@@ -57,6 +58,22 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             },
             lifecycle_handler.as_deref(),
         );
+    if is_model_library
+        && let (Some(handler), scriberig_protocol::Response::ModelLibrary(library)) = (
+            state.provider_readiness_handler.as_ref(),
+            &mut response.response,
+        )
+    {
+        let model_ids = library
+            .models
+            .iter()
+            .map(|model| (model.provider_id.as_str(), model.provider_model_id.as_str()))
+            .collect::<std::collections::BTreeSet<_>>();
+        library.provider_readiness = handler()
+            .into_iter()
+            .filter(|row| model_ids.contains(&(row.provider_id.as_str(), row.model_id.as_str())))
+            .collect();
+    }
     serde_json::to_value(response).map_err(|error| {
         (
             500,
@@ -65,18 +82,21 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
     })
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "This is the exhaustive mapping from stable HTTP operation names to typed requests."
+)]
 /// Decodes one stable operation identifier into a protocol request variant.
 ///
+/// # Parameters
 /// - `operation`: Stable operation identifier from the URL.
 /// - `body`: JSON request payload.
 ///
+/// # Returns
 /// The corresponding typed protocol request.
 ///
-/// Returns a transport status and structured body when decoding fails.
-/// # Returns
-/// The operation result.
 /// # Errors
-/// Returns an error when the operation fails.
+/// Returns a transport status and structured body when decoding fails.
 fn decode_request(
     operation: &str,
     body: &str,
@@ -136,6 +156,18 @@ fn decode_request(
         "plan_replan" => {
             scriberig_protocol::Request::PlanReplan(serde_json::from_str(body).map_err(invalid)?)
         }
+        "plan_retry" => {
+            scriberig_protocol::Request::PlanRetry(serde_json::from_str(body).map_err(invalid)?)
+        }
+        "plan_next_step" => {
+            scriberig_protocol::Request::PlanNextStep(serde_json::from_str(body).map_err(invalid)?)
+        }
+        "plan_decompose" => {
+            scriberig_protocol::Request::PlanDecompose(serde_json::from_str(body).map_err(invalid)?)
+        }
+        "plan_semantic_mutation" => scriberig_protocol::Request::PlanSemanticMutation(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
         "model_request_detail" => scriberig_protocol::Request::ModelRequestDetail(
             serde_json::from_str(body).map_err(invalid)?,
         ),

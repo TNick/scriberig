@@ -4,27 +4,20 @@
 
 use super::*;
 use scriberig_agent_core::{Tool, ToolError, ToolInput, ToolResult};
-use scriberig_agent_runtime::model_provider::ProviderModel;
-use scriberig_agent_runtime::provider::{
-    FakeProvider, FinishReason, ModelResponse, ProviderMetadata, ToolCall, ToolDefinition,
-};
-use scriberig_agent_runtime::tools::{
-    ToolCatalog, ToolCategory, ToolDescriptor, ToolExecutionMode,
-};
 use scriberig_project::{ProjectSourceChange, ProjectSourceChangeKind};
-use serde_json::{Value, json};
+use serde_json::Value;
 
 /// Executes the project agent's exact inspect and proposal calls.
-pub struct ProjectAgentTool<'a> {
+pub struct ProjectAgentTool {
     /// Active project projection and shared workflow service.
-    pub(super) projection: &'a ProjectProjection,
+    pub(super) projection: ProjectProjection,
     /// Selected semantic entity.
     pub(super) entity: EntityId,
     /// Exact candidate base snapshot.
     pub(super) snapshot: SnapshotId,
 }
 
-impl Tool for ProjectAgentTool<'_> {
+impl Tool for ProjectAgentTool {
     /// Returns the project-agent tool name.
     ///
     /// Stable provider-facing tool name.
@@ -204,109 +197,6 @@ fn project_argument_error(message: &str) -> ToolError {
     ToolError::Application {
         category: "project_agent_arguments".to_owned(),
         message: message.to_owned(),
-    }
-}
-
-/// Builds the deterministic provider script for the golden prompt.
-///
-/// - `entity`: Selected semantic entity.
-/// - `snapshot`: Exact candidate base snapshot.
-///
-/// Scripted provider model.
-/// # Returns
-/// The operation result.
-pub fn golden_provider(entity: EntityId, snapshot: SnapshotId) -> ProviderModel<FakeProvider> {
-    let responses = [
-        Ok(response(
-            Some(ToolCall {
-                id: "inspect-add".to_owned(),
-                name: "inspect".to_owned(),
-                arguments: json!({
-                    "entity": entity.to_string(),
-                    "snapshot": snapshot.to_string(),
-                    "detail": "detailed"
-                }),
-            }),
-            None,
-        )),
-        Ok(response(
-            Some(ToolCall {
-                id: "propose-add".to_owned(),
-                name: "project_propose".to_owned(),
-                arguments: json!({"text": "left.saturating_add(right)"}),
-            }),
-            None,
-        )),
-        Ok(response(None, Some("Candidate ready for review."))),
-    ];
-    let catalog = ToolCatalog::new(vec![
-        descriptor(
-            "inspect",
-            "Inspect selected semantic entity.",
-            false,
-            ToolCategory::SemanticRead,
-        ),
-        descriptor(
-            "project_propose",
-            "Create an exact-base project source candidate using the fallback projection path.",
-            true,
-            ToolCategory::OpaqueFallback,
-        ),
-    ]);
-    ProviderModel::new(FakeProvider::from_responses(responses), "scriberig-golden")
-        .with_catalog(catalog)
-}
-
-/// Creates one provider response for the deterministic script.
-///
-/// - `tool_call`: Optional provider tool call.
-/// - `text`: Optional final provider text.
-///
-/// Normalized provider response.
-/// # Returns
-/// The operation result.
-fn response(tool_call: Option<ToolCall>, text: Option<&str>) -> ModelResponse {
-    ModelResponse {
-        text: text.map(str::to_owned),
-        tool_calls: tool_call.into_iter().collect(),
-        finish_reason: if text.is_some() {
-            FinishReason::Stop
-        } else {
-            FinishReason::ToolCall
-        },
-        usage: None,
-        metadata: ProviderMetadata::default(),
-    }
-}
-
-/// Creates a catalog entry for one deterministic provider tool.
-///
-/// - `name`: Tool name.
-/// - `description`: Tool description.
-/// - `state_changing`: Whether the tool changes candidate state.
-/// - `category`: Trusted semantic operation category.
-///
-/// Provider tool descriptor.
-/// # Returns
-/// The operation result.
-fn descriptor(
-    name: &str,
-    description: &str,
-    state_changing: bool,
-    category: ToolCategory,
-) -> ToolDescriptor {
-    ToolDescriptor {
-        definition: ToolDefinition {
-            name: name.to_owned(),
-            description: description.to_owned(),
-            parameters: json!({"type": "object"}),
-        },
-        category,
-        result_shape: "semantic result".to_owned(),
-        invocation_label: None,
-        state_changing,
-        execution_mode: ToolExecutionMode::Atomic,
-        required_capability: None,
     }
 }
 

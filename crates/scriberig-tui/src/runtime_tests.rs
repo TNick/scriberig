@@ -3,10 +3,7 @@
 use scriberig_app::{ApplicationContext, ApplicationError, InspectResult};
 
 use crate::TuiService;
-use crate::{
-    event::{Key, KeyCode, Modifiers, TuiEvent},
-    state::TuiState,
-};
+use crate::{action::Action, state::TuiState};
 
 /// Provides an unsupported operation for runtime composition tests.
 struct Fixture;
@@ -178,17 +175,11 @@ impl TuiService for BlockingAgentFixture {
     }
 }
 
-/// Verifies a runtime quit event is handled without a terminal backend.
+/// Verifies a runtime quit action is handled without a terminal backend.
 #[test]
-fn quit_event_terminates_state_loop() {
+fn quit_action_terminates_state_loop() {
     let mut state = TuiState::default();
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('c'),
-        modifiers: Modifiers {
-            control: true,
-            ..Modifiers::default()
-        },
-    }));
+    crate::state::reduce(&mut state, Action::QuitRequested);
     assert!(state.should_quit);
 }
 

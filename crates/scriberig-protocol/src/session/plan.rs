@@ -1,5 +1,6 @@
 //! Defines plan values for durable session transport.
 
+pub use super::plan_semantics::*;
 use crate::SessionReference;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -46,6 +47,21 @@ pub struct SessionPlanNode {
     pub purpose: String,
     /// Durable scheduling state.
     pub status: SessionPlanNodeStatus,
+    /// Exact immutable node revision, when supplied by the shared view.
+    #[serde(default)]
+    pub exact_revision: Option<String>,
+    /// Derived effective status including required descendants and gates.
+    #[serde(default)]
+    pub effective_status: Option<SessionPlanNodeStatus>,
+    /// Whether this node's subtree contains ignored work.
+    #[serde(default)]
+    pub contains_ignored: bool,
+    /// Whether this node's subtree contains abandoned work.
+    #[serde(default)]
+    pub contains_abandoned: bool,
+    /// Typed reason for direct abandonment.
+    #[serde(default)]
+    pub abandon_reason: Option<SessionPlanAbandonReason>,
     /// Branch executing this work, when started.
     #[serde(default)]
     pub branch: Option<String>,
@@ -67,6 +83,30 @@ pub struct SessionPlanNode {
     /// Exclusive worker claim when the node is running.
     #[serde(default)]
     pub claim: Option<SessionWorkerClaim>,
+    /// Stable identity of the node's current summary.
+    #[serde(default)]
+    pub summary_id: Option<String>,
+    /// Bounded concise summary preview.
+    #[serde(default)]
+    pub summary_preview: Option<String>,
+    /// Prerequisite node identities currently blocking this node.
+    #[serde(default)]
+    pub dependency_blockers: Vec<String>,
+    /// Entry gates by evaluated state.
+    #[serde(default)]
+    pub entry_gates: SessionPlanGateCounts,
+    /// Completion gates by evaluated state.
+    #[serde(default)]
+    pub completion_gates: SessionPlanGateCounts,
+    /// Node and gate evidence-association count.
+    #[serde(default)]
+    pub evidence_count: u32,
+    /// Whether an explicit retry is currently available.
+    #[serde(default)]
+    pub can_retry: bool,
+    /// Exact reference to the most recent failed result.
+    #[serde(default)]
+    pub last_failure: Option<SessionPlanEvidenceReference>,
 }
 
 /// Result-based dependency edge between two plan nodes.
@@ -172,58 +212,6 @@ pub struct SessionWorkerClaim {
     pub assignment: Option<SessionModelAssignment>,
 }
 
-/// Immutable plan projection retained for one earlier revision.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct SessionPlanRevision {
-    /// Monotonic revision identity.
-    pub revision: u64,
-    /// Goal at this revision.
-    pub goal: String,
-    /// Plan state at this revision.
-    pub status: SessionPlanStatus,
-    /// Nodes retained for inspection at this revision.
-    pub nodes: Vec<SessionPlanNode>,
-    /// Dependency graph at this revision.
-    pub dependencies: Vec<SessionPlanDependency>,
-    /// Safe replan reason, when this revision came from a replan.
-    #[serde(default)]
-    pub reason: Option<String>,
-}
-
-/// Plan projection with structural nodes and a separate dependency DAG.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct SessionPlan {
-    /// Stable plan identity.
-    pub id: String,
-    /// Current durable plan revision.
-    pub revision: u64,
-    /// Durable plan objective.
-    pub goal: String,
-    /// Current plan lifecycle state.
-    pub status: SessionPlanStatus,
-    /// Exact session continuation where this plan was created.
-    #[serde(default)]
-    pub anchor: Option<SessionContinuationAnchor>,
-    /// Root branch from which planning began.
-    pub root_branch: String,
-    /// Durable work nodes.
-    pub nodes: Vec<SessionPlanNode>,
-    /// Independent result-based dependency edges.
-    pub dependencies: Vec<SessionPlanDependency>,
-    /// Branch authorized to coordinate automatic plan advancement.
-    #[serde(default)]
-    pub coordinator: Option<String>,
-    /// Stable plan-node identity currently being coordinated.
-    #[serde(default)]
-    pub coordinator_cursor: Option<String>,
-    /// Unique coordinator operation claim.
-    #[serde(default)]
-    pub coordinator_claim: Option<SessionCoordinatorClaim>,
-    /// Immutable earlier plan revisions.
-    #[serde(default)]
-    pub history: Vec<SessionPlanRevision>,
-}
-
 /// One structured plan node proposal without application identities.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct SessionPlanNodeDraft {
@@ -288,6 +276,19 @@ pub struct SessionPlanLifecycleRequest {
     pub expected_revision: u64,
     /// Requested lifecycle operation.
     pub action: SessionPlanAction,
+}
+
+/// Retries one failed plan node at an observed plan revision.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionPlanRetryRequest {
+    /// Owning session identity.
+    pub session: SessionReference,
+    /// Stable plan identity.
+    pub plan: String,
+    /// Stable failed node identity.
+    pub node: String,
+    /// Plan revision observed by the client.
+    pub expected_revision: u64,
 }
 
 /// Changes one unstarted node's safe model assignment.

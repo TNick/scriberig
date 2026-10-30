@@ -115,7 +115,7 @@ pub enum Effect {
         /// Stable session identity to remove.
         session: scriberig_core::EntityId,
     },
-    /// Read credential-safe model profiles and capabilities.
+    /// Read safe upstream-derived model display rows.
     ReadModelLibrary {
         /// Request generation.
         request_id: u64,

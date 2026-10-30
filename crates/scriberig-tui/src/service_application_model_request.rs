@@ -67,10 +67,61 @@ pub(super) fn model_request_response(
     invocation: EntityId,
     detail: scriberig_session::ModelRequestProjection,
 ) -> scriberig_protocol::ModelRequestDetailResponse {
+    let mut fragments = Vec::new();
+    let mut offset = 0;
+    let mut page = scriberig_app::agent_console::request_page::model_request_detail_page(
+        &detail, offset, 32_768,
+    );
+    let total_chars = page.total_chars;
+    let content_complete = page.content_complete;
+    loop {
+        let next_offset = page.next_offset;
+        fragments.extend(page.fragments.into_iter().map(|fragment| {
+            scriberig_protocol::ModelRequestDetailFragment {
+                kind: fragment.kind,
+                index: fragment.index,
+                parent_index: fragment.parent_index,
+                field: fragment.field,
+                field_offset: fragment.field_offset,
+                role: fragment.role,
+                text: fragment.text,
+            }
+        }));
+        match next_offset {
+            Some(next) => {
+                offset = next;
+                page = scriberig_app::agent_console::request_page::model_request_detail_page(
+                    &detail, offset, 32_768,
+                );
+            }
+            None => break,
+        }
+    }
     scriberig_protocol::ModelRequestDetailResponse {
         invocation: invocation.to_string(),
         model: detail.model,
+        provider_id: detail.provider_id,
+        provider_profile: detail.provider_profile,
         thinking_level: detail.thinking_level,
+        profile: detail.profile.map(|reference| {
+            scriberig_protocol::ModelContextRevisionReference {
+                identity: reference.identity,
+                revision: reference.revision,
+            }
+        }),
+        active_components: detail
+            .active_components
+            .into_iter()
+            .map(
+                |reference| scriberig_protocol::ModelContextRevisionReference {
+                    identity: reference.identity,
+                    revision: reference.revision,
+                },
+            )
+            .collect(),
+        context_fingerprint: detail.context_fingerprint,
+        request_fingerprint: detail.request_fingerprint,
+        model_execution_configuration: detail.model_execution_configuration,
         messages: detail
             .messages
             .into_iter()
@@ -88,6 +139,13 @@ pub(super) fn model_request_response(
                 parameters: tool.parameters,
             })
             .collect(),
+        applied_settings: detail.applied_settings,
+        applied_settings_fingerprint: detail.applied_settings_fingerprint,
         truncated: detail.truncated,
+        content_complete,
+        fragments,
+        offset: Some(0),
+        total_chars: Some(total_chars),
+        next_offset: None,
     }
 }

@@ -199,6 +199,12 @@ export function BranchActivityView({
                               {tool.parameters ? `\n${tool.parameters}` : ""}
                             </pre>
                           ))}
+                          {requestDetail.appliedSettings !== undefined ? (
+                            <>
+                              <h3>Upstream applied settings report</h3>
+                              <pre>{JSON.stringify(requestDetail.appliedSettings, null, 2)}</pre>
+                            </>
+                          ) : null}
                           {requestDetail.truncated ? <small>Request detail truncated</small> : null}
                         </>
                       ) : onLoadModelRequest === undefined ? (

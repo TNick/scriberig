@@ -25,7 +25,6 @@ members = [
   "crates/scriberig-agent-runtime",
   "crates/scriberig-server",
   "crates/scriberig-tui",
-  "crates/scriberig-tui-kit",
   "crates/scriberig-cli",
   "crates/scriberig-project",
   "crates/domains/scriberig-domain-markdown",
@@ -43,13 +42,22 @@ members = [
   "crates/scriberig-conformance",
   "apps/scriberig",
 ]
-exclude = ["third_party/rpi-tui/crate"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 repository = "https://github.com/TNick/scriberig"
+
+[workspace.dependencies]
+# Controlled TNick fork on `codex/scriberig-upstream-ownership`, based on
+# upstream main 281dfddfa39ac063d86de57b75370974c4d75e6c. This pin also carries
+# typed provider failures, safe reasoning-summary events, and isolated workers.
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
+rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
+rpi-extensions = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
+rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
+rpi-tui = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
 
 [workspace.lints.rust]
 warnings = "deny"

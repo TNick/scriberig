@@ -10,6 +10,8 @@ use scriberig_session::Session;
 #[path = "service_local_sessions.rs"]
 mod service_local_sessions;
 
+#[path = "service_sessions/agent_submission.rs"]
+mod agent_submission;
 #[path = "service_sessions/management.rs"]
 mod management;
 #[path = "service_sessions/plan_store.rs"]
@@ -17,7 +19,7 @@ mod plan_store;
 
 #[path = "service_session_authorization.rs"]
 mod service_session_authorization;
-use service_session_authorization::{authorize_agent_command, authorize_session_read};
+use service_session_authorization::authorize_session_read;
 pub(super) use service_session_authorization::{
     authorize_model_library_read, authorize_session_model_selection,
 };
@@ -266,18 +268,73 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         }
     }
 
-    /// Writes one validated node assignment through the application service.
-    ///
-    /// - `context`: Authorized request context.
-    /// - `request`: Plan, node, revision, and credential-safe assignment.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns plan validation, authorization, or persistence failures.
+    /// Retries a failed node through shared plan validation and persistence.
+    /// - `context`: Authorized caller context.
+    /// - `request`: Plan, node, and expected revision.
     /// # Returns
-    /// The operation result.
+    /// The updated plan.
     /// # Errors
-    /// Returns an error when the operation fails.
+    /// Returns validation, conflict, or persistence errors.
+    fn retry_plan_node(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanRetryRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        ApplicationService::retry_plan_node(self, context, request)
+    }
+    /// Adds ordinary work through the shared plan boundary.
+    /// - `context`: Authorized caller context.
+    /// - `request`: Plan revision and proposed next step.
+    /// # Returns
+    /// The updated plan.
+    /// # Errors
+    /// Returns validation, conflict, assignment, or persistence errors.
+    fn add_plan_next_step(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanNextStepRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        ApplicationService::add_plan_next_step(self, context, request)
+    }
+
+    /// Decomposes one node through the shared plan boundary.
+    /// - `context`: Authorized caller context.
+    /// - `request`: Parent, revision, children, and requirement policy.
+    /// # Returns
+    /// The updated plan.
+    /// # Errors
+    /// Returns validation, conflict, assignment, or persistence errors.
+    fn decompose_plan_node(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanDecomposeRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        ApplicationService::decompose_plan_node(self, context, request)
+    }
+
+    /// Applies one typed semantic mutation through the application service.
+    ///
+    /// - `context`: Authorized caller context.
+    /// - `request`: Exact plan revision and semantic mutation.
+    /// # Returns
+    /// The updated plan.
+    /// # Errors
+    /// Returns validation, conflict, authorization, or persistence errors.
+    fn mutate_plan_semantics(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanSemanticMutationRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        ApplicationService::mutate_plan_semantics(self, context, request)
+    }
+
+    /// Changes one node assignment through the application service.
+    /// - `context`: Authorized request context.
+    /// - `request`: Plan, node, revision, and safe assignment.
+    /// # Returns
+    /// The authoritative updated plan.
+    /// # Errors
+    /// Returns validation, authorization, or persistence errors.
     fn set_plan_node_assignment(
         &self,
         context: &ApplicationContext,
@@ -303,42 +360,7 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         context: &ApplicationContext,
         request: &crate::AgentCommandRequest,
     ) -> Result<scriberig_core::OperationId, ApplicationError> {
-        authorize_agent_command(context, request)?;
-        if let Some(anchor) = request.anchor {
-            if request.branch.is_some() {
-                return Err(ApplicationError::InvalidRequest {
-                    operation: "agent_continue_at".to_owned(),
-                    message: "an exact anchor cannot be combined with a branch-head target"
-                        .to_owned(),
-                });
-            }
-            let session = self.read_session(
-                context,
-                &crate::SessionRequest {
-                    session: request.session,
-                },
-            )?;
-            session
-                .resolve_anchor(anchor)
-                .map_err(|error| ApplicationError::InvalidRequest {
-                    operation: "agent_continue_at".to_owned(),
-                    message: error.to_string(),
-                })?;
-        }
-        let operation = match self.backend.submit_agent_command(context, request) {
-            Ok(operation) => operation,
-            Err(error) if error.category() == "unsupported_operation" => {
-                self.accept_local_agent(request)?
-            }
-            Err(error) => return Err(error),
-        };
-        if self.operations.get(&operation).is_err() {
-            self.operations
-                .start(operation.clone(), crate::OperationKind::Agent)?;
-            self.operations
-                .transition(&operation, crate::OperationStatus::Running)?;
-        }
-        Ok(operation)
+        agent_submission::submit(self, context, request)
     }
 }
 

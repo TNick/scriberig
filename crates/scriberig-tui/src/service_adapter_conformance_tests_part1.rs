@@ -48,6 +48,8 @@ fn local_and_remote_session_adapters_share_semantics() {
                 plans: vec![scriberig_protocol::SessionPlan {
                     id: expected.plans[0].id.to_string(),
                     revision: 2,
+                    exact_revision: None,
+                    snapshot: None,
                     goal: "inspect fixture semantics".to_owned(),
                     status: scriberig_protocol::SessionPlanStatus::Planned,
                     anchor: Some(scriberig_protocol::SessionContinuationAnchor::BranchHead {
@@ -61,6 +63,11 @@ fn local_and_remote_session_adapters_share_semantics() {
                             title: "produce".to_owned(),
                             purpose: "produce result".to_owned(),
                             status: scriberig_protocol::SessionPlanNodeStatus::Completed,
+                            exact_revision: None,
+                            effective_status: None,
+                            contains_ignored: false,
+                            contains_abandoned: false,
+                            abandon_reason: None,
                             branch: None,
                             result: Some(
                                 expected.plans[0].dependencies[0]
@@ -73,6 +80,14 @@ fn local_and_remote_session_adapters_share_semantics() {
                             semantic_scope: Vec::new(),
                             assignment: None,
                             claim: None,
+                            summary_id: None,
+                            summary_preview: None,
+                            dependency_blockers: Vec::new(),
+                            entry_gates: scriberig_protocol::SessionPlanGateCounts::default(),
+                            completion_gates: scriberig_protocol::SessionPlanGateCounts::default(),
+                            evidence_count: 0,
+                            can_retry: false,
+                            last_failure: None,
                         },
                         scriberig_protocol::SessionPlanNode {
                             id: expected.plans[0].nodes[1].id.to_string(),
@@ -80,6 +95,11 @@ fn local_and_remote_session_adapters_share_semantics() {
                             title: "consume".to_owned(),
                             purpose: "consume result".to_owned(),
                             status: scriberig_protocol::SessionPlanNodeStatus::Ready,
+                            exact_revision: None,
+                            effective_status: None,
+                            contains_ignored: false,
+                            contains_abandoned: false,
+                            abandon_reason: None,
                             branch: None,
                             result: None,
                             superseded_by: None,
@@ -87,6 +107,14 @@ fn local_and_remote_session_adapters_share_semantics() {
                             semantic_scope: Vec::new(),
                             assignment: None,
                             claim: None,
+                            summary_id: None,
+                            summary_preview: None,
+                            dependency_blockers: Vec::new(),
+                            entry_gates: scriberig_protocol::SessionPlanGateCounts::default(),
+                            completion_gates: scriberig_protocol::SessionPlanGateCounts::default(),
+                            evidence_count: 0,
+                            can_retry: false,
+                            last_failure: None,
                         },
                     ],
                     dependencies: vec![scriberig_protocol::SessionPlanDependency {
@@ -100,6 +128,15 @@ fn local_and_remote_session_adapters_share_semantics() {
                     coordinator_cursor: None,
                     coordinator_claim: None,
                     history: Vec::new(),
+                    root_nodes: expected.plans[0]
+                        .root_nodes
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect(),
+                    status_counts: scriberig_protocol::SessionPlanStatusCounts::default(),
+                    gates: Vec::new(),
+                    evidence: Vec::new(),
+                    summaries: Vec::new(),
                 }],
                 execution: scriberig_protocol::SessionExecutionSelection {
                     revision: 1,

@@ -22,18 +22,7 @@ fn persistent_session_composer_submits_without_a_modal() {
     assert!(state.overlay.is_none());
     assert!(state.is_input_active());
     reduce(&mut state, Action::InputChanged("inspect this".to_owned()));
-    let newline = crate::keymap::action_for(
-        &state,
-        &crate::event::Key {
-            code: crate::event::KeyCode::Char('j'),
-            modifiers: crate::event::Modifiers {
-                control: true,
-                ..Default::default()
-            },
-        },
-    )
-    .expect("Ctrl+J newline binding");
-    reduce(&mut state, newline);
+    reduce(&mut state, Action::InputChanged("\n".to_owned()));
     reduce(&mut state, Action::InputChanged("entity".to_owned()));
     let effects = reduce(&mut state, Action::InputSubmitted);
 
@@ -139,9 +128,8 @@ fn session_change_event_refreshes_the_active_composer_session() {
         error: None,
     });
 
-    let effects = state.apply_event(&crate::event::TuiEvent::Application(
-        scriberig_app::ApplicationEvent::SessionChanged { session },
-    ));
+    let effects =
+        state.apply_application_event(&scriberig_app::ApplicationEvent::SessionChanged { session });
 
     assert!(matches!(
         effects.as_slice(),
@@ -180,15 +168,7 @@ fn persistent_session_composer_keeps_paste_as_text() {
 #[test]
 fn conversation_home_types_and_submits_without_allocating_local_identity() {
     let mut state = TuiState::default();
-    let character = crate::keymap::action_for(
-        &state,
-        &crate::event::Key {
-            code: crate::event::KeyCode::Char('h'),
-            modifiers: crate::event::Modifiers::default(),
-        },
-    )
-    .expect("ordinary key edits composer");
-    reduce(&mut state, character);
+    reduce(&mut state, Action::InputChanged("h".to_owned()));
     reduce(&mut state, Action::InputChanged("ello".to_owned()));
 
     let effects = reduce(&mut state, Action::InputSubmitted);
@@ -294,7 +274,7 @@ fn conversation_slash_routing_never_sends_unknown_commands_to_the_agent() {
     state.conversation_composer.draft = "/model".to_owned();
     assert!(matches!(
         reduce(&mut state, Action::InputSubmitted).as_slice(),
-        [Effect::ReadModelLibrary { .. }]
+        [Effect::None]
     ));
     assert_eq!(state.conversation_composer.draft, "");
     let session = scriberig_core::EntityId::from_bytes([125; 16]);
@@ -384,6 +364,19 @@ fn conversation_auxiliary_command_is_available_while_agent_is_pending() {
     assert_eq!(
         state.conversation_composer.pending_prompt.as_deref(),
         Some("request currently running")
+    );
+}
+
+/// Verifies the project slash command reports a missing project.
+#[test]
+fn project_command_reports_missing_project() {
+    let mut state = TuiState::default();
+    state.conversation_composer.draft = "/project".to_owned();
+    reduce(&mut state, Action::InputSubmitted);
+    assert!(
+        state
+            .shell_message
+            .contains("No active project is selected.")
     );
 }
 

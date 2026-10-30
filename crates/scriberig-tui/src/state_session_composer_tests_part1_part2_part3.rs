@@ -2,6 +2,29 @@
 
 use super::*;
 
+/// Creates a safe model metadata fixture for plan assignment controls.
+///
+/// # Returns
+/// A neutral upstream metadata snapshot for plan assignment fixtures.
+fn model_metadata_snapshot() -> scriberig_protocol::PublicModelMetadataSnapshot {
+    scriberig_protocol::PublicModelMetadataSnapshot {
+        schema_version: "rpi-safe-model-snapshot-v1".to_owned(),
+        api_id: "openai-completions".to_owned(),
+        reasoning: false,
+        input: vec![scriberig_protocol::PublicModelInputModality::Text],
+        cost: scriberig_protocol::PublicModelCostSnapshot {
+            input: 0.0,
+            output: 0.0,
+            cache_read: 0.0,
+            cache_write: 0.0,
+            tiers: Vec::new(),
+        },
+        cost_configured: false,
+        context_window: 4096,
+        max_tokens: 1024,
+    }
+}
+
 /// Verifies plan replan command emits shared revision operation.
 #[test]
 fn plan_replan_command_emits_shared_revision_operation() {
@@ -75,6 +98,8 @@ fn accepted_plan_result_rebuilds_structural_conversation_rows() {
         branch: None,
         result: None,
         superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
         assignment: None,
         claim: None,
         claim_generation: 0,
@@ -130,6 +155,8 @@ fn assign_command_targets_only_the_selected_plan_node() {
         branch: None,
         result: None,
         superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
         assignment: None,
         claim: None,
         claim_generation: 0,
@@ -152,33 +179,28 @@ fn assign_command_targets_only_the_selected_plan_node() {
         )),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
+                provider_readiness: Vec::new(),
                 models: vec![scriberig_protocol::PublicModelDescriptor {
                     id: "model-small".to_owned(),
                     display_name: "CPU model".to_owned(),
-                    provider_profile: "provider-cpu".to_owned(),
+                    provider_id: "provider-cpu".to_owned(),
                     provider_model_id: "model-small".to_owned(),
-                    capabilities: scriberig_protocol::PublicModelCapabilities::default(),
-                    thinking_levels: vec![scriberig_protocol::PublicThinkingLevelDescriptor {
-                        id: "balanced".to_owned(),
-                        label: "Balanced".to_owned(),
-                        description: None,
-                        order: 0,
-                    }],
-                    default_thinking_level: Some("balanced".to_owned()),
+                    thinking_levels: vec!["balanced".to_owned()],
+                    metadata_snapshot: model_metadata_snapshot(),
                 }],
-                profiles: Vec::new(),
             },
         ),
         ..TuiState::default()
     };
     state.conversation_composer.draft = "/assign".to_owned();
     reduce(&mut state, Action::InputSubmitted);
-    assert!(matches!(
-        state.overlay,
-        Some(crate::overlay::Overlay::Palette(_))
-    ));
+    assert!(state.plan_assignment_target.is_some());
 
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::state_presentation::activate_palette_control(
+        &mut state,
+        "assign-plan-model:model-small",
+    )
+    .expect("plan assignment selection");
 
     assert!(matches!(
         effects.as_slice(),

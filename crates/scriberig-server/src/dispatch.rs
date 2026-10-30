@@ -210,6 +210,20 @@ impl<S: ApplicationService> Dispatcher<S> {
             Request::PlanReplan(request) => {
                 self.plan_request(&Request::PlanReplan(request), correlation_id, None)
             }
+            Request::PlanRetry(request) => {
+                self.plan_request(&Request::PlanRetry(request), correlation_id, None)
+            }
+            Request::PlanNextStep(request) => {
+                self.plan_request(&Request::PlanNextStep(request), correlation_id, None)
+            }
+            Request::PlanDecompose(request) => {
+                self.plan_request(&Request::PlanDecompose(request), correlation_id, None)
+            }
+            Request::PlanSemanticMutation(request) => self.plan_request(
+                &Request::PlanSemanticMutation(request),
+                correlation_id,
+                None,
+            ),
             Request::SessionRead(request) => self.session_read(&request, correlation_id),
             Request::ModelRequestDetail(request) => self
                 .service
@@ -218,6 +232,8 @@ impl<S: ApplicationService> Dispatcher<S> {
                     &request.session.id,
                     &request.branch.id,
                     &request.invocation,
+                    request.offset,
+                    request.max_chars,
                 )
                 .map_or_else(
                     |error| Response::Error(helpers::map_error(&error, correlation_id)),

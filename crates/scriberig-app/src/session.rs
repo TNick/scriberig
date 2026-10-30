@@ -4,6 +4,13 @@ use crate::{ApplicationContext, ApplicationError};
 use scriberig_core::{EntityId, OperationId, SnapshotId};
 use scriberig_session::{Session, SessionExecutionSelection};
 
+#[path = "session/plan_mutations.rs"]
+mod plan_mutations;
+pub use plan_mutations::{
+    PlanChildDraft, PlanDecomposeRequest, PlanNextStepRequest, PlanSemanticMutation,
+    PlanSemanticMutationRequest,
+};
+
 /// Describes the durable terminal result of one agent operation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AgentResult {
@@ -168,6 +175,19 @@ pub struct PlanLifecycleRequest {
     pub session: EntityId,
     /// Stable plan identity.
     pub plan: EntityId,
+    /// Plan revision observed by the caller.
+    pub expected_revision: u64,
+}
+
+/// Requests an optimistic retry of one durably failed plan node.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanRetryRequest {
+    /// Owning session identity.
+    pub session: EntityId,
+    /// Stable plan identity.
+    pub plan: EntityId,
+    /// Stable plan-node identity.
+    pub node: EntityId,
     /// Plan revision observed by the caller.
     pub expected_revision: u64,
 }

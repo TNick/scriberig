@@ -30,7 +30,7 @@ fn catalog_exposes_project_recovery_operations() {
         .find(|definition| definition.name == "project_import")
         .expect("project import descriptor");
     assert_eq!(
-        import.parameters["required"],
+        import.parameters.0["required"],
         serde_json::json!(["project", "manifest_id"])
     );
 }
@@ -63,7 +63,7 @@ fn catalog_exposes_locked_dependency_acquisition() {
         .expect("dependency acquisition descriptor");
     assert!(descriptor.state_changing);
     assert_eq!(
-        descriptor.definition.parameters["required"],
+        descriptor.definition.parameters.0["required"],
         serde_json::json!(["candidate"])
     );
 }
@@ -86,11 +86,11 @@ fn catalog_exposes_installed_semantic_operation_entrypoint() {
         scriberig_agent_runtime::tools::ToolCategory::SemanticMutation
     );
     assert_eq!(
-        descriptor.definition.parameters["required"],
+        descriptor.definition.parameters.0["required"],
         serde_json::json!(["capability", "entity", "snapshot"])
     );
     assert_eq!(
-        descriptor.definition.parameters["properties"]["arguments"]["additionalProperties"]["x-sensitive"],
+        descriptor.definition.parameters.0["properties"]["arguments"]["additionalProperties"]["x-sensitive"],
         true
     );
     let ordered = inspect_catalog()

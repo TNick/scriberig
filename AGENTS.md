@@ -144,3 +144,67 @@ When an agent needs a temporary directory, create it under
 `YYYMMDD-HHMMSS ` followed by a representative name of no more than 40
 characters. Use the directory only for temporary agent work and remove it when
 that work is complete.
+
+<!-- BEGIN managed DSH worker instructions -->
+## DeepSeek Harness delegation
+
+A local DeepSeek Harness worker is available through the `dsh_worker` MCP server.
+
+Use `dsh_start` for an independent bounded subtask when useful, so you can
+continue your own work and later poll `dsh_status`. Use `dsh_run` only when the
+result is needed before you can proceed.
+
+Long tasks:
+
+- Every delegated turn may run for up to 2h: `timeout_seconds` defaults to 7200
+  (the maximum). The MCP client kills a tool call sooner (Codex: 300s unless
+  `tool_timeout_sec` says otherwise), so for anything that may run for minutes,
+  prefer `dsh_start` then `dsh_wait(job_id)`.
+- `dsh_run` and `dsh_wait` take `wait_seconds` (default 240, max 7200). When the
+  slice expires they return `{"status": "running", "job_id": ...}` rather than
+  blocking past the client timeout. Keep calling `dsh_wait` on that job id until
+  it reports `completed`/`failed`; partial output shows progress in between.
+- Treat a returned `job_id` as durable: the work continues in the background even
+  if your call returned early.
+
+Session control is yours to choose:
+
+- Start a fresh DSH session by omitting `session_id` (the default).
+- Continue an earlier DSH session by passing `session_id=...`, taken from an
+  earlier `dsh_start`/`dsh_run` result or from `dsh_sessions(workspace=...)`.
+  The worker keeps that session's prior context.
+- Use `dsh_sessions` when you need to find prior work for a workspace, then
+  decide whether continuing it or starting fresh is cheaper.
+- Continue only when the follow-up genuinely builds on that session; start a
+  new session when the task is independent, to avoid stale context.
+- Keep the same `workspace` when continuing a session; it is scoped to the cwd
+  that created it.
+
+Delegation rules:
+
+- `workspace` accepts `"project"`, `"playground"`, `"."`, or any directory
+  path. `"."` is the directory this MCP server was started from, normally the
+  Codex project, so use it to delegate work in the repository you are in.
+- For repository investigation, review, test analysis, locating code, or a
+  second opinion, default to `workspace="."` (or `workspace="project"` inside
+  scriberig) and `permission_mode="read-only"`.
+- For delegated code-writing experiments, prototypes, generated scratch code,
+  or changes that should not dirty Git, prefer `workspace="playground"` with
+  `permission_mode="workspace-write"`. The playground directory is outside
+  source control.
+- Use `permission_mode="workspace-write"` against a real repository only when
+  a DSH worker truly needs to edit it.
+- `permission_mode="danger-full-access"` grants unrestricted machine access.
+  It is accepted only for workspaces under the trusted roots (scriberig and
+  its playground by default, extended through `DSH_WORKER_FULL_ACCESS_ROOTS`).
+  Reserve it for work the user has explicitly authorized and say why you chose
+  it. Read-only and workspace-write remain the defaults for ordinary tasks.
+- Do not have Codex and DSH edit the same real source files at the same time.
+- Give DSH a narrow task with concrete acceptance criteria and useful file
+  paths/context. Ask it to report what it inspected/changed and tests it ran.
+- Review DSH's result/diff yourself before relying on it or integrating it.
+- DSH interactive permission escalation is unavailable; extra reach comes only
+  from the `permission_mode` you pass.
+- Keep working on tasks that are independent of a running DSH job rather than
+  repeatedly polling it immediately.
+<!-- END managed DSH worker instructions -->

@@ -41,6 +41,7 @@ pub struct TuiPty {
     receiver: Receiver<Vec<u8>>,
     parser: Parser,
     transcript: Vec<u8>,
+    query_cursor: usize,
 }
 
 /// Returns the Cargo target directory configured for spawned TUI processes.

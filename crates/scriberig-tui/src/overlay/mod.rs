@@ -1,6 +1,5 @@
 //! Defines modal presentation state and its focused overlay models.
 
-pub mod help;
 pub mod input;
 pub mod palette;
 
@@ -35,7 +34,7 @@ pub struct ComposerState {
 /// The single active modal overlay.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Overlay {
-    /// Keyboard help generated from the keymap.
+    /// Keyboard help overlay supplied by the active runtime.
     Help,
     /// Durable sessions displayed with IDs for `/switch` and `/remove`.
     SessionList(Vec<String>),

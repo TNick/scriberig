@@ -2,22 +2,69 @@
 import type {
   ModelLibraryResponse,
   ModelDescriptor,
-  ModelProfile,
+  ProviderCredentialReadiness,
+  ProviderReadiness,
   SessionExecutionSelection,
   SessionExecutionChange,
 } from "@scriberig/protocol";
 
-/** Normalizes Rust or JavaScript model-library field casing.
+const SAFE_MODEL_SNAPSHOT_SCHEMA = "rpi-safe-model-snapshot-v1";
+
+/** Normalizes the versioned Rust model-library wire contract.
+ * Unknown fields are discarded; required wire fields are validated strictly.
  * @param value Unknown wire response.
- * @returns Safe model descriptors and profiles.
- * @throws When the response does not contain model and profile arrays.
+ * @returns Safe upstream-derived model descriptors.
+ * @throws When a model descriptor or metadata snapshot is malformed.
  */
 export function normalizeModelLibrary(value: unknown): ModelLibraryResponse {
   if (typeof value !== "object" || value === null) throw new Error("invalid model library");
   const record = value as Record<string, unknown>;
+  const models = requiredArray(record.models, "models").map(normalizeModel);
+  const modelIds = new Set(models.map((model) => model.id));
+  if (modelIds.size !== models.length) throw new Error("duplicate model row id");
+  const readiness = record.provider_readiness;
+  const providerReadiness =
+    readiness === undefined
+      ? undefined
+      : requiredArray(readiness, "provider readiness").map(normalizeProviderReadiness);
+  if (providerReadiness) {
+    const readinessIds = new Set<string>();
+    for (const item of providerReadiness) {
+      const rowId = modelRowId(item.providerId, item.modelId);
+      if (!modelIds.has(rowId)) throw new Error("orphan provider readiness row");
+      if (readinessIds.has(rowId)) throw new Error("duplicate provider readiness row");
+      readinessIds.add(rowId);
+    }
+  }
   return {
-    models: Array.isArray(record.models) ? record.models.map(normalizeModel) : [],
-    profiles: Array.isArray(record.profiles) ? record.profiles.map(normalizeProfile) : [],
+    models,
+    ...(providerReadiness === undefined ? {} : { providerReadiness }),
+  };
+}
+
+/** Normalizes one host-reported credential readiness row.
+ * @param value Unknown readiness row.
+ * @returns Credential-safe provider readiness.
+ * @throws When an identifier or readiness category is invalid.
+ */
+function normalizeProviderReadiness(value: unknown): ProviderReadiness {
+  const record = asRecord(value, "provider readiness");
+  const credential = requiredString(record.credential, "credential readiness");
+  const supported: readonly ProviderCredentialReadiness[] = [
+    "not_required",
+    "available",
+    "missing",
+    "denied",
+    "unsupported",
+    "catalog_header",
+  ];
+  if (!supported.includes(credential as ProviderCredentialReadiness)) {
+    throw new Error("invalid credential readiness");
+  }
+  return {
+    providerId: requiredString(record.provider_id, "provider id"),
+    modelId: requiredString(record.model_id, "model id"),
+    credential: credential as ProviderCredentialReadiness,
   };
 }
 
@@ -28,69 +75,98 @@ export function normalizeModelLibrary(value: unknown): ModelLibraryResponse {
  */
 function normalizeModel(value: unknown): ModelDescriptor {
   const record = asRecord(value, "model");
-  const capabilities = asRecord(record.capabilities, "model capabilities");
-  const levels = Array.isArray(record.thinking_levels)
-    ? record.thinking_levels
-    : Array.isArray(record.thinkingLevels)
-      ? record.thinkingLevels
-      : [];
+  const metadata = record.metadata_snapshot;
+  const levels = requiredArray(record.thinking_levels, "thinking levels");
+  const providerId = requiredString(record.provider_id, "provider id");
+  const modelId = requiredString(record.provider_model_id, "model id");
+  const id = requiredString(record.id, "model row id");
+  if (id !== modelRowId(providerId, modelId)) {
+    throw new Error("model row id does not match provider/model identity");
+  }
   return {
-    id: requiredString(record.id, "model id"),
-    displayName: requiredString(record.display_name ?? record.displayName, "model name"),
-    providerId: requiredString(
-      record.provider_id ?? record.providerId ?? record.provider_profile ?? record.providerProfile,
-      "provider id",
-    ),
-    modelId: requiredString(
-      record.model_id ?? record.modelId ?? record.provider_model_id ?? record.providerModelId,
-      "model id",
-    ),
-    capabilities: {
-      streaming: capabilities.streaming === true,
-      toolCalls: (capabilities.tool_calls ?? capabilities.toolCalls) === true,
-      structuredOutput: (capabilities.structured_output ?? capabilities.structuredOutput) === true,
-    },
-    thinkingLevels: levels.map((level) => {
-      const item = asRecord(level, "thinking level");
-      return {
-        id: requiredString(item.id, "thinking level id"),
-        label: requiredString(item.label, "thinking level label"),
-        ...optionalString(item.description, "description"),
-        order: typeof item.order === "number" ? item.order : 0,
-      };
-    }),
-    ...optionalString(
-      record.default_thinking_level ?? record.defaultThinkingLevel,
-      "defaultThinkingLevel",
-    ),
+    id,
+    displayName: requiredString(record.display_name, "model name"),
+    providerId,
+    modelId,
+    thinkingLevels: levels.map((level) => requiredString(level, "thinking level id")),
+    metadataSnapshot: normalizeMetadataSnapshot(metadata),
   };
 }
 
-/** Normalizes one curated model profile without resolving credential values.
- * @param value Unknown model profile.
- * @returns Safe profile value.
- * @throws When required profile identifiers are missing.
+/** Builds the Rust protocol's UTF-8 byte-length-prefixed model row id.
+ * @param providerId Exact upstream provider identity.
+ * @param modelId Provider-scoped upstream model identity.
+ * @returns The canonical presentation id for the provider/model pair.
  */
-function normalizeProfile(value: unknown): ModelProfile {
-  const record = asRecord(value, "model profile");
-  const credential = record.credential;
-  const credentialRecord =
-    typeof credential === "object" && credential !== null
-      ? (credential as Record<string, unknown>)
-      : undefined;
+function modelRowId(providerId: string, modelId: string): string {
+  const providerLength = utf8ByteLength(providerId);
+  const modelLength = utf8ByteLength(modelId);
+  return `rpi1:${providerLength}:${providerId}${modelLength}:${modelId}`;
+}
+
+/** Counts UTF-8 bytes without allocating an encoded copy.
+ * @param value A JavaScript string expected to represent a Rust string.
+ * @returns The string's UTF-8 byte length.
+ * @throws When the string contains an unpaired UTF-16 surrogate.
+ */
+function utf8ByteLength(value: string): number {
+  let length = 0;
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint === undefined || (codePoint >= 0xd800 && codePoint <= 0xdfff)) {
+      throw new Error("invalid unicode model identity");
+    }
+    if (codePoint <= 0x7f) length += 1;
+    else if (codePoint <= 0x7ff) length += 2;
+    else if (codePoint <= 0xffff) length += 3;
+    else length += 4;
+  }
+  return length;
+}
+
+/** Normalizes required upstream display metadata without synthesizing values.
+ * @param value Unknown model metadata snapshot.
+ * @returns Validated metadata snapshot.
+ * @throws When a required snapshot field is missing or malformed.
+ */
+function normalizeMetadataSnapshot(
+  value: unknown,
+): NonNullable<ModelDescriptor["metadataSnapshot"]> {
+  const metadata = asRecord(value, "model metadata");
+  const cost = asRecord(metadata.cost, "model cost");
+  const schemaVersion = requiredString(metadata.schema_version, "model metadata schema version");
+  if (schemaVersion !== SAFE_MODEL_SNAPSHOT_SCHEMA) {
+    throw new Error("unsupported model metadata schema version");
+  }
   return {
-    id: requiredString(record.id, "profile id"),
-    displayName: requiredString(record.display_name ?? record.displayName, "profile name"),
-    model: requiredString(record.model, "profile model"),
-    connection: requiredString(record.connection, "profile connection"),
-    ...(typeof credentialRecord?.id === "string"
-      ? { credential: { id: credentialRecord.id } }
-      : {}),
-    ...optionalString(
-      record.default_thinking_level ?? record.defaultThinkingLevel,
-      "defaultThinkingLevel",
-    ),
-    enabled: record.enabled === true,
+    schemaVersion,
+    apiId: requiredString(metadata.api_id, "model API id"),
+    reasoning: requiredBoolean(metadata.reasoning, "model reasoning capability"),
+    input: requiredArray(metadata.input, "model input modalities").map((modality) => {
+      if (modality !== "text" && modality !== "image") {
+        throw new Error("invalid model input modality");
+      }
+      return modality;
+    }),
+    cost: {
+      input: requiredNumber(cost.input, "model input cost"),
+      output: requiredNumber(cost.output, "model output cost"),
+      cacheRead: requiredNumber(cost.cache_read, "model cache read cost"),
+      cacheWrite: requiredNumber(cost.cache_write, "model cache write cost"),
+      tiers: optionalArray(cost.tiers, "model cost tiers").map((tier) => {
+        const item = asRecord(tier, "model cost tier");
+        return {
+          input: requiredNumber(item.input, "tier input cost"),
+          output: requiredNumber(item.output, "tier output cost"),
+          cacheRead: requiredNumber(item.cache_read, "tier cache read cost"),
+          cacheWrite: requiredNumber(item.cache_write, "tier cache write cost"),
+          inputTokensAbove: requiredInteger(item.input_tokens_above, "tier input token threshold"),
+        };
+      }),
+    },
+    costConfigured: requiredBoolean(metadata.cost_configured, "model cost configured flag"),
+    contextWindow: requiredUnsignedInteger(metadata.context_window, "model context window"),
+    maxTokens: requiredUnsignedInteger(metadata.max_tokens, "model output limit"),
   };
 }
 
@@ -154,6 +230,77 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
 function requiredString(value: unknown, label: string): string {
   if (typeof value !== "string") throw new Error(`missing ${label}`);
   return value;
+}
+
+/** Reads a required finite numeric field.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The numeric field.
+ * @throws When value is not a finite number.
+ */
+function requiredNumber(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`missing ${label}`);
+  }
+  return value;
+}
+
+/** Reads an integer field matching Rust's signed integer wire type.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The safe integer field.
+ * @throws When the value is not a safe integer.
+ */
+function requiredInteger(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value)) {
+    throw new Error(`missing ${label}`);
+  }
+  return value;
+}
+
+/** Reads a nonnegative integer field matching Rust's unsigned integer type.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The nonnegative safe integer field.
+ * @throws When the value is not a nonnegative safe integer.
+ */
+function requiredUnsignedInteger(value: unknown, label: string): number {
+  const result = requiredInteger(value, label);
+  if (result < 0) throw new Error(`missing ${label}`);
+  return result;
+}
+
+/** Reads a required boolean field.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The boolean field.
+ * @throws When value is not a boolean.
+ */
+function requiredBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== "boolean") throw new Error(`missing ${label}`);
+  return value;
+}
+
+/** Reads a required array field.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The array contents.
+ * @throws When value is not an array.
+ */
+function requiredArray(value: unknown, label: string): unknown[] {
+  if (!Array.isArray(value)) throw new Error(`missing ${label}`);
+  return value;
+}
+
+/** Reads a Rust-defaulted optional array, rejecting malformed present values.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The array contents, or an empty array when absent.
+ * @throws When a present value is not an array.
+ */
+function optionalArray(value: unknown, label: string): unknown[] {
+  if (value === undefined) return [];
+  return requiredArray(value, label);
 }
 
 /** Returns one optional string property when present.

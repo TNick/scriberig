@@ -1,5 +1,6 @@
 //! Covers additional focused cases for the parent test module.
 
+use super::model_catalog_from_models;
 use super::*;
 
 /// Verifies historical tui continuation compiles exact provider context.
@@ -43,24 +44,20 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
             tool_result: None,
         });
     }
-    let provider =
-        scriberig_agent_runtime::provider::FakeProvider::from_responses([Ok(ModelResponse {
-            text: Some("historical answer".to_owned()),
-            tool_calls: Vec::new(),
-            finish_reason: FinishReason::Stop,
-            usage: None,
-            metadata: ProviderMetadata::default(),
-        })]);
+    let provider = rpi_ai::providers::faux::FauxScript::new().with_text("historical answer");
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([(
             "local".to_owned(),
-            NativeProvider::Fake(provider.clone()),
+            NativeScenario::Faux(provider.clone()),
         )]),
         model: "fake-model".to_owned(),
-        model_library: ModelLibrary::default(),
-        upstream_models: native_test_upstream_models(),
+        upstream_credentials: None,
+        upstream_enabled: false,
+        model_catalog: model_catalog_from_models(native_test_upstream_models()),
+        model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
+        continuations: std::sync::Mutex::default(),
     };
     let context = ApplicationContext {
         capabilities: CapabilityContext::new([
@@ -106,14 +103,29 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
         .load(session_id)
         .expect("reload session")
         .expect("session exists");
-    let context_message = &provider.requests()[0].messages[0].content;
+    let request = durable
+        .branches
+        .iter()
+        .find(|branch| branch.parent == Some(root_id))
+        .expect("continuation branch")
+        .model_invocations[0]
+        .request
+        .as_ref()
+        .expect("captured upstream request");
+    let context_message = &request.messages[0].content;
+    let all_messages = request
+        .messages
+        .iter()
+        .map(|message| message.content.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
 
     assert!(context_message.contains("turn 1 user"));
     assert!(context_message.contains("turn 2 user"));
     assert!(context_message.contains("turn 2 answer"));
     assert!(!context_message.contains("turn 3 user"));
     assert!(!context_message.contains("turn 3 answer"));
-    assert_eq!(context_message.matches("continue from turn two").count(), 1);
+    assert_eq!(all_messages.matches("continue from turn two").count(), 1);
     assert_eq!(handle.session, session_id);
     let child = durable
         .branches
@@ -251,7 +263,7 @@ fn native_context_uses_exact_anchor_and_current_branch_history() {
     )
     .expect("persist exact test session");
 
-    let compiled = super::super::context::compile_branch_context(
+    let compiled = crate::agent_context::compile_branch_context(
         &service,
         &context,
         session_id,
@@ -268,6 +280,36 @@ fn native_context_uses_exact_anchor_and_current_branch_history() {
     assert!(!compiled.canonical.contains("turn C excluded"));
     assert!(!compiled.canonical.contains("sibling secret"));
     assert_eq!(compiled.canonical.matches("current prompt").count(), 1);
+    assert!(
+        compiled
+            .canonical
+            .contains("scriberig.context-component.core-invariants@")
+    );
+    assert!(
+        compiled
+            .canonical
+            .contains("scriberig.context-component.non-root-handoff@")
+    );
+
+    let root_compiled = crate::agent_context::compile_branch_context(
+        &service,
+        &context,
+        session_id,
+        root_id,
+        "root user-facing prompt",
+        None,
+    )
+    .expect("compile root context without project scope");
+    assert!(
+        root_compiled
+            .canonical
+            .contains("scriberig.context-component.core-invariants@")
+    );
+    assert!(
+        !root_compiled
+            .canonical
+            .contains("scriberig.context-component.non-root-handoff@")
+    );
     drop(service);
     drop(store);
     std::fs::remove_dir_all(root).expect("remove fixture");
@@ -294,9 +336,10 @@ fn session_model_and_thinking_selection_resolve_for_native_runtime() {
     let resolved = resolve_selected_runtime_model(&[upstream_model], &selection, "runtime-default")
         .expect("resolve selected settings");
 
-    assert_eq!(resolved.0, "provider-model-2");
-    assert_eq!(resolved.1.as_deref(), Some("high"));
-    assert_eq!(resolved.2, "rpi1:17:openai_compatible16:provider-model-2");
+    assert_eq!(resolved.0, "openai_compatible");
+    assert_eq!(resolved.1, "provider-model-2");
+    assert_eq!(resolved.2.as_deref(), Some("high"));
+    assert_eq!(resolved.3, "rpi1:17:openai_compatible16:provider-model-2");
 }
 
 #[path = "native_tui_agent_tests_part1_part2.rs"]

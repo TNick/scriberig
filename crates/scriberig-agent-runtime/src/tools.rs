@@ -1,10 +1,9 @@
-//! Defines the trusted model-visible tool catalog and call validation.
+//! Defines the trusted model-visible tool catalog and authorization policy.
 
 use std::fmt;
 
+use rpi_ai::types::Tool;
 use scriberig_app::{CapabilityAction, CapabilityContext, CapabilityScope};
-
-use crate::provider::{ToolCall, ToolDefinition};
 
 /// Classifies how a trusted tool executes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -22,7 +21,7 @@ pub type ToolCategory = scriberig_session::ToolActivityKind;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ToolDescriptor {
     /// Provider-neutral function definition.
-    pub definition: ToolDefinition,
+    pub definition: Tool,
     /// Trusted provider-neutral semantic category used for exposure ordering.
     pub category: ToolCategory,
     /// Bounded result-shape description.
@@ -70,11 +69,11 @@ impl ToolCatalog {
 
     /// Returns provider definitions in deterministic order.
     ///
-    /// The definitions suitable for a normalized model request.
+    /// Definitions suitable for an upstream provider context.
     #[must_use]
     /// # Returns
     /// The operation result.
-    pub fn definitions(&self) -> Vec<ToolDefinition> {
+    pub fn definitions(&self) -> Vec<Tool> {
         self.descriptors
             .iter()
             .map(|descriptor| descriptor.definition.clone())
@@ -92,106 +91,80 @@ impl ToolCatalog {
     pub fn descriptors_for(&self, context: &CapabilityContext) -> Vec<ToolDescriptor> {
         self.descriptors
             .iter()
-            .filter(|descriptor| {
-                descriptor
-                    .required_capability
-                    .as_deref()
-                    .is_some_and(|required| capability_granted(context, required))
-                    || (descriptor.category != ToolCategory::OpaqueFallback
-                        && descriptor.required_capability.is_none())
-            })
+            .filter(|descriptor| descriptor_visible(descriptor, context))
             .cloned()
             .collect()
     }
 
-    /// Validates a provider-selected call against trusted descriptors.
+    /// Resolves a provider-selected tool name against trusted descriptors.
     ///
-    /// - `call`: Normalized provider tool call.
+    /// JSON Schema argument validation belongs to `rpi-agent`; this method
+    /// enforces only `ScribeRig`'s trusted tool registry.
     ///
-    /// The trusted descriptor for the call.
+    /// - `tool_name`: Provider-selected tool name.
     ///
-    /// Returns a safe validation error for unknown tools or invalid arguments.
+    /// The trusted descriptor for the selected tool.
     /// # Returns
-    /// The operation result.
+    /// The matching descriptor.
     /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn validate(&self, call: &ToolCall) -> Result<&ToolDescriptor, ToolValidationError> {
+    /// Returns an error when the name is not registered.
+    pub fn authorize(&self, tool_name: &str) -> Result<&ToolDescriptor, ToolAuthorizationError> {
         let descriptor = self
             .descriptors
             .iter()
-            .find(|descriptor| descriptor.definition.name == call.name)
-            .ok_or_else(|| ToolValidationError::UnknownTool(call.name.clone()))?;
-        if !call.arguments.is_object() {
-            return Err(ToolValidationError::ArgumentsNotObject {
-                tool: call.name.clone(),
-            });
-        }
-        if call.name == "inspect"
-            && call
-                .arguments
-                .get("entity")
-                .and_then(serde_json::Value::as_str)
-                .is_none()
-        {
-            return Err(ToolValidationError::MissingArgument {
-                tool: call.name.clone(),
-                argument: "entity".to_owned(),
-            });
-        }
-        if call.name == "delegate"
-            && (call
-                .arguments
-                .get("purpose")
-                .and_then(serde_json::Value::as_str)
-                .is_none()
-                || call
-                    .arguments
-                    .get("prompt")
-                    .and_then(serde_json::Value::as_str)
-                    .is_none()
-                || call
-                    .arguments
-                    .get("capabilities")
-                    .and_then(serde_json::Value::as_array)
-                    .is_none()
-                || call
-                    .arguments
-                    .get("expected_result")
-                    .and_then(serde_json::Value::as_str)
-                    .is_none())
-        {
-            return Err(ToolValidationError::MissingArgument {
-                tool: call.name.clone(),
-                argument: "purpose, prompt, capabilities, and expected_result".to_owned(),
-            });
-        }
+            .find(|descriptor| descriptor.definition.name == tool_name)
+            .ok_or_else(|| ToolAuthorizationError::UnknownTool(tool_name.to_owned()))?;
         Ok(descriptor)
     }
 
-    /// Validates a provider call and its required branch capability.
+    /// Authorizes a provider-selected tool under branch capabilities.
     ///
-    /// - `call`: Normalized provider tool call.
+    /// JSON Schema argument validation belongs to `rpi-agent`; this method
+    /// enforces the trusted registry and `ScribeRig` branch capability policy.
+    ///
+    /// - `tool_name`: Provider-selected tool name.
     /// - `context`: Capabilities granted to the current branch.
     ///
-    /// The trusted descriptor when validation and authorization succeed.
+    /// The trusted descriptor when authorization succeeds.
     ///
     /// # Returns
     /// The descriptor authorized for this branch.
     ///
     /// # Errors
-    /// Returns a validation or capability-denial error.
-    pub fn validate_for_context<'a>(
+    /// Returns an authorization or capability-denial error.
+    pub fn authorize_for_context<'a>(
         &'a self,
-        call: &ToolCall,
+        tool_name: &str,
         context: &CapabilityContext,
-    ) -> Result<&'a ToolDescriptor, ToolValidationError> {
-        let descriptor = self.validate(call)?;
-        if let Some(required) = descriptor.required_capability.as_deref()
-            && !capability_granted(context, required)
-        {
-            return Err(ToolValidationError::CapabilityDenied(required.to_owned()));
+    ) -> Result<&'a ToolDescriptor, ToolAuthorizationError> {
+        let descriptor = self.authorize(tool_name)?;
+        if !descriptor_visible(descriptor, context) {
+            return Err(ToolAuthorizationError::CapabilityDenied(
+                descriptor
+                    .required_capability
+                    .clone()
+                    .unwrap_or_else(|| "opaque_fallback".to_owned()),
+            ));
         }
         Ok(descriptor)
+    }
+}
+
+/// Applies the same branch-policy predicate to exposure and invocation.
+///
+/// Opaque fallback tools stay hidden unless they carry an explicit capability
+/// requirement that this branch satisfies.
+///
+/// # Parameters
+/// - `descriptor`: Trusted tool descriptor being checked.
+/// - `context`: Capabilities granted to the current branch.
+///
+/// # Returns
+/// `true` when the descriptor is permitted for this branch.
+fn descriptor_visible(descriptor: &ToolDescriptor, context: &CapabilityContext) -> bool {
+    match descriptor.required_capability.as_deref() {
+        Some(required) => capability_granted(context, required),
+        None => descriptor.category != ToolCategory::OpaqueFallback,
     }
 }
 
@@ -233,31 +206,19 @@ fn capability_granted(context: &CapabilityContext, required: &str) -> bool {
     context.permits(&action, &CapabilityScope::Project, None, None)
 }
 
-/// Safe error returned when a model call fails trusted validation.
+/// Safe error returned when a tool call fails `ScribeRig` authorization.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ToolValidationError {
+pub enum ToolAuthorizationError {
     /// Provider selected an unregistered tool identifier.
     UnknownTool(String),
-    /// Provider supplied a non-object argument value.
-    ArgumentsNotObject {
-        /// Tool being invoked.
-        tool: String,
-    },
-    /// Provider omitted a required argument.
-    MissingArgument {
-        /// Tool being invoked.
-        tool: String,
-        /// Required argument name.
-        argument: String,
-    },
     /// The branch lacks the capability required by a trusted descriptor.
     CapabilityDenied(String),
 }
 
-impl fmt::Display for ToolValidationError {
-    /// Formats a safe tool validation error.
+impl fmt::Display for ToolAuthorizationError {
+    /// Formats a safe tool authorization error.
     ///
-    /// - `self`: Validation failure.
+    /// - `self`: Authorization failure.
     /// - `formatter`: Destination formatter.
     ///
     /// Formatting success or the formatter error.
@@ -270,12 +231,6 @@ impl fmt::Display for ToolValidationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnknownTool(tool) => write!(formatter, "unknown trusted tool: {tool}"),
-            Self::ArgumentsNotObject { tool } => {
-                write!(formatter, "tool {tool} arguments must be an object")
-            }
-            Self::MissingArgument { tool, argument } => {
-                write!(formatter, "tool {tool} requires argument {argument}")
-            }
             Self::CapabilityDenied(capability) => {
                 write!(formatter, "required capability denied: {capability}")
             }
@@ -283,4 +238,4 @@ impl fmt::Display for ToolValidationError {
     }
 }
 
-impl std::error::Error for ToolValidationError {}
+impl std::error::Error for ToolAuthorizationError {}

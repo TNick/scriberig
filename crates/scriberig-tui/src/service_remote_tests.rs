@@ -16,6 +16,8 @@ use scriberig_protocol::{
     SessionBranchStatus, SessionReadResponse, SessionReference, SessionTurn, SnapshotReference,
 };
 
+#[path = "service_remote_plan_tests.rs"]
+mod plan_tests;
 #[path = "service_remote_reconnect_tests.rs"]
 mod reconnect_tests;
 #[path = "service_remote_session_event_tests.rs"]
@@ -76,78 +78,6 @@ fn remote_inspection_preserves_semantic_handles() {
     assert_eq!(result.entity, entity);
     assert_eq!(result.revision, Some(revision));
     assert_eq!(result.snapshot, Some(snapshot));
-}
-
-/// Preserves plans and explicit dependency results from a remote session read.
-#[test]
-fn remote_session_mapping_preserves_plan_results_and_assignments() {
-    let root = EntityId::from_bytes([51; 16]);
-    let prerequisite = EntityId::from_bytes([52; 16]);
-    let dependent = EntityId::from_bytes([53; 16]);
-    let result = EntityId::from_bytes([54; 16]);
-    let response = SessionReadResponse {
-        session: SessionReference {
-            id: EntityId::from_bytes([50; 16]).to_string(),
-        },
-        branches: Vec::new(),
-        plans: vec![scriberig_protocol::SessionPlan {
-            id: EntityId::from_bytes([55; 16]).to_string(),
-            revision: 2,
-            goal: "test plan".to_owned(),
-            status: scriberig_protocol::SessionPlanStatus::Running,
-            anchor: Some(scriberig_protocol::SessionContinuationAnchor::BranchHead {
-                branch: root.to_string(),
-            }),
-            root_branch: root.to_string(),
-            nodes: vec![scriberig_protocol::SessionPlanNode {
-                id: prerequisite.to_string(),
-                parent: root.to_string(),
-                title: "producer".to_owned(),
-                purpose: "produce a semantic result".to_owned(),
-                status: scriberig_protocol::SessionPlanNodeStatus::Completed,
-                branch: None,
-                result: Some(result.to_string()),
-                superseded_by: None,
-                expected_result: None,
-                semantic_scope: Vec::new(),
-                assignment: Some(scriberig_protocol::SessionModelAssignment {
-                    provider_id: "provider-a".to_owned(),
-                    model_id: "model-a".to_owned(),
-                    thinking_level: Some("careful".to_owned()),
-                }),
-                claim: None,
-            }],
-            dependencies: vec![scriberig_protocol::SessionPlanDependency {
-                prerequisite: prerequisite.to_string(),
-                dependent: dependent.to_string(),
-                fulfilled_by: Some(result.to_string()),
-            }],
-            coordinator: Some(root.to_string()),
-            coordinator_cursor: Some(dependent.to_string()),
-            coordinator_claim: None,
-            history: Vec::new(),
-        }],
-        execution: scriberig_protocol::SessionExecutionSelection::default(),
-    };
-
-    let session = session_from_response(response).expect("mapped session");
-    assert_eq!(session.plans[0].dependencies[0].fulfilled_by, Some(result));
-    assert_eq!(session.plans[0].coordinator, Some(root));
-    assert_eq!(session.plans[0].revision, 2);
-    assert_eq!(session.plans[0].goal, "test plan");
-    assert_eq!(
-        session.plans[0].status,
-        scriberig_session::PlanStatus::Running
-    );
-    assert_eq!(
-        session.plans[0].nodes[0]
-            .assignment
-            .as_ref()
-            .unwrap()
-            .thinking_level
-            .as_deref(),
-        Some("careful")
-    );
 }
 
 /// Verifies transport and semantic remote failures retain distinct categories.

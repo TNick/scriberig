@@ -1,6 +1,4 @@
-//! Implements local command palette filtering and selection.
-
-use scriberig_tui_kit::{SelectionOption, StableSelector};
+//! Defines `ScribeRig` command palette rows; upstream owns filtering and navigation.
 
 /// A palette action source, ready for future semantic capability actions.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -22,29 +20,20 @@ pub struct PaletteItem {
     pub source: ActionSource,
 }
 
-/// Palette state with local actions and a future semantic source.
+/// Available palette rows with stable `ScribeRig` action identities.
 ///
 /// # Public members
-/// - `query`: Current user filter.
 /// - `local_actions`: Local actions and capability-filtered semantic actions.
 /// - `semantic_actions`: Additional capability-derived actions.
-/// - `selected`: Disposable cursor index into filtered rows.
-/// - [`PaletteState::selector`]: Creates an upstream selector with stable IDs.
-/// - [`PaletteState::filtered`]: Returns the visible filtered rows.
-/// - [`PaletteState::set_query`]: Replaces the filter.
 ///
 /// # Private members
 /// None.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PaletteState {
-    /// User filter.
-    pub query: String,
     /// Available rows.
     pub local_actions: Vec<PaletteItem>,
     /// Future capability-derived rows.
     pub semantic_actions: Vec<PaletteItem>,
-    /// Selected filtered row.
-    pub selected: usize,
 }
 
 impl Default for PaletteState {
@@ -54,13 +43,15 @@ impl Default for PaletteState {
     /// The operation result.
     fn default() -> Self {
         Self {
-            query: String::new(),
             local_actions: vec![
                 item("help", "Open help"),
                 item("refresh", "Refresh"),
                 item("back", "Go back"),
                 item("quit", "Quit"),
+                item("conversation", "View conversation"),
                 item("overview", "View overview"),
+                item("explorer", "Explore semantic entities"),
+                item("find", "Find semantic entities"),
                 item("history", "View history"),
                 item("diff", "View diff"),
                 item("projection", "View projection"),
@@ -69,8 +60,10 @@ impl Default for PaletteState {
                 item("changes", "View changes/validation"),
                 item("review-candidate", "Review candidate"),
                 item("session", "View session"),
+                item("plans", "View plans and dependencies"),
                 item("model-picker", "Select model"),
                 item("thinking-picker", "Select thinking level"),
+                item("theme-picker", "Select terminal theme"),
                 item(
                     "toggle-tool-output",
                     "Cycle tool result display: hidden/summary/full",
@@ -92,7 +85,6 @@ impl Default for PaletteState {
                 item("operations", "View operations"),
             ],
             semantic_actions: Vec::new(),
-            selected: 0,
         }
     }
 }
@@ -118,7 +110,7 @@ impl PaletteState {
                 "projection" => available("projection_render"),
                 "edit" | "project-agent" => available("projection_edit_candidate"),
                 "changes" => available("change_review"),
-                "session" => available("session_branch_tree"),
+                "session" | "plans" => available("session_branch_tree"),
                 "start-agent" => available("agent_start"),
                 "continue-agent" => available("agent_continue"),
                 _ => true,
@@ -167,86 +159,20 @@ fn item_with_source(id: &str, label: &str, source: ActionSource) -> PaletteItem 
     }
 }
 
-impl PaletteState {
-    /// Returns the currently visible filtered rows.
-    #[must_use]
-    ///
-    /// # Returns
-    /// The operation result.
-    pub fn filtered(&self) -> Vec<PaletteItem> {
-        let items = self.items();
-        let selector =
-            StableSelector::with_filter(&self.options(), items.len().max(1), None, &self.query);
-        selector
-            .filtered_options()
-            .iter()
-            .filter_map(|option| items.iter().find(|item| item.id == option.id))
-            .cloned()
-            .collect()
-    }
-    /// Changes the filter and clamps the selection.
-    /// - `query`: Argument named `query`.
-    pub fn set_query(&mut self, query: String) {
-        self.query = query;
-        self.selected = self.selected.min(self.filtered().len().saturating_sub(1));
-    }
-
-    /// Builds an upstream-backed selector while preserving action identities.
-    ///
-    /// # Parameters
-    /// - `max_visible`: Maximum number of visible command rows.
-    ///
-    /// # Returns
-    /// A selector whose selected value is a stable command ID.
-    #[must_use]
-    pub fn selector(&self, max_visible: usize) -> StableSelector {
-        let filtered = self.filtered();
-        let selected_id = filtered.get(self.selected).map(|item| item.id.clone());
-        StableSelector::with_filter(
-            &self.options(),
-            max_visible,
-            selected_id.as_deref(),
-            &self.query,
-        )
-    }
-
-    /// Returns all currently available palette actions.
-    ///
-    /// # Returns
-    /// Local and capability-filtered semantic actions.
-    fn items(&self) -> Vec<PaletteItem> {
-        self.local_actions
-            .iter()
-            .chain(&self.semantic_actions)
-            .cloned()
-            .collect()
-    }
-
-    /// Converts available actions to terminal-kit selector options.
-    ///
-    /// # Returns
-    /// Options preserving each stable action ID.
-    fn options(&self) -> Vec<SelectionOption> {
-        self.items()
-            .into_iter()
-            .map(|item| SelectionOption {
-                id: item.id,
-                label: item.label,
-                description: None,
-            })
-            .collect()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Preserves stable command IDs and labels without local filtering state.
     #[test]
-    /// Implements `filters_local_actions_case_insensitively`.
-    fn filters_local_actions_through_the_selector() {
-        let mut state = PaletteState::default();
-        state.set_query("REF".to_owned());
-        assert!(state.filtered().iter().any(|item| item.id == "refresh"));
+    fn palette_items_preserve_command_identity() {
+        let palette = PaletteState::default();
+        let refresh = palette
+            .local_actions
+            .iter()
+            .find(|item| item.id == "refresh")
+            .expect("refresh command");
+        assert_eq!(refresh.label, "Refresh");
     }
 
     /// Verifies inspect is advertised only by an available runtime capability.
@@ -289,22 +215,5 @@ mod tests {
         assert!(ids.contains(&"session"));
         assert!(ids.contains(&"start-agent"));
         assert!(!ids.contains(&"continue-agent"));
-    }
-
-    /// Verifies the production palette selector returns a stable action ID.
-    #[test]
-    fn selector_preserves_action_identity_after_filtering() {
-        let mut palette = PaletteState::default();
-        palette.set_query("refresh".to_owned());
-
-        let selector = palette.selector(10);
-
-        assert_eq!(selector.selected_id(), Some("refresh"));
-        assert!(
-            selector
-                .render(40)
-                .iter()
-                .any(|line| line.as_str().contains("Refresh"))
-        );
     }
 }

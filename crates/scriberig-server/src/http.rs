@@ -52,7 +52,16 @@ pub struct HttpState<S> {
     pub allowed_project_roots: Vec<PathBuf>,
     /// Optional trusted runner that advances durable plan lifecycle requests.
     pub plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler<S>>>,
+    /// Optional host projection of live upstream credential readiness.
+    pub provider_readiness_handler: Option<Arc<ProviderReadinessHandler>>,
 }
+
+/// Projects current host-authorized credential sources for model display.
+///
+/// This reports credential readiness only; it does not imply provider
+/// authentication or endpoint connectivity succeeded.
+pub type ProviderReadinessHandler =
+    dyn Fn() -> Vec<scriberig_protocol::ProviderReadiness> + Send + Sync;
 
 /// Runs one durable plan lifecycle transition with the configured model runtime.
 ///

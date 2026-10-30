@@ -9,6 +9,78 @@ use scriberig_core::EntityId;
 
 /// Executes an accepted agent request through the composed product runtime.
 pub trait AgentCommandRunner<B: ApplicationBackend>: Send + Sync {
+    /// Reads provider-schema-backed model settings from the local runtime.
+    ///
+    /// This host-only control does not expose model schemas over the public
+    /// protocol. Implementations without a writable local model config return
+    /// an unsupported-operation error.
+    ///
+    /// - `provider_id`: Exact upstream provider identity.
+    /// - `model_id`: Provider-native model identity.
+    /// - `_provider_id`: Exact upstream provider identity.
+    /// - `_model_id`: Provider-native model identity.
+    ///
+    /// Validated upstream descriptors safe for the local property editor.
+    ///
+    /// # Returns
+    /// The property descriptors available for this configured model.
+    /// # Errors
+    /// Returns an error when the local catalog or config is unavailable.
+    fn model_properties(
+        &self,
+        _provider_id: &str,
+        _model_id: &str,
+    ) -> Result<Vec<rpi_model_runtime::ModelPropertyDescriptor>, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "model property settings".to_owned(),
+        })
+    }
+
+    /// Validates and applies one provider-schema-backed model setting.
+    ///
+    /// The upstream model runtime remains the schema and coercion authority.
+    /// Implementations without a writable local model config return an
+    /// unsupported-operation error.
+    ///
+    /// - `provider_id`: Exact upstream provider identity.
+    /// - `model_id`: Provider-native model identity.
+    /// - key: Provider-declared property key.
+    /// - value: User value passed unchanged to upstream validation.
+    /// - `_provider_id`: Exact upstream provider identity.
+    /// - `_model_id`: Provider-native model identity.
+    /// - `_key`: Provider-declared property key.
+    /// - `_value`: User value passed unchanged to upstream validation.
+    ///
+    /// # Returns
+    /// Success after the config and live catalog both accept the value.
+    /// # Errors
+    /// Returns an error when validation or config update fails.
+    fn set_model_property(
+        &self,
+        _provider_id: &str,
+        _model_id: &str,
+        _key: &str,
+        _value: serde_json::Value,
+    ) -> Result<(), ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "model property settings".to_owned(),
+        })
+    }
+
+    /// Reports credential readiness for the configured provider models.
+    ///
+    /// Product runtimes may resolve readiness through their host-authorized
+    /// credential boundary. The result contains no secret material.
+    ///
+    /// - `self`: Runtime adapter owning provider configuration.
+    ///
+    /// Safe per-model credential status rows, or an empty set when unavailable.
+    /// # Returns
+    /// Credential readiness rows safe for the model controls.
+    fn provider_readiness(&self) -> Vec<scriberig_protocol::ProviderReadiness> {
+        Vec::new()
+    }
+
     /// Applies a plan lifecycle transition and advances it when supported.
     ///
     /// Product runners may run the shared durable coordinator after accepting

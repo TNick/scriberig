@@ -19,11 +19,10 @@ pub(super) fn validate_assignment(
         .thinking_level
         .as_deref()
         .map(|thinking| {
-            crate::ThinkingLevelId::new(thinking.to_owned())
-                .map_err(|_| invalid_plan("assigned thinking level is invalid"))
+            rpi_ai::ThinkingLevel::parse_name(thinking)
+                .ok_or_else(|| invalid_plan("assigned thinking level is invalid"))
         })
         .transpose()?
-        .and_then(|level| rpi_ai::ThinkingLevel::parse_name(level.as_str()))
         .unwrap_or(rpi_ai::ThinkingLevel::Off);
     rpi_model_runtime::resolve_selection(
         upstream_models,

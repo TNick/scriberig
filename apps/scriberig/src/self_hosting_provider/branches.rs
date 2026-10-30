@@ -1,46 +1,26 @@
 //! Coordinates semantic discovery and implementation child branches.
 
-/// Read-only source references inspected by the architecture branch.
-const ARCHITECTURE_QUERIES: &[&str] = &[
-    "crates/domains/scriberig-domain-python/src/lib.rs",
-    "design/level-2/028",
-    "crates/scriberig-project/src/scan.rs",
-    "crates/scriberig-project/src/support.rs",
-    "crates/scriberig-project/src/adapters.rs",
-    "Cargo.toml",
-    "crates/scriberig-project/tests",
-];
-
-/// Exact target sources re-inspected by the implementation branch.
-const IMPLEMENTATION_QUERIES: &[&str] = &[
-    "Cargo.toml",
-    "crates/scriberig-project/Cargo.toml",
-    "crates/scriberig-project/src/scan.rs",
-    "crates/scriberig-project/src/adapters.rs",
-    "crates/scriberig-project/src/support.rs",
-];
-
-/// Registered validation profiles required for the PHP self-hosting candidate.
-const PHP_CANDIDATE_PROFILES: &[&str] = &[
-    "php-domain-focused",
-    "project-import-focused",
-    "rust-workspace",
-    "project-ingestion-e2e",
-];
+#[path = "branches/queries.rs"]
+mod queries;
+use queries::{ARCHITECTURE_QUERIES, IMPLEMENTATION_QUERIES, PHP_CANDIDATE_PROFILES};
+#[path = "branches/result_helpers.rs"]
+mod result_helpers;
+use result_helpers::{child_summary, is_successful_candidate_validation};
 
 use super::{
     SemanticScope, ValidationMode, candidate, delegate, final_response, handle_with_prefix,
     malformed, parse_handles, semantic_entity, tool_call, tool_messages,
 };
-use scriberig_agent_runtime::provider::{ModelRequest, ModelResponse, ProviderError};
+use rpi_ai::{AssistantMessage, Context, Model};
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 use serde_json::json;
 
 /// Advances the parent through capability discovery and two bounded child branches.
 ///
 /// - `request`: Normalized parent branch request.
+/// - `model`: Upstream model producing the next semantic tool call.
 /// - `scope`: Exact project and snapshot references.
 /// - `validation_failure`: Whether the scenario should exercise validation failure.
-/// - `super`: Parent scenario module.
 ///
 /// A trusted capability, semantic, child, or candidate inspection request.
 ///
@@ -50,19 +30,21 @@ use serde_json::json;
 /// # Errors
 /// Returns an error when the operation fails.
 pub(super) fn root_branch(
-    request: &ModelRequest,
+    request: &Context,
+    model: &Model,
     scope: &SemanticScope,
     validation_failure: bool,
-) -> Result<ModelResponse, ProviderError> {
+) -> Result<AssistantMessage, HostConfigurationError> {
     let tools = tool_messages(request);
     if tools.is_empty() {
-        return Ok(tool_call("runtime_capabilities", json!({})));
+        return Ok(tool_call(model, "runtime_capabilities", json!({})));
     }
     if !tools
         .iter()
         .any(|message| message.contains("semantic find"))
     {
         return Ok(tool_call(
+            model,
             "semantic_find",
             json!({"project":scope.project,"snapshot":scope.snapshot,"query":"AGENTS.md","limit":10}),
         ));
@@ -77,6 +59,7 @@ pub(super) fn root_branch(
                 .ok_or_else(|| malformed("guidance find result missing"))?,
         )?;
         return Ok(tool_call(
+            model,
             "semantic_render",
             json!({"project":scope.project,"snapshot":scope.snapshot,"entity":entity}),
         ));
@@ -86,6 +69,7 @@ pub(super) fn root_branch(
         .any(|message| message.contains("child_summary="))
     {
         return Ok(delegate(
+            model,
             "determine minimal extension points for PHP source ingestion",
             "ARCHITECTURE_DISCOVERY_TASK: Find and render the existing language adapter, PHP target contract, scanner, importer, workspace manifest, and project tests. Return a compact architecture map with exact semantic owner refs.",
             &["inspect.entity", "semantic_find", "semantic_render"],
@@ -100,26 +84,32 @@ pub(super) fn root_branch(
         return Err(malformed("architecture BranchResult missing"));
     }
     if child_results.len() == 1 {
-        return implementation_child(child_results[0]);
+        return implementation_child(model, child_results[0]);
     }
     if validation_failure
         && child_results
             .last()
             .is_some_and(|message| message.contains("validation failed"))
     {
-        return Ok(final_response(&format!(
-            "The PHP candidate failed isolated validation at exact base {}. It remains reviewable, and no Apply was performed.",
-            scope.snapshot
-        )));
+        return Ok(final_response(
+            model,
+            &format!(
+                "The PHP candidate failed isolated validation at exact base {}. It remains reviewable, and no Apply was performed.",
+                scope.snapshot
+            ),
+        ));
     }
     if tools
         .iter()
         .any(|message| message.contains("project candidate detail"))
     {
-        return Ok(final_response(&format!(
-            "The validated PHP implementation candidate is ready for review at exact base {}. Review candidate before Apply.",
-            scope.snapshot
-        )));
+        return Ok(final_response(
+            model,
+            &format!(
+                "The validated PHP implementation candidate is ready for review at exact base {}. Review candidate before Apply.",
+                scope.snapshot
+            ),
+        ));
     }
     let candidate = tools
         .iter()
@@ -127,6 +117,7 @@ pub(super) fn root_branch(
         .find_map(|message| handle_with_prefix(message, "candidate:"))
         .ok_or_else(|| malformed("implementation BranchResult omitted CandidateId"))?;
     Ok(tool_call(
+        model,
         "project_candidate",
         json!({"candidate":candidate}),
     ))
@@ -139,12 +130,17 @@ pub(super) fn root_branch(
 ///
 /// A bounded implementation child request.
 ///
+/// - `model`: Upstream model producing the child delegation request.
+///
 /// Returns malformed-response when the architecture result omits its compact summary.
 /// # Returns
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-fn implementation_child(architecture: &str) -> Result<ModelResponse, ProviderError> {
+fn implementation_child(
+    model: &Model,
+    architecture: &str,
+) -> Result<AssistantMessage, HostConfigurationError> {
     let summary = child_summary(architecture)?;
     let references = parse_handles(architecture)?
         .into_iter()
@@ -155,6 +151,7 @@ fn implementation_child(architecture: &str) -> Result<ModelResponse, ProviderErr
         })
         .collect::<Vec<_>>();
     Ok(delegate(
+        model,
         "implement PHP ingestion as one exact-base project candidate",
         &format!(
             "PHP_IMPLEMENTATION_TASK: Re-inspect exact Cargo, scanner, importer, and adapter targets at this project snapshot. Compact architecture BranchResult: {summary}; stable refs: {references:?}. Construct one candidate from the checked-in PHP source fixture, validate it, inspect its paths, and return CandidateId plus validation evidence."
@@ -172,25 +169,6 @@ fn implementation_child(architecture: &str) -> Result<ModelResponse, ProviderErr
     ))
 }
 
-/// Extracts the compact summary from one nested child result message.
-///
-/// - `message`: Provider-normalized child result.
-/// - `super`: Parent branch coordinator.
-///
-/// Child summary without its serialized stable handles.
-///
-/// Returns malformed-response when the child result omits its summary.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-fn child_summary(message: &str) -> Result<&str, ProviderError> {
-    message
-        .split_once("child_summary=")
-        .and_then(|(_, content)| content.split_once(" handles=[").map(|(summary, _)| summary))
-        .ok_or_else(|| malformed("child BranchResult summary missing"))
-}
-
 /// Runs read-only architecture discovery and returns a compact result.
 ///
 /// - `request`: Normalized architecture child request.
@@ -200,18 +178,22 @@ fn child_summary(message: &str) -> Result<&str, ProviderError> {
 ///
 /// A semantic search/render operation or the compact architecture result.
 ///
+/// - `model`: Upstream model producing the architecture discovery response.
+///
 /// Returns an error when a source result lacks a semantic source handle.
 /// # Returns
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
 pub(super) fn architecture_branch(
-    request: &ModelRequest,
+    request: &Context,
+    model: &Model,
     scope: &SemanticScope,
-) -> Result<ModelResponse, ProviderError> {
-    match semantic_step(request, scope, ARCHITECTURE_QUERIES)? {
+) -> Result<AssistantMessage, HostConfigurationError> {
+    match semantic_step(request, model, scope, ARCHITECTURE_QUERIES)? {
         Some(response) => Ok(response),
         None => Ok(final_response(
+            model,
             "ARCHITECTURE_MAP: tree-sitter-python is the adapter precedent; scan.rs classifies extensions; support.rs dispatches persisted adapters; adapters.rs imports complete syntax and named symbols; Cargo.toml owns workspace membership; project tests own public import conformance.",
         )),
     }
@@ -220,10 +202,9 @@ pub(super) fn architecture_branch(
 /// Re-inspects implementation targets, proposes, validates, and inspects one candidate.
 ///
 /// - `request`: Normalized implementation child request.
+/// - `model`: Upstream model producing the semantic candidate request.
 /// - `scope`: Exact project and snapshot references.
 /// - `validation`: Validation mode for candidate materialization.
-/// - `super`: Parent scenario module.
-/// - `scope`: Exact project and snapshot inherited by the child.
 ///
 /// A regular project candidate tool call or a compact validated result.
 ///
@@ -233,12 +214,13 @@ pub(super) fn architecture_branch(
 /// # Errors
 /// Returns an error when the operation fails.
 pub(super) fn implementation_branch(
-    request: &ModelRequest,
+    request: &Context,
+    model: &Model,
     scope: &SemanticScope,
     validation: ValidationMode,
-) -> Result<ModelResponse, ProviderError> {
+) -> Result<AssistantMessage, HostConfigurationError> {
     let tools = tool_messages(request);
-    if let Some(response) = semantic_step(request, scope, IMPLEMENTATION_QUERIES)? {
+    if let Some(response) = semantic_step(request, model, scope, IMPLEMENTATION_QUERIES)? {
         return Ok(response);
     }
     let proposals = tools
@@ -251,7 +233,6 @@ pub(super) fn implementation_branch(
         let candidate_tools = tools
             .iter()
             .filter(|message| message.contains(&candidate))
-            .copied()
             .collect::<Vec<_>>();
         if candidate_tools
             .iter()
@@ -262,23 +243,28 @@ pub(super) fn implementation_branch(
                 .any(|message| message.contains("project candidate detail"))
             {
                 return Ok(tool_call(
+                    model,
                     "project_candidate",
                     json!({"candidate":candidate}),
                 ));
             }
             if validation == ValidationMode::RepairFirst && proposals.len() == 1 {
-                return Ok(candidate::project_proposal(scope, false));
+                return Ok(candidate::project_proposal(model, scope, false));
             }
-            return Ok(final_response(&format!(
-                "PHP_IMPLEMENTATION_RESULT: candidate {candidate} validation failed at exact base {}. No Apply was requested.",
-                scope.snapshot
-            )));
+            return Ok(final_response(
+                model,
+                &format!(
+                    "PHP_IMPLEMENTATION_RESULT: candidate {candidate} validation failed at exact base {}. No Apply was requested.",
+                    scope.snapshot
+                ),
+            ));
         }
         if !candidate_tools
             .iter()
             .any(|message| message.contains("dependency_resolution:passed"))
         {
             return Ok(tool_call(
+                model,
                 "project_resolve_dependencies",
                 json!({"candidate":candidate}),
             ));
@@ -295,6 +281,7 @@ pub(super) fn implementation_branch(
         let completed_profiles = latest_profile_index.map_or(0, |index| index + 1);
         if let Some(profile) = PHP_CANDIDATE_PROFILES.get(completed_profiles) {
             return Ok(tool_call(
+                model,
                 "project_validate_candidate",
                 json!({"candidate":candidate,"profile":profile}),
             ));
@@ -304,34 +291,24 @@ pub(super) fn implementation_branch(
             .any(|message| message.contains("project candidate detail"))
         {
             return Ok(tool_call(
+                model,
                 "project_candidate",
                 json!({"candidate":candidate}),
             ));
         }
-        return Ok(final_response(&format!(
-            "PHP_IMPLEMENTATION_RESULT: candidate {candidate} is validated at exact base {}. Review it before Apply.",
-            scope.snapshot
-        )));
+        return Ok(final_response(
+            model,
+            &format!(
+                "PHP_IMPLEMENTATION_RESULT: candidate {candidate} is validated at exact base {}. Review it before Apply.",
+                scope.snapshot
+            ),
+        ));
     }
     Ok(candidate::project_proposal(
+        model,
         scope,
         validation != ValidationMode::Normal,
     ))
-}
-
-/// Checks for a successful validation result for the exact candidate.
-///
-/// - `message`: Serialized runtime tool result.
-/// - `candidate`: Exact durable candidate identity.
-///
-/// # Returns
-/// `true` when the output contains a passed validation ID for this candidate.
-fn is_successful_candidate_validation(message: &str, candidate: &str) -> bool {
-    message.contains("object_type=Some(\"candidate_validation\")")
-        && message.contains(&format!(
-            "summary=Some(\"candidate {candidate} validation passed\""
-        ))
-        && message.contains(&format!("validation_id:{candidate}:"))
 }
 
 /// Requests each semantic source target and renders its exact project projection.
@@ -342,6 +319,7 @@ fn is_successful_candidate_validation(message: &str, candidate: &str) -> bool {
 /// - `super`: Parent scenario module.
 /// - `scope`: Exact project and snapshot.
 /// - `queries`: Ordered source path anchors.
+/// - `model`: Upstream model producing the next search or render request.
 ///
 /// Next semantic find/render response, or none after all targets are rendered.
 ///
@@ -351,10 +329,11 @@ fn is_successful_candidate_validation(message: &str, candidate: &str) -> bool {
 /// # Errors
 /// Returns an error when the operation fails.
 fn semantic_step(
-    request: &ModelRequest,
+    request: &Context,
+    model: &Model,
     scope: &SemanticScope,
     queries: &[&str],
-) -> Result<Option<ModelResponse>, ProviderError> {
+) -> Result<Option<AssistantMessage>, HostConfigurationError> {
     let tools = tool_messages(request);
     let searched = tools
         .iter()
@@ -371,6 +350,7 @@ fn semantic_step(
         match semantic_entity(result) {
             Ok(entity) => {
                 return Ok(Some(tool_call(
+                    model,
                     "semantic_render",
                     json!({"project":scope.project,"snapshot":scope.snapshot,"entity":entity}),
                 )));
@@ -387,6 +367,7 @@ fn semantic_step(
         return Ok(None);
     }
     Ok(Some(tool_call(
+        model,
         "semantic_find",
         json!({
             "project":scope.project,

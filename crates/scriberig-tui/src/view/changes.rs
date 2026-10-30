@@ -98,6 +98,8 @@ impl ChangeReviewModel {
 pub struct ConfirmedCommit {
     /// Exact reviewed base snapshot.
     pub base_snapshot: SnapshotId,
+    /// Exact candidate result snapshot shown during review.
+    pub candidate_snapshot: SnapshotId,
     /// Stable change identity.
     pub change: String,
     /// Reviewed branch context.

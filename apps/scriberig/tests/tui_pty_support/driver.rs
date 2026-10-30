@@ -64,6 +64,9 @@ impl TuiPty {
     /// Panics when the PTY input stream cannot be written.
     pub fn send_slow(&mut self, input: &[u8]) {
         for byte in input {
+            if *byte == b'\r' {
+                std::thread::sleep(Duration::from_millis(300));
+            }
             self.send(std::slice::from_ref(byte));
             std::thread::sleep(Duration::from_millis(12));
         }
@@ -99,6 +102,31 @@ impl TuiPty {
                 break;
             }
             if self.screen().contains(expected) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Reads terminal output until text appears, including overlay output.
+    ///
+    /// - `expected`: Text that must appear in raw terminal output.
+    /// - `timeout`: Maximum wait duration.
+    ///
+    /// `true` when the text appears before the timeout.
+    /// # Returns
+    /// Whether the terminal emitted the requested text.
+    pub fn read_output_until_for(&mut self, expected: &str, timeout: Duration) -> bool {
+        if String::from_utf8_lossy(&self.transcript).contains(expected) {
+            return true;
+        }
+        let deadline = Instant::now() + timeout;
+        while Instant::now() < deadline {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if !self.receive_frame(remaining) {
+                break;
+            }
+            if String::from_utf8_lossy(&self.transcript).contains(expected) {
                 return true;
             }
         }
@@ -141,7 +169,9 @@ impl TuiPty {
             return false;
         };
         self.transcript.extend_from_slice(&bytes);
-        if bytes.windows(4).any(|window| window == b"\x1b[6n") {
+        let pending = &self.transcript[self.query_cursor..];
+        if let Some(position) = pending.windows(4).position(|window| window == b"\x1b[6n") {
+            self.query_cursor += position + 4;
             self.send(b"\x1b[1;1R");
         }
         self.parser.process(&bytes);

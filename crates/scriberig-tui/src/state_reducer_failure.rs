@@ -39,10 +39,6 @@ pub(super) fn operation_failed(
                 state.conversation_composer.draft =
                     format!("{pending}\n{}", state.conversation_composer.draft);
             }
-            state
-                .conversation_composer
-                .editor
-                .replace_text(&state.conversation_composer.draft);
         }
         state.conversation_composer.error = Some(message.to_owned());
     }

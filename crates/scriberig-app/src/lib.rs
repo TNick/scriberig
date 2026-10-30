@@ -27,11 +27,6 @@ pub mod session;
 pub mod trust;
 pub mod validation;
 
-pub use agent_console::configuration::model_library_from_json;
-pub use agent_console::model::{
-    CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary, ModelProfile,
-    ThinkingLevelDescriptor, ThinkingLevelId,
-};
 pub use agent_console::preferences::{
     AgentPresentationPreferenceSnapshot, AgentPresentationPreferenceStore,
     AgentPresentationPreferences, InMemoryAgentPresentationPreferenceStore, PromptVisibility,
@@ -39,7 +34,9 @@ pub use agent_console::preferences::{
 };
 pub use agent_console::resolution::{
     ExecutionSelectionSources, ResolvedPlanExecution, resolve_execution_selection,
-    resolve_plan_node_execution, resolve_plan_node_execution_with_sources,
+    resolve_execution_selection_typed, resolve_execution_selection_with_profile_preference,
+    resolve_plan_node_execution, resolve_plan_node_execution_with_profile_preference,
+    resolve_plan_node_execution_with_sources,
 };
 pub use capability::{
     AuthorizationDenial, BranchContext, Capability, CapabilityAction, CapabilityConstraints,
@@ -87,9 +84,11 @@ pub use service_store::StoreInspectionBackend;
 pub use session::{
     AgentCommandRequest, AgentConsoleBackend, AgentContinuationAccepted, AgentContinueAtRequest,
     AgentResult, AgentSelection, CandidateChange, LocalAgentHandle, LocalChildAgentHandle,
-    NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanCreateRequest,
-    PlanLifecycleAction, PlanLifecycleRequest, PlanNodeDraft, PlanNodeReference, PlanReplanRequest,
-    SessionBackend, SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
+    NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanChildDraft,
+    PlanCreateRequest, PlanDecomposeRequest, PlanLifecycleAction, PlanLifecycleRequest,
+    PlanNextStepRequest, PlanNodeDraft, PlanNodeReference, PlanReplanRequest, PlanRetryRequest,
+    PlanSemanticMutation, PlanSemanticMutationRequest, SessionBackend,
+    SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
     ToolExecutionEvidence,
 };
 pub use trust::{

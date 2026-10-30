@@ -62,7 +62,13 @@ pub(in crate::state::state_reducer_tail) fn session_switched(
     };
     let session_id = session.id;
     let root_branch = root.id;
-    state.session = LoadState::Ready(crate::view::session::SessionModel::from_session(&session));
+    let session_model = crate::view::session::SessionModel::from_session(&session);
+    state.session_cursor = session_model
+        .rows
+        .first()
+        .map(crate::view::session::SessionRow::identity);
+    state.session = LoadState::Ready(session_model);
+    state.session_branch_focus = None;
     state.conversation = Some(crate::state::conversation_projection(state, &session));
     state.session_snapshot = Some(session);
     state.conversation_cursor = Some(crate::view::conversation::ConversationSource::Session(
@@ -70,7 +76,6 @@ pub(in crate::state::state_reducer_tail) fn session_switched(
     ));
     state.cursor = 0;
     state.primary_view = crate::selection::PrimaryView::Conversation;
-    state.focus = crate::state::Focus::Primary;
     state.conversation_browsing = false;
     state.conversation_composer.target = crate::state::ConversationTarget::Existing {
         session: session_id,

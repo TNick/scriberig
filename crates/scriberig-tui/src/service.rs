@@ -47,7 +47,7 @@ mod service_project_agent;
 mod service_project_candidate_review;
 #[path = "service_project_projection.rs"]
 mod service_project_projection;
-pub(crate) use service_project_agent::{ProjectAgentTool, golden_provider};
+pub(crate) use service_project_agent::ProjectAgentTool;
 #[path = "service_remote.rs"]
 mod service_remote;
 #[path = "service_remote_agent.rs"]
@@ -155,6 +155,52 @@ pub trait TuiService: TuiModelRequestService {
         _context: &ApplicationContext,
     ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
         Ok(Vec::new())
+    }
+
+    /// Reads local upstream model property descriptors for one provider model.
+    ///
+    /// - `_context`: Trusted local authorization context.
+    /// - `_provider_id`: Exact upstream provider identity.
+    /// - `_model_id`: Provider-native model identity.
+    ///
+    /// # Returns
+    /// Upstream schema-backed properties available to the local TUI.
+    /// # Errors
+    /// Returns an error when access or the upstream config read fails.
+    fn model_properties(
+        &self,
+        _context: &ApplicationContext,
+        _provider_id: &str,
+        _model_id: &str,
+    ) -> Result<Vec<rpi_model_runtime::ModelPropertyDescriptor>, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "model property settings".to_owned(),
+        })
+    }
+
+    /// Updates one local model property through upstream schema validation.
+    ///
+    /// - `_context`: Trusted local authorization context.
+    /// - `_provider_id`: Exact upstream provider identity.
+    /// - `_model_id`: Provider-native model identity.
+    /// - `_key`: Provider-declared property key.
+    /// - `_value`: User value passed unchanged to upstream validation.
+    ///
+    /// # Returns
+    /// Success after the local live model config accepts the update.
+    /// # Errors
+    /// Returns an error when authorization or upstream validation fails.
+    fn set_model_property(
+        &self,
+        _context: &ApplicationContext,
+        _provider_id: &str,
+        _model_id: &str,
+        _key: &str,
+        _value: serde_json::Value,
+    ) -> Result<(), ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "model property settings".to_owned(),
+        })
     }
 
     /// Executes one shared application operation when the adapter supports it.

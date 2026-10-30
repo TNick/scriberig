@@ -20,6 +20,24 @@ fn tui_pty_shows_a_session_plan_in_the_conversation_tree() {
         "Historical acceptance plan",
     )
     .expect("create structured plan");
+    plan.add_node(scriberig_session::PlanNode {
+        id: scriberig_core::EntityId::new(),
+        parent: None,
+        title: "Stable selected work item".to_owned(),
+        purpose: "Remain selected across product view changes".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: scriberig_session::PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("add durable plan node");
     plan.transition(scriberig_session::PlanStatus::Planned)
         .expect("mark plan planned");
 
@@ -43,7 +61,30 @@ fn tui_pty_shows_a_session_plan_in_the_conversation_tree() {
     tui.send_slow(format!("/switch {session_id}").as_bytes());
     tui.send(b"\r");
     assert!(
-        tui.read_until("Plan: Historical acceptance plan · Planned"),
+        tui.read_until("Plan · Plan: Historical acceptance plan · Planned"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"plans");
+    tui.send(b"\r");
+    assert!(
+        tui.read_until("Goal: Historical acceptance plan"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"conversation");
+    tui.send(b"\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"plans");
+    tui.send(b"\r");
+    assert!(
+        tui.read_until("Goal: Historical acceptance plan"),
         "{}",
         tui.diagnostic()
     );

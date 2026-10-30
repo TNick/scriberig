@@ -238,7 +238,6 @@ fn coordinator_follow_and_pinned_reply_anchor_remain_independent() {
                 reply_anchor,
             },
             draft: String::new(),
-            editor: scriberig_tui_kit::Composer::new(),
             pending_prompt: None,
             pending: false,
             error: None,
@@ -308,7 +307,6 @@ fn expansion_and_layout_changes_preserve_reply_anchor() {
                 reply_anchor: anchor,
             },
             draft: String::new(),
-            editor: scriberig_tui_kit::Composer::new(),
             pending_prompt: None,
             pending: false,
             error: None,
@@ -320,7 +318,6 @@ fn expansion_and_layout_changes_preserve_reply_anchor() {
         reduce(&mut state, Action::ConversationToggleExpansion),
         vec![Effect::None]
     );
-    state.terminal_size = (42, 15);
     state.tool_output_visibility = crate::state::ToolOutputVisibility::Full;
     state.reasoning_visibility = crate::state::ReasoningVisibility::Shown;
 

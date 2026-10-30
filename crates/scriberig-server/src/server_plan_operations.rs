@@ -1,6 +1,12 @@
 //! Adapts typed plan requests to shared application operations.
 
-use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService};
+#[path = "server_plan_operations/semantic_mutations.rs"]
+mod semantic_mutations;
+use semantic_mutations::semantic_mutation;
+
+use scriberig_app::{
+    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, SessionBackend,
+};
 
 /// Applies one typed plan request using application-owned validation.
 ///
@@ -11,6 +17,10 @@ use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationError, Ap
 /// Safe projection of the authoritative plan state.
 ///
 /// Returns authorization, validation, revision conflict, or persistence errors.
+#[expect(
+    clippy::too_many_lines,
+    reason = "This dispatcher keeps the protocol request variants visibly mapped to application operations."
+)]
 pub(super) fn apply<B: ApplicationBackend>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
@@ -84,6 +94,69 @@ pub(super) fn apply<B: ApplicationBackend>(
                 reason: request.reason.clone(),
             },
         )?,
+        scriberig_protocol::Request::PlanRetry(request) => service.retry_plan_node(
+            context,
+            &scriberig_app::PlanRetryRequest {
+                session: parse_entity(&request.session.id)?,
+                plan: parse_entity(&request.plan)?,
+                node: parse_entity(&request.node)?,
+                expected_revision: request.expected_revision,
+            },
+        )?,
+        scriberig_protocol::Request::PlanNextStep(request) => service.add_plan_next_step(
+            context,
+            &scriberig_app::PlanNextStepRequest {
+                session: parse_entity(&request.session.id)?,
+                plan: parse_entity(&request.plan)?,
+                expected_revision: request.expected_revision,
+                title: request.title.clone(),
+                purpose: request.purpose.clone(),
+                expected_result: request.expected_result.as_ref().map(|expected| {
+                    scriberig_session::ExpectedResult {
+                        kind: expected.kind.clone(),
+                        requires_handle: expected.requires_handle,
+                    }
+                }),
+                semantic_scope: request.semantic_scope.clone(),
+                assignment: request.assignment.clone().map(assignment),
+            },
+        )?,
+        scriberig_protocol::Request::PlanDecompose(request) => service.decompose_plan_node(
+            context,
+            &scriberig_app::PlanDecomposeRequest {
+                session: parse_entity(&request.session.id)?,
+                plan: parse_entity(&request.plan)?,
+                parent: parse_entity(&request.parent)?,
+                expected_revision: request.expected_revision,
+                children: request
+                    .children
+                    .iter()
+                    .map(|child| scriberig_app::PlanChildDraft {
+                        title: child.title.clone(),
+                        purpose: child.purpose.clone(),
+                        expected_result: child.expected_result.as_ref().map(|expected| {
+                            scriberig_session::ExpectedResult {
+                                kind: expected.kind.clone(),
+                                requires_handle: expected.requires_handle,
+                            }
+                        }),
+                        semantic_scope: child.semantic_scope.clone(),
+                        assignment: child.assignment.clone().map(assignment),
+                    })
+                    .collect(),
+                required: request.required,
+            },
+        )?,
+        scriberig_protocol::Request::PlanSemanticMutation(request) => service
+            .mutate_plan_semantics(
+                context,
+                &scriberig_app::PlanSemanticMutationRequest {
+                    session: parse_entity(&request.session.id)?,
+                    plan: parse_entity(&request.plan)?,
+                    expected_revision: request.expected_revision,
+                    mutation: semantic_mutation(request.mutation.clone())?,
+                },
+            )?,
         _ => {
             return Err(ApplicationError::InvalidRequest {
                 operation: "plan".to_owned(),
@@ -91,7 +164,36 @@ pub(super) fn apply<B: ApplicationBackend>(
             });
         }
     };
-    Ok(super::server_helpers::session_plan::project(plan))
+    let session_id = match request {
+        scriberig_protocol::Request::PlanCreate(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanLifecycle(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanAssignment(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanReplan(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanRetry(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanNextStep(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanDecompose(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanSemanticMutation(request) => {
+            parse_entity(&request.session.id)?
+        }
+        _ => {
+            return Err(ApplicationError::InvalidRequest {
+                operation: "plan".to_owned(),
+                message: "request is not a plan operation".to_owned(),
+            });
+        }
+    };
+    let session = service.read_session(
+        context,
+        &scriberig_app::SessionRequest {
+            session: session_id,
+        },
+    )?;
+    let results = session
+        .branches
+        .iter()
+        .filter_map(|branch| branch.result.clone())
+        .collect::<Vec<_>>();
+    super::server_helpers::session_plan::project(plan, Some(&results))
 }
 
 /// Applies the requested plan lifecycle operation.

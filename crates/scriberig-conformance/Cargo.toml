@@ -9,7 +9,6 @@ repository.workspace = true
 publish = false
 
 [dependencies]
-scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-client = { path = "../scriberig-client" }

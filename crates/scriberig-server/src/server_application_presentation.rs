@@ -2,11 +2,12 @@
 
 macro_rules! agent_presentation_impl_methods {
     () => {
-        /// Reads safe model descriptors and curated profiles.
+        /// Reads safe model descriptors and preserves the legacy profiles
+        /// field.
         ///
         /// - `context`: Trusted capability context.
         ///
-        /// Credential-safe public model library.
+        /// Credential-safe public model response with no local profiles.
         ///
         /// Returns authorization or configuration failures.
         /// # Returns

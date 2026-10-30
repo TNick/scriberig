@@ -211,6 +211,8 @@ fn execute_integration(
         branch: Some(branch),
         result: None,
         superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
         assignment: None,
         claim: None,
         claim_generation: 0,
@@ -253,6 +255,13 @@ fn execute_integration(
     let execution = scriberig_app::ResolvedPlanExecution {
         provider_id: "local".to_owned(),
         model_id: "unused-for-integration".to_owned(),
+        model: rpi_ai::Model::new(
+            "unused-for-integration",
+            "unused-for-integration",
+            rpi_ai::Api::AnthropicMessages,
+            "local",
+            "https://example.test",
+        ),
         uses_runtime_fallback: true,
         thinking_level: None,
     };

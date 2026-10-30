@@ -1,0 +1,197 @@
+//! Verifies the TUI model picker emits shared revision-bound mutations.
+
+use super::*;
+
+/// Creates a safe model metadata fixture for picker rows.
+///
+/// # Returns
+/// A neutral upstream metadata snapshot for model picker fixtures.
+fn model_metadata_snapshot() -> scriberig_protocol::PublicModelMetadataSnapshot {
+    scriberig_protocol::PublicModelMetadataSnapshot {
+        schema_version: "rpi-safe-model-snapshot-v1".to_owned(),
+        api_id: "openai-completions".to_owned(),
+        reasoning: false,
+        input: vec![scriberig_protocol::PublicModelInputModality::Text],
+        cost: scriberig_protocol::PublicModelCostSnapshot {
+            input: 0.0,
+            output: 0.0,
+            cache_read: 0.0,
+            cache_write: 0.0,
+            tiers: Vec::new(),
+        },
+        cost_configured: false,
+        context_window: 4096,
+        max_tokens: 1024,
+    }
+}
+
+/// Creates a picker state with one loaded session and selected model.
+///
+/// # Parameters
+/// - `selection`: Optional current provider and model identity.
+///
+/// # Returns
+/// A deterministic state for model-control reducer tests.
+fn picker_state(selection: Option<(&str, &str)>) -> TuiState {
+    let session_id = EntityId::from_bytes([41; 16]);
+    let execution = scriberig_session::SessionExecutionSelection {
+        revision: 12,
+        provider_id: selection.map(|(provider, _)| provider.to_owned()),
+        model_id: selection.map(|(_, model)| model.to_owned()),
+        thinking_level: None,
+        history: Vec::new(),
+    };
+    TuiState {
+        session: LoadState::Ready(crate::view::session::SessionModel {
+            rows: vec![crate::view::session::SessionRow {
+                reference: session_id,
+                depth: 0,
+                label: "session".to_owned(),
+                kind: crate::view::session::SessionRowKind::Session,
+                candidate: None,
+                snapshot: None,
+                transient: false,
+            }],
+            execution: execution.clone(),
+            tool_invocation_details: std::collections::BTreeMap::default(),
+        }),
+        session_snapshot: Some(scriberig_session::Session {
+            id: session_id,
+            branches: Vec::new(),
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: Vec::new(),
+            execution,
+        }),
+        model_library: LoadState::Ready(model_library()),
+        ..TuiState::default()
+    }
+}
+
+/// Creates two displayed upstream models with separate thinking levels.
+///
+/// # Returns
+/// Two safe model rows with distinct provider and thinking-level identities.
+fn model_library() -> scriberig_protocol::ModelLibraryResponse {
+    scriberig_protocol::ModelLibraryResponse {
+        provider_readiness: Vec::new(),
+        models: vec![
+            scriberig_protocol::PublicModelDescriptor {
+                id: "model-a".to_owned(),
+                display_name: "Model A".to_owned(),
+                provider_id: "provider-a".to_owned(),
+                provider_model_id: "provider-model-a".to_owned(),
+                thinking_levels: vec!["careful".to_owned()],
+                metadata_snapshot: model_metadata_snapshot(),
+            },
+            scriberig_protocol::PublicModelDescriptor {
+                id: "model-b".to_owned(),
+                display_name: "Model B".to_owned(),
+                provider_id: "provider-b".to_owned(),
+                provider_model_id: "provider-model-b".to_owned(),
+                thinking_levels: vec!["quick".to_owned()],
+                metadata_snapshot: model_metadata_snapshot(),
+            },
+        ],
+    }
+}
+
+/// Verifies a displayed model selection carries the current session revision.
+#[test]
+fn displayed_model_selection_uses_shared_session_revision() {
+    let mut state = picker_state(None);
+    let effects = select_model(&mut state, "model-a");
+    let session = EntityId::from_bytes([41; 16]);
+
+    assert_eq!(
+        effects,
+        vec![Effect::SetSessionModel(
+            scriberig_app::SessionModelSelectionRequest {
+                session,
+                expected_revision: 12,
+                provider_id: "provider-a".to_owned(),
+                model_id: "provider-model-a".to_owned(),
+            }
+        )]
+    );
+}
+
+/// Verifies thinking selection delegates unsupported validation upstream.
+#[test]
+fn unsupported_thinking_level_is_delegated_for_upstream_validation() {
+    let mut state = picker_state(Some(("provider-a", "provider-model-a")));
+    let session = EntityId::from_bytes([41; 16]);
+
+    let effects = select_thinking_level(&mut state, "private-level");
+
+    assert_eq!(
+        effects,
+        vec![Effect::SetSessionThinkingLevel(
+            scriberig_app::SessionThinkingSelectionRequest {
+                session,
+                expected_revision: 12,
+                thinking_level: "private-level".to_owned(),
+            }
+        )]
+    );
+}
+
+/// Verifies supported thinking selection carries the latest mutation revision.
+#[test]
+fn supported_thinking_selection_uses_shared_session_revision() {
+    let mut state = picker_state(Some(("provider-a", "provider-model-a")));
+    let session = EntityId::from_bytes([41; 16]);
+
+    let effects = select_thinking_level(&mut state, "careful");
+
+    assert_eq!(
+        effects,
+        vec![Effect::SetSessionThinkingLevel(
+            scriberig_app::SessionThinkingSelectionRequest {
+                session,
+                expected_revision: 12,
+                thinking_level: "careful".to_owned(),
+            }
+        )]
+    );
+}
+
+/// Verifies mutation responses replace the displayed authoritative selection.
+#[test]
+fn selection_response_updates_session_header_and_revision() {
+    let mut state = picker_state(Some(("provider-a", "model-old")));
+    if let LoadState::Ready(session) = &mut state.session {
+        session.execution.thinking_level = Some("deep".to_owned());
+    }
+
+    crate::state::reduce(
+        &mut state,
+        crate::action::Action::SessionExecutionSelectionUpdated(
+            scriberig_session::SessionExecutionSelection {
+                revision: 13,
+                provider_id: Some("provider-a".to_owned()),
+                model_id: Some("provider-model-a".to_owned()),
+                thinking_level: Some("careful".to_owned()),
+                history: Vec::new(),
+            },
+        ),
+    );
+
+    let LoadState::Ready(session) = state.session else {
+        panic!("session remains loaded");
+    };
+    assert_eq!(session.execution.revision, 13);
+    assert!(session.rows[0].label.contains("Model provider-model-a"));
+    assert_eq!(
+        state
+            .session_snapshot
+            .as_ref()
+            .map(|session| session.execution.provider_id.as_deref()),
+        Some(Some("provider-a"))
+    );
+    assert!(
+        state
+            .shell_message
+            .contains("Model changed to provider-model-a; thinking level adjusted to careful")
+    );
+}

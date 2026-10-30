@@ -24,9 +24,11 @@ pub use capability::{CapabilitiesResponse, CapabilityInfo, RuntimeFeature};
 pub use error::{ProtocolError, ProtocolErrorCode};
 pub use event::{Event, EventKind};
 pub use model::{
-    CredentialRef as ModelCredentialRef, ModelCapabilities as PublicModelCapabilities,
-    ModelDescriptor as PublicModelDescriptor, ModelLibraryResponse,
-    ModelProfile as PublicModelProfile, ThinkingLevelDescriptor as PublicThinkingLevelDescriptor,
+    ModelCostSnapshot as PublicModelCostSnapshot,
+    ModelCostTierSnapshot as PublicModelCostTierSnapshot, ModelDescriptor as PublicModelDescriptor,
+    ModelInputModality as PublicModelInputModality, ModelLibraryResponse,
+    ModelMetadataSnapshot as PublicModelMetadataSnapshot, ProviderCredentialReadiness,
+    ProviderReadiness, model_row_id,
 };
 pub use operation::{Operation, OperationProgress, OperationStatus};
 pub use presentation::{
@@ -49,16 +51,23 @@ pub use response::{
     QueryResponse,
 };
 pub use session::{
-    ModelRequestDetailRequest, ModelRequestDetailResponse, ModelRequestMessageDetail,
-    ModelRequestToolDetail, SessionActivityItem, SessionActivityKind, SessionActivityState,
-    SessionBranch, SessionBranchResult, SessionBranchStatus, SessionContinuationAnchor,
-    SessionCoordinatorClaim, SessionExecutionChange, SessionExecutionSelection,
-    SessionExpectedResult, SessionModelAssignment, SessionPlan, SessionPlanAction,
-    SessionPlanAssignmentRequest, SessionPlanCreateRequest, SessionPlanDependency,
-    SessionPlanLifecycleRequest, SessionPlanNode, SessionPlanNodeDraft, SessionPlanNodeReference,
-    SessionPlanNodeStatus, SessionPlanReplanRequest, SessionPlanRevision, SessionPlanStatus,
-    SessionReadRequest, SessionReadResponse, SessionTurn, SessionWorkerClaim, ToolActivityKind,
-    ToolResultDetailRequest, ToolResultDetailResponse,
+    ModelContextRevisionReference, ModelRequestDetailFragment, ModelRequestDetailRequest,
+    ModelRequestDetailResponse, ModelRequestMessageDetail, ModelRequestToolDetail,
+    SessionActivityItem, SessionActivityKind, SessionActivityState, SessionBranch,
+    SessionBranchResult, SessionBranchStatus, SessionContinuationAnchor, SessionCoordinatorClaim,
+    SessionExecutionChange, SessionExecutionSelection, SessionExpectedResult,
+    SessionModelAssignment, SessionPlan, SessionPlanAbandonReason, SessionPlanAction,
+    SessionPlanAssignmentRequest, SessionPlanChildDraft, SessionPlanCreateRequest,
+    SessionPlanDecomposeRequest, SessionPlanDependency, SessionPlanEvidenceAssociation,
+    SessionPlanEvidenceKind, SessionPlanEvidenceOwner, SessionPlanEvidenceReference,
+    SessionPlanEvidenceRole, SessionPlanGate, SessionPlanGateCounts, SessionPlanGatePhase,
+    SessionPlanGateRequirement, SessionPlanGateWaiver, SessionPlanLifecycleRequest,
+    SessionPlanNextStepRequest, SessionPlanNode, SessionPlanNodeDraft, SessionPlanNodeReference,
+    SessionPlanNodeStatus, SessionPlanReplanRequest, SessionPlanRetryRequest, SessionPlanRevision,
+    SessionPlanSemanticMutation, SessionPlanSemanticMutationRequest, SessionPlanSemanticPredicate,
+    SessionPlanStatus, SessionPlanStatusCounts, SessionPlanSummary, SessionReadRequest,
+    SessionReadResponse, SessionSemanticReference, SessionTurn, SessionWorkerClaim,
+    ToolActivityKind, ToolResultDetailRequest, ToolResultDetailResponse,
 };
 pub use transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 pub use trust::{

@@ -38,8 +38,7 @@ pub struct ApplicationService<B> {
     sessions: Arc<Mutex<BTreeMap<EntityId, Session>>>,
     next_agent_handle: AtomicU64,
     session_store: Option<Arc<dyn scriberig_session::SessionStore>>,
-    model_library: crate::ModelLibrary,
-    upstream_models: Vec<rpi_ai::Model>,
+    model_catalog: rpi_model_runtime::ModelCatalog,
     presentation_preferences: Arc<dyn crate::AgentPresentationPreferenceStore>,
 }
 
@@ -59,8 +58,7 @@ impl<B> ApplicationService<B> {
             sessions: Arc::new(Mutex::new(BTreeMap::new())),
             next_agent_handle: AtomicU64::new(1),
             session_store: None,
-            model_library: crate::ModelLibrary::default(),
-            upstream_models: Vec::new(),
+            model_catalog: rpi_model_runtime::ModelCatalog::new(),
             presentation_preferences: Arc::new(
                 crate::InMemoryAgentPresentationPreferenceStore::default(),
             ),
@@ -83,7 +81,7 @@ impl<B> ApplicationService<B> {
         &self.operations
     }
 
-    /// Borrows the host-owned upstream model catalog for runtime composition.
+    /// Captures the current upstream model rows for trusted runtime composition.
     ///
     /// The returned catalog contains request metadata and must remain inside
     /// trusted runtime composition. It is not a protocol projection.
@@ -93,10 +91,23 @@ impl<B> ApplicationService<B> {
     /// The upstream model catalog used for selection resolution.
     ///
     /// # Returns
-    /// A borrowed view of the host-owned upstream model catalog.
+    /// Model rows from one coherent catalog revision.
     #[must_use]
-    pub fn upstream_models(&self) -> &[rpi_ai::Model] {
-        &self.upstream_models
+    pub fn upstream_models(&self) -> Vec<rpi_ai::Model> {
+        self.model_catalog.snapshot().models
+    }
+
+    /// Returns a shared handle to the upstream live model catalog.
+    ///
+    /// - `self`: Service owning the catalog handle.
+    ///
+    /// A cloneable handle observing the same catalog state.
+    ///
+    /// # Returns
+    /// The shared upstream model catalog.
+    #[must_use]
+    pub fn model_catalog(&self) -> rpi_model_runtime::ModelCatalog {
+        self.model_catalog.clone()
     }
 }
 

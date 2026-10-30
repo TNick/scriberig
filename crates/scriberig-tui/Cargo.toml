@@ -8,11 +8,13 @@ description = "Terminal UI adapter over shared Scriberig application operations.
 repository.workspace = true
 
 [dependencies]
-crossterm = "0.28"
-ratatui = "0.29"
 serde_json = "1.0"
+rpi-tui = { workspace = true }
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
+rpi-ai = { workspace = true }
+rpi-agent = { workspace = true }
+rpi-model-runtime = { workspace = true }
 scriberig-core = { path = "../scriberig-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-client = { path = "../scriberig-client" }
@@ -20,7 +22,6 @@ scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-project = { path = "../scriberig-project" }
 scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
-scriberig-tui-kit = { path = "../scriberig-tui-kit" }
 sr-change = { path = "../sr-change" }
 sr-projection = { path = "../sr-projection" }
 

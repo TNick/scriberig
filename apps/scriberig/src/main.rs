@@ -4,7 +4,6 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use scriberig_agent_runtime::ChildExecutionScope;
-use scriberig_agent_runtime::provider::ProviderConfig;
 use scriberig_app::{
     ApplicationBackendComposition, ApplicationContext, ApplicationService, Capability,
     CapabilityAction, CapabilityConstraints, CapabilityContext, CapabilityScope,
@@ -13,6 +12,7 @@ use scriberig_app::{
 use scriberig_store_sqlite::SqliteStore;
 
 mod agent_config;
+mod agent_context;
 mod agent_tool;
 mod agent_tool_helpers;
 mod bootstrap_failure_provider;
@@ -20,13 +20,13 @@ mod child_runtime;
 mod deterministic_provider;
 mod doctor_command;
 mod main_agent_execution;
-mod native_provider;
+mod native_scenario;
 mod native_tui_agent;
 mod remote_commands;
+mod scenario_helpers;
 mod secrets_command;
 mod self_hosting_provider;
 mod tui_command;
-use agent_tool::LocalAgentTool;
 use main_agent_execution::execute_model;
 
 /// Start the integrated `srig` executable and report runtime failures.
@@ -40,6 +40,14 @@ use main_agent_execution::execute_model;
 /// # Errors
 /// Returns an error when the operation fails.
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    #[cfg(feature = "isolated-plugin-worker")]
+    let arguments = std::env::args().collect::<Vec<_>>();
+    #[cfg(feature = "isolated-plugin-worker")]
+    if scriberig_agent_runtime::plugin_worker::run_worker_mode(&arguments)
+        .map_err(std::io::Error::other)?
+    {
+        return Ok(());
+    }
     let command = scriberig_cli::parse();
     match command {
         scriberig_cli::Command::Serve(args) => {
@@ -47,8 +55,14 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let runner = Arc::new(native_tui_agent::NativeTuiAgentRunner::from_environment(
                 Arc::clone(&store),
             )?);
-            let model_library = runner.model_library();
-            let upstream_models = runner.upstream_models();
+            let model_catalog = runner.model_catalog();
+            let readiness_runner = Arc::clone(&runner);
+            let provider_readiness_handler: Arc<scriberig_server::ProviderReadinessHandler> =
+                Arc::new(move || {
+                    scriberig_tui::AgentCommandRunner::<
+                        scriberig_server::LocalApplicationBackend,
+                    >::provider_readiness(readiness_runner.as_ref())
+                });
             let plan_lifecycle_handler: Arc<scriberig_server::PlanLifecycleHandler> =
                 Arc::new(move |service, context, request, action| {
                     let mut runtime_context = context.clone();
@@ -75,8 +89,8 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 &args.project_roots,
                 Some(plan_lifecycle_handler),
                 scriberig_server::ServerModelCatalog {
-                    library: model_library,
-                    upstream_models,
+                    model_catalog,
+                    provider_readiness_handler: Some(provider_readiness_handler),
                 },
             )?;
         }
@@ -191,11 +205,6 @@ fn run_shared_agent(
         principal: Some(scriberig_app::Principal::new("local-agent")),
         ..ApplicationContext::empty()
     };
-    let cancellation = scriberig_agent_runtime::cancellation_flag();
-    let cancellation_handler = Arc::clone(&cancellation);
-    ctrlc::set_handler(move || {
-        cancellation_handler.store(true, std::sync::atomic::Ordering::Release);
-    })?;
     let request = scriberig_app::AgentCommandRequest {
         session,
         branch: None,
@@ -204,6 +213,11 @@ fn run_shared_agent(
         selection: None,
     };
     let handle = service.start_local_agent(&request)?;
+    let cancellation = service.operations().cancellation_flag(&handle.operation)?;
+    let cancellation_handler = Arc::clone(&cancellation);
+    ctrlc::set_handler(move || {
+        cancellation_handler.store(true, std::sync::atomic::Ordering::Release);
+    })?;
     let scope = ChildExecutionScope {
         session,
         parent_branch: handle.root_branch,
@@ -215,21 +229,38 @@ fn run_shared_agent(
         match run_composed_model(&args, &service, &store, &context, &scope, &cancellation) {
             Ok(result) => result,
             Err(error) => {
+                let main_agent_execution::ComposedAgentFailure {
+                    error,
+                    model_requests,
+                    tool_evidence,
+                } = error;
                 if matches!(error, scriberig_agent_runtime::AgentError::Cancelled) {
                     let _ = service.operations().cancel(&handle.operation);
+                    let _ = service.fail_local_agent_with_evidence(
+                        &handle,
+                        error.to_string(),
+                        model_requests,
+                        tool_evidence,
+                    );
                     eprintln!("agent operation cancelled: {}", handle.operation);
                     std::process::exit(130);
                 }
-                let _ = service.operations().fail(
-                    &handle.operation,
-                    scriberig_app::ApplicationError::Internal {
-                        message: error.to_string(),
-                    },
+                let _ = service.fail_local_agent_with_evidence(
+                    &handle,
+                    error.to_string(),
+                    model_requests,
+                    tool_evidence,
                 );
                 return Err(Box::new(error));
             }
         };
-    service.complete_local_agent(&handle, runtime_result.output)?;
+    service.complete_local_agent_with_evidence(
+        &handle,
+        runtime_result.output,
+        Vec::new(),
+        runtime_result.tool_evidence,
+        runtime_result.model_requests,
+    )?;
     let operation = handle.operation;
     let record = service.operations().get(&operation)?;
     let result = record
@@ -247,8 +278,7 @@ fn run_shared_agent(
     Ok(())
 }
 
-/// Executes one local model loop using either the deterministic provider or a
-/// configured OpenAI-compatible provider.
+/// Executes one branch using an upstream provider and semantic broker.
 ///
 /// - `args`: Provider and prompt configuration.
 /// - `context`: Authorized application context for the runtime.
@@ -256,56 +286,28 @@ fn run_shared_agent(
 /// The completed provider-neutral runtime result.
 ///
 /// Returns a provider, tool, budget, or cancellation failure.
-fn run_composed_model<B: scriberig_app::ApplicationBackend>(
+fn run_composed_model<B: scriberig_app::ApplicationBackend + Sync>(
     args: &scriberig_cli::RunArgs,
     service: &scriberig_app::ApplicationService<B>,
     project_store: &Arc<SqliteStore>,
     context: &ApplicationContext,
     scope: &ChildExecutionScope,
     cancellation: &std::sync::atomic::AtomicBool,
-) -> Result<scriberig_agent_runtime::AgentResult, scriberig_agent_runtime::AgentError> {
+) -> Result<scriberig_agent_runtime::AgentResult, main_agent_execution::ComposedAgentFailure> {
     let output_callback =
         (matches!(args.format, scriberig_cli::RunFormat::Human) && !args.no_stream).then(|| {
             std::sync::Arc::new(|text: &str| eprintln!("agent output: {text}"))
                 as std::sync::Arc<dyn Fn(&str) + Send + Sync>
         });
-    if let Some(base_url) = &args.base_url {
-        let credential_source = agent_config::credential_source(args)
-            .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?;
-        let config = ProviderConfig::new(
-            args.provider.clone(),
-            base_url,
-            args.model.clone(),
-            credential_source,
-        );
-        let provider =
-            scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(config)
-                .map_err(|error| {
-                    scriberig_agent_runtime::AgentError::Provider(error.to_string())
-                })?;
-        return execute_model(
-            provider,
-            args.model.clone(),
-            service,
-            project_store,
-            context,
-            scope,
-            &args.prompt,
-            cancellation,
-            output_callback,
-        );
-    }
-    let runtime = scriberig_agent_runtime::AgentRuntime::new(
-        scriberig_agent_runtime::EchoProvider,
-        LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
-        8,
-    );
-    let mut runtime = if let Some(callback) = output_callback {
-        runtime.with_output_callback(callback)
-    } else {
-        runtime
-    };
-    runtime.run(context, &args.prompt, cancellation)
+    execute_model(
+        args,
+        service,
+        project_store,
+        context,
+        scope,
+        cancellation,
+        output_callback,
+    )
 }
 
 /// Allocates a fresh session identity for one local command invocation.

@@ -1,7 +1,13 @@
 //! Verifies failed first turns remain visible in the durable conversation.
 
+use super::model_catalog_from_models;
 use super::*;
+use rpi_ai::providers::faux::{FauxScript, FauxStep};
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "The integration scenario asserts the durable error, tree projection, and operation evidence together."
+)]
 /// Preserves an accepted message and presents a deterministic provider failure.
 #[test]
 fn first_conversation_failure_remains_in_tree_with_error() {
@@ -20,21 +26,24 @@ fn first_conversation_failure_remains_in_tree_with_error() {
     let service = ApplicationService::new(backend)
         .with_session_store(session_repository)
         .with_upstream_models(native_test_upstream_models());
-    let provider = FakeProvider::from_responses([Err(
-        scriberig_agent_runtime::provider::ProviderError::Transport(
-            "deterministic provider failure".to_owned(),
-        ),
-    )]);
+    let model = native_test_upstream_models()[0].clone();
+    let provider = FauxScript::new();
+    provider.set_responses(vec![FauxStep::factory(move |_| {
+        crate::scenario_helpers::error_response(&model, "deterministic provider failure".to_owned())
+    })]);
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([(
             "local".to_owned(),
-            NativeProvider::Fake(provider),
+            NativeScenario::Faux(provider),
         )]),
         model: "fake-model".to_owned(),
-        model_library: ModelLibrary::default(),
-        upstream_models: native_test_upstream_models(),
+        upstream_credentials: None,
+        upstream_enabled: false,
+        model_catalog: model_catalog_from_models(native_test_upstream_models()),
+        model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
+        continuations: std::sync::Mutex::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let context = ApplicationContext {
@@ -98,6 +107,30 @@ fn first_conversation_failure_remains_in_tree_with_error() {
             .error
             .as_deref()
             .is_some_and(|message| message.contains("deterministic provider failure"))
+    );
+
+    let durable = session_store
+        .load(*session)
+        .expect("load failed session")
+        .expect("failed session exists");
+    let failed_root = durable
+        .branches
+        .iter()
+        .find(|branch| branch.parent.is_none())
+        .expect("root branch exists");
+    let failed_invocation = failed_root
+        .model_invocations
+        .last()
+        .expect("provider attempt is durable");
+    let request = failed_invocation
+        .request
+        .as_ref()
+        .expect("prepared upstream request is retained");
+    assert!(
+        request
+            .messages
+            .iter()
+            .any(|message| { message.role == "user" && message.content.contains("1+1") })
     );
 
     drop(adapter);

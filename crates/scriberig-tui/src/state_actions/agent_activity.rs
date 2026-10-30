@@ -10,6 +10,7 @@ use crate::state::TuiState;
 /// - `activity_kind`: Safe provider-neutral activity category.
 /// - `activity_state`: Lifecycle state for this activity.
 /// - `summary`: Safe runtime activity summary.
+/// - `ordinal`: Monotonic arrival ordinal within the producing invocation.
 ///
 /// No asynchronous effects are required.
 /// # Parameters
@@ -23,8 +24,18 @@ pub(super) fn observe_agent_activity(
     activity_kind: scriberig_session::AgentActivityKind,
     activity_state: scriberig_session::AgentActivityState,
     summary: &str,
+    ordinal: u64,
 ) -> Vec<Effect> {
     let key = stable_activity_key(operation, branch, activity_kind);
+    if ordinal > 0
+        && state
+            .transient_agent_activities
+            .iter()
+            .find(|existing| existing.key == key)
+            .is_some_and(|existing| ordinal < existing.ordinal)
+    {
+        return vec![Effect::None];
+    }
     let durable_selection = operation.starts_with("session-selection-");
     let completed_summary = activity_kind == scriberig_session::AgentActivityKind::ReasoningSummary
         && activity_state == scriberig_session::AgentActivityState::Completed;
@@ -57,6 +68,7 @@ pub(super) fn observe_agent_activity(
         activity_kind,
         state: activity_state,
         summary: summary.chars().take(256).collect(),
+        ordinal,
     };
     if let Some(existing) = state
         .transient_agent_activities
@@ -123,6 +135,7 @@ mod tests {
             scriberig_session::AgentActivityKind::ReasoningSummary,
             scriberig_session::AgentActivityState::Completed,
             "safe summary",
+            1,
         );
         observe_agent_activity(
             &mut state,
@@ -131,6 +144,7 @@ mod tests {
             scriberig_session::AgentActivityKind::RuntimeStatus,
             scriberig_session::AgentActivityState::Running,
             "running",
+            0,
         );
 
         assert_eq!(state.shell_message, "unchanged");
@@ -152,6 +166,7 @@ mod tests {
             scriberig_session::AgentActivityKind::ReasoningSummary,
             scriberig_session::AgentActivityState::Completed,
             "safe summary",
+            1,
         );
 
         assert_eq!(state.shell_message, "Reasoning summary: safe summary");
@@ -168,6 +183,7 @@ mod tests {
             scriberig_session::AgentActivityKind::RuntimeStatus,
             scriberig_session::AgentActivityState::Running,
             "starting",
+            0,
         );
         observe_agent_activity(
             &mut state,
@@ -176,6 +192,7 @@ mod tests {
             scriberig_session::AgentActivityKind::RuntimeStatus,
             scriberig_session::AgentActivityState::Running,
             "working",
+            0,
         );
 
         assert_eq!(state.transient_agent_activities.len(), 1);
@@ -187,6 +204,7 @@ mod tests {
             scriberig_session::AgentActivityKind::RuntimeStatus,
             scriberig_session::AgentActivityState::Completed,
             "completed",
+            0,
         );
         assert_eq!(state.transient_agent_activities, []);
     }

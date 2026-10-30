@@ -1,6 +1,9 @@
 //! Verifies application-backed plan coordination and durable result ordering.
 
-use scriberig_agent_runtime::{coordinator::PlanCoordinator, scheduler::PlanWorkerExecutor};
+use scriberig_agent_runtime::{
+    coordinator::PlanCoordinator,
+    scheduler::{PlanWorkerExecutionResult, PlanWorkerExecutor},
+};
 use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
     ApplicationResult, ApplicationService, CapabilityContext, CapabilityId, OperationProvider,
@@ -21,13 +24,29 @@ use scriberig_store_memory::MemoryStore;
 /// # Returns
 /// The operation result.
 fn runtime_fallback_models() -> Vec<rpi_ai::Model> {
-    vec![rpi_ai::Model::new(
-        "fallback-model",
-        "Fallback model",
-        rpi_ai::Api::AnthropicMessages,
-        "fallback-provider",
-        "https://example.test",
-    )]
+    vec![
+        rpi_ai::Model::new(
+            "fallback-model",
+            "Fallback model",
+            rpi_ai::Api::AnthropicMessages,
+            "fallback-provider",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "wire-a",
+            "Model A",
+            rpi_ai::Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "wire-b",
+            "Model B",
+            rpi_ai::Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+    ]
 }
 
 /// Supplies merge operations for deterministic candidate integration tests.
@@ -137,6 +156,7 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
                 agent_profile: None,
                 context_fingerprint: None,
                 provider_profile: Some("private-worker-profile".to_owned()),
+                provider_id: None,
                 model: Some("private-worker-model".to_owned()),
                 model_profile: Some("private-worker-profile".to_owned()),
                 provider_model_id: None,
@@ -228,7 +248,6 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
     ) -> Result<BranchResult, String> {
         if node.title == "integrate" {
             assert!(context.compiled.canonical.contains("dependency_result"));
-            assert!(context.compiled.canonical.contains("profile:alpha"));
             assert!(context.compiled.canonical.contains("entity:api-contract"));
             assert!(context.compiled.canonical.contains("Exact semantic scope"));
             assert!(

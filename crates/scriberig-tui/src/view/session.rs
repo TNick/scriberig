@@ -29,6 +29,29 @@ pub struct SessionRow {
     pub transient: bool,
 }
 
+/// Identifies a session row independently of its flattened projection index.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SessionRowIdentity {
+    /// Stable semantic object represented by the row.
+    pub reference: EntityId,
+    /// Public session object kind.
+    pub kind: SessionRowKind,
+}
+
+impl SessionRow {
+    /// Returns this row's stable identity for selection across projection refreshes.
+    ///
+    /// # Returns
+    /// The kind and semantic reference that identify this row.
+    #[must_use]
+    pub fn identity(&self) -> SessionRowIdentity {
+        SessionRowIdentity {
+            reference: self.reference,
+            kind: self.kind,
+        }
+    }
+}
+
 /// Classifies a session tree row without embedding widget state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SessionRowKind {
@@ -149,6 +172,18 @@ impl SessionModel {
     /// The operation result.
     pub fn reference_at(&self, cursor: usize) -> Option<EntityId> {
         self.rows.get(cursor).map(|row| row.reference)
+    }
+
+    /// Finds the current row index for a stable session row identity.
+    ///
+    /// - `identity`: Semantic row identity from an earlier projection.
+    ///
+    /// The row's current flattened index when it remains present.
+    /// # Returns
+    /// The current row index when the stable identity remains in the view.
+    #[must_use]
+    pub fn index_of(&self, identity: SessionRowIdentity) -> Option<usize> {
+        self.rows.iter().position(|row| row.identity() == identity)
     }
 
     /// Replaces the shared selection and refreshes the visible session header.

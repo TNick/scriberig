@@ -8,7 +8,6 @@ fn diff_row_activation_inspects_target_entity() {
     let entity = EntityId::from_bytes([8; 16]);
     let target = SnapshotId::new([4; 32]);
     let mut state = TuiState {
-        focus: Focus::Primary,
         primary_view: PrimaryView::Diff,
         diff: crate::inspector::LoadState::Ready(crate::view::diff::DiffModel {
             left: SnapshotId::new([3; 32]),
@@ -39,7 +38,7 @@ fn diff_row_activation_inspects_target_entity() {
 fn explorer_activation_inspects_selected_entity() {
     let entity = scriberig_core::EntityId::from_bytes([8; 16]);
     let mut state = TuiState {
-        focus: crate::state::Focus::Explorer,
+        primary_view: crate::selection::PrimaryView::Explorer,
         ..TuiState::default()
     };
     state.explorer =
@@ -82,11 +81,10 @@ fn refresh_reissues_selected_inspection() {
 fn application_operation_event_immediately_exposes_running_state() {
     let mut state = TuiState::default();
     let operation = scriberig_core::OperationId::new("running").expect("operation id");
-    let effects = state.apply_event(&crate::event::TuiEvent::Application(
-        scriberig_app::ApplicationEvent::OperationStarted {
+    let effects =
+        state.apply_application_event(&scriberig_app::ApplicationEvent::OperationStarted {
             operation: operation.clone(),
-        },
-    ));
+        });
     assert_eq!(state.operations[0].id, operation);
     assert_eq!(
         state.operations[0].status,

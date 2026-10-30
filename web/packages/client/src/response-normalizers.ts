@@ -1,5 +1,10 @@
 /** @file Normalizes responses from legacy and current semantic transports. */
-import type { AgentAcceptedResponse, Operation, SnapshotId } from "@scriberig/protocol";
+import type {
+  AgentAcceptedResponse,
+  ModelRequestDetailResponse,
+  Operation,
+  SnapshotId,
+} from "@scriberig/protocol";
 
 /** Normalizes legacy and current operation response shapes.
  *
@@ -137,4 +142,116 @@ export function normalizeAcceptedAgent(value: unknown): AgentAcceptedResponse {
   return branchId === undefined
     ? accepted
     : { ...accepted, branchId: branchId as NonNullable<AgentAcceptedResponse["branchId"]> };
+}
+
+/** Normalizes a captured request detail response across Rust and browser casing.
+ * @param value Unknown request detail from the transport.
+ * @returns The safe request detail with browser field casing.
+ * @throws When required request identity fields are absent.
+ */
+export function normalizeModelRequestDetail(value: unknown): ModelRequestDetailResponse {
+  if (!isObject(value)) throw new Error("server returned invalid model request detail");
+  const invocation = value.invocation;
+  const model = value.model;
+  if (typeof invocation !== "string" || typeof model !== "string") {
+    throw new Error("server returned incomplete model request detail");
+  }
+  const providerId = value.provider_id ?? value.providerId;
+  const thinkingLevel = value.thinking_level ?? value.thinkingLevel;
+  const profileValue = value.profile;
+  const profile =
+    isObject(profileValue) &&
+    typeof profileValue.identity === "string" &&
+    typeof profileValue.revision === "string"
+      ? { identity: profileValue.identity, revision: profileValue.revision }
+      : undefined;
+  const activeComponentsValue = value.active_components ?? value.activeComponents;
+  const activeComponents = Array.isArray(activeComponentsValue)
+    ? activeComponentsValue.filter(
+        (reference): reference is { identity: string; revision: string } =>
+          isObject(reference) &&
+          typeof reference.identity === "string" &&
+          typeof reference.revision === "string",
+      )
+    : undefined;
+  const appliedSettings = value.applied_settings ?? value.appliedSettings;
+  const appliedSettingsFingerprint =
+    value.applied_settings_fingerprint ?? value.appliedSettingsFingerprint;
+  return {
+    invocation,
+    model,
+    ...(typeof providerId === "string" ? { providerId } : {}),
+    ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
+    ...(profile ? { profile } : {}),
+    ...(activeComponents ? { activeComponents } : {}),
+    ...(appliedSettings !== undefined ? { appliedSettings } : {}),
+    ...(typeof appliedSettingsFingerprint === "string" ? { appliedSettingsFingerprint } : {}),
+    messages: Array.isArray(value.messages)
+      ? (value.messages as ModelRequestDetailResponse["messages"])
+      : [],
+    tools: Array.isArray(value.tools) ? (value.tools as ModelRequestDetailResponse["tools"]) : [],
+    truncated: value.truncated === true,
+    contentComplete: value.content_complete === true || value.contentComplete === true,
+    ...(Array.isArray(value.fragments)
+      ? {
+          fragments: value.fragments.filter(isModelRequestDetailFragment).map((fragment) => ({
+            kind:
+              fragment.kind === "tool_call" || fragment.kind === "toolCall"
+                ? "toolCall"
+                : (fragment.kind as "message" | "tool"),
+            index: fragment.index as number,
+            ...(typeof (fragment.parent_index ?? fragment.parentIndex) === "number"
+              ? { parentIndex: (fragment.parent_index ?? fragment.parentIndex) as number }
+              : {}),
+            field:
+              fragment.field === "constrained_sampling" || fragment.field === "constrainedSampling"
+                ? "constrainedSampling"
+                : fragment.field === "tool_name" || fragment.field === "toolName"
+                  ? "toolName"
+                  : (fragment.field as NonNullable<
+                      ModelRequestDetailResponse["fragments"]
+                    >[number]["field"]),
+            fieldOffset: (fragment.field_offset ?? fragment.fieldOffset) as number,
+            ...(typeof fragment.role === "string" ? { role: fragment.role } : {}),
+            text: fragment.text as string,
+          })),
+        }
+      : {}),
+    ...(typeof value.offset === "number" ? { offset: value.offset } : {}),
+    ...(typeof (value.total_chars ?? value.totalChars) === "number"
+      ? { totalChars: (value.total_chars ?? value.totalChars) as number }
+      : {}),
+    ...(typeof (value.next_offset ?? value.nextOffset) === "number"
+      ? { nextOffset: (value.next_offset ?? value.nextOffset) as number }
+      : {}),
+  };
+}
+
+/** Checks whether an unknown value is one valid request detail fragment.
+ * @param value Unknown fragment candidate.
+ * @returns Whether the candidate contains the required page fields.
+ */
+function isModelRequestDetailFragment(value: unknown): value is Record<string, unknown> {
+  if (!isObject(value)) return false;
+  const fieldOffset = value.field_offset ?? value.fieldOffset;
+  return (
+    (value.kind === "message" ||
+      value.kind === "tool_call" ||
+      value.kind === "toolCall" ||
+      value.kind === "tool") &&
+    typeof value.index === "number" &&
+    [
+      "content",
+      "tool_name",
+      "toolName",
+      "name",
+      "arguments",
+      "description",
+      "parameters",
+      "constrained_sampling",
+      "constrainedSampling",
+    ].includes(String(value.field)) &&
+    typeof fieldOffset === "number" &&
+    typeof value.text === "string"
+  );
 }

@@ -2,28 +2,23 @@
 
 use std::collections::VecDeque;
 use std::io::{self, IsTerminal};
-use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
-use std::time::Duration;
-
-use ratatui::{Terminal, backend::CrosstermBackend};
+use std::sync::mpsc::{Receiver, SyncSender, TrySendError};
 
 use crate::{
     TuiConfig,
     action::Action,
     debug_log::TuiDebugLog,
     effect::Effect,
-    event,
-    event::TuiEvent,
-    render,
     service::{TuiService, execute_effect},
     state::{TuiState, reduce},
-    terminal::TerminalGuard,
 };
 use scriberig_app::ApplicationContext;
 
 #[path = "runtime/drain.rs"]
 mod drain;
-use drain::{MessageDrain, drain_messages};
+use drain::MessageDrain;
+#[path = "runtime/upstream.rs"]
+mod upstream;
 
 /// Maximum lifecycle events reduced before returning to terminal input handling.
 const APPLICATION_EVENT_BATCH_SIZE: usize = 128;
@@ -52,131 +47,43 @@ pub fn run<S: TuiService + Sync>(
         .debug
         .then(|| TuiDebugLog::open(config.debug_log_file.as_deref()))
         .transpose()?;
-    let guard = TerminalGuard::enter()?;
-    crate::terminal::run_with_terminal_guard(guard, || {
-        let backend = CrosstermBackend::new(io::stdout());
-        let mut terminal = Terminal::new(backend)?;
-        let mut state = TuiState {
-            project: config.project.clone(),
-            agent_selection: config.agent_selection.clone(),
-            ..TuiState::default()
-        };
-        if let Some(log) = debug_log.as_mut() {
-            log.record_message("runtime-start", &state)?;
-        }
-        interactive_event_loop(
-            service,
-            context,
-            config,
-            &mut terminal,
-            &mut state,
-            debug_log.as_mut(),
-        )
-    })
+    let state = TuiState {
+        project: config.project.clone(),
+        agent_selection: config.agent_selection.clone(),
+        ..TuiState::default()
+    };
+    if let Some(log) = debug_log.as_mut() {
+        log.record_message("runtime-start", &state)?;
+    }
+    upstream::run(service, context, config, state, debug_log.as_mut())
 }
-/// Processes terminal input and shared application events until shutdown.
+
+/// Retains the stable semantic row after upstream list navigation.
 ///
-/// - `service`: Shared operations available to local effects.
-/// - `context`: Authorization and snapshot context for each operation.
-/// - `config`: Initial semantic selection to inspect after startup.
-/// - `terminal`: Active terminal backend and frame buffer.
-/// - `state`: Mutable client presentation state.
-/// - `debug_log`: Optional content-redacted diagnostic writer.
+/// - `state`: Presentation state receiving the selected row identity.
+pub(crate) fn retain_semantic_row_cursor(state: &mut crate::state::TuiState) {
+    upstream::retain_semantic_row_cursor(state);
+}
+
+/// Reconciles a semantic list cursor after its projection changes.
 ///
-/// Unit after shutdown and worker completion.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an I/O error when input, rendering, or a worker fails.
-fn interactive_event_loop<S: TuiService + Sync>(
-    service: &S,
-    context: &ApplicationContext,
-    config: &TuiConfig,
-    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
-    state: &mut TuiState,
-    mut debug_log: Option<&mut TuiDebugLog>,
-) -> io::Result<()> {
-    std::thread::scope(|scope| {
-        let (work_sender, work_receiver) = mpsc::sync_channel(32);
-        let (message_sender, message_receiver) = mpsc::sync_channel(32);
-        let worker_scope = scope;
-        let worker_context = context.clone();
-        let worker = scope.spawn(move || {
-            worker_loop(
-                worker_scope,
-                service,
-                worker_context,
-                work_receiver,
-                message_sender,
-            );
-        });
-        let mut redraw = true;
-        let mut pending_effects = VecDeque::new();
-        queue_effects(
-            &work_sender,
-            &mut pending_effects,
-            vec![Effect::RequestCapabilities],
-        );
-        if let Some(entity) = config.initial_entity {
-            let request_id = state.next_request_id;
-            state.next_request_id += 1;
-            let effects = reduce(
-                state,
-                crate::action::Action::InspectRequested {
-                    request_id,
-                    entity,
-                    snapshot: config.snapshot,
-                },
-            );
-            state.primary_view = crate::selection::PrimaryView::Conversation;
-            queue_effects(&work_sender, &mut pending_effects, effects);
-        }
-        let mut pending_events = VecDeque::new();
-        let mut poll_in_flight = false;
-        while !state.should_quit {
-            {
-                let mut drain = MessageDrain {
-                    sender: &work_sender,
-                    pending_effects: &mut pending_effects,
-                    pending_events: &mut pending_events,
-                    redraw: &mut redraw,
-                    debug_log: debug_log.as_deref_mut(),
-                };
-                drain_messages(&message_receiver, state, &mut poll_in_flight, &mut drain)?;
-            }
-            dispatch_pending_events(
-                state,
-                &mut pending_events,
-                &work_sender,
-                &mut pending_effects,
-                &mut redraw,
-            );
-            flush_effects(&work_sender, &mut pending_effects);
-            if !poll_in_flight && pending_events.is_empty() {
-                poll_in_flight = try_queue(&work_sender, Work::PollApplicationEvents);
-            }
-            if redraw {
-                terminal.draw(|frame| render::render(frame, state))?;
-                redraw = false;
-            }
-            let input = event::read_event(Duration::from_millis(250))?;
-            if matches!(input, TuiEvent::Tick) {
-                continue;
-            }
-            let effects = state.apply_event(&input);
-            if let Some(log) = debug_log.as_mut() {
-                log.record_event(&input, effects.len(), state)?;
-            }
-            queue_effects(&work_sender, &mut pending_effects, effects);
-            terminal.draw(|frame| render::render(frame, state))?;
-        }
-        drop(work_sender);
-        drop(message_receiver);
-        worker
-            .join()
-            .map_err(|_| io::Error::other("TUI worker panicked"))?;
-        Ok(())
-    })
+/// - `state`: Presentation state receiving the refreshed selection and cursor.
+pub(crate) fn reconcile_semantic_row_cursor(state: &mut crate::state::TuiState) {
+    upstream::reconcile_semantic_row_cursor(state);
+}
+
+/// Retains plan selection after upstream tree navigation.
+///
+/// - `state`: Presentation state receiving the selected plan identity.
+pub(crate) fn retain_plan_cursor(state: &mut crate::state::TuiState) {
+    upstream::retain_plan_cursor(state);
+}
+
+/// Reconciles plan selection after an authoritative snapshot refresh.
+///
+/// - `state`: Presentation state receiving the refreshed plan position.
+pub(crate) fn reconcile_plan_cursor(state: &mut crate::state::TuiState) {
+    upstream::reconcile_plan_cursor(state);
 }
 
 /// Describes one unit of work executed outside the terminal thread.
@@ -310,8 +217,11 @@ fn dispatch_pending_events(
             break;
         };
         *redraw = true;
-        let event = TuiEvent::Application(application_event);
-        queue_effects(sender, pending_effects, state.apply_event(&event));
+        queue_effects(
+            sender,
+            pending_effects,
+            state.apply_application_event(&application_event),
+        );
     }
 }
 
@@ -337,6 +247,7 @@ fn run_headless<S: TuiService>(service: &S, context: &ApplicationContext, config
                 request_id,
                 entity,
                 snapshot: config.snapshot,
+                switch_view: false,
             },
         );
         for effect in effects {

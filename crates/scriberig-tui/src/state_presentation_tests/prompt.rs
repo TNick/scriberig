@@ -44,20 +44,18 @@ fn prompt_visibility_requests_missing_model_details() {
         }),
         overlay: Some(crate::overlay::Overlay::Palette(
             crate::overlay::palette::PaletteState {
-                query: String::new(),
                 local_actions: vec![crate::overlay::palette::PaletteItem {
                     id: "toggle-prompt".to_owned(),
                     label: "Toggle captured model request".to_owned(),
                     source: crate::overlay::palette::ActionSource::Local,
                 }],
                 semantic_actions: Vec::new(),
-                selected: 0,
             },
         )),
         ..TuiState::default()
     };
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "toggle-prompt");
 
     assert_eq!(
         effects,
@@ -72,7 +70,9 @@ fn prompt_visibility_requests_missing_model_details() {
         crate::state::PromptVisibility::Shown
     );
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects =
+        crate::state::state_presentation::activate_palette_control(&mut state, "toggle-prompt")
+            .expect("prompt toggle");
 
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(

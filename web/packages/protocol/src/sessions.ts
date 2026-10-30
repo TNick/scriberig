@@ -210,14 +210,53 @@ export interface ModelRequestToolDetail {
   description: string;
   parameters?: string;
 }
+/** Exact safe reference to one profile or context-component revision. */
+export interface ModelContextRevisionReference {
+  identity: string;
+  revision: string;
+}
 /** Safe normalized request captured before provider-specific serialization. */
 export interface ModelRequestDetailResponse {
   invocation: string;
   model: string;
+  providerId?: string;
   thinkingLevel?: string;
+  profile?: ModelContextRevisionReference;
+  activeComponents?: readonly ModelContextRevisionReference[];
   messages: readonly ModelRequestMessageDetail[];
   tools: readonly ModelRequestToolDetail[];
+  /** Opaque provider-owned safe report of settings applied to the request. */
+  appliedSettings?: unknown;
+  /** Versioned digest of the applied-settings report, when captured. */
+  appliedSettingsFingerprint?: string;
   truncated: boolean;
+  contentComplete: boolean;
+  fragments?: readonly ModelRequestDetailFragment[];
+  offset?: number;
+  totalChars?: number;
+  nextOffset?: number;
+}
+/** Optional bounded page controls for captured model request detail. */
+export interface ModelRequestDetailPageRequest {
+  offset?: number;
+  maxChars?: number;
+}
+/** One bounded fragment from the ordered safe request text stream. */
+export interface ModelRequestDetailFragment {
+  kind: "message" | "toolCall" | "tool";
+  index: number;
+  parentIndex?: number;
+  field:
+    | "content"
+    | "toolName"
+    | "name"
+    | "arguments"
+    | "description"
+    | "parameters"
+    | "constrainedSampling";
+  fieldOffset: number;
+  role?: string;
+  text: string;
 }
 /** Expanded safe detail for one durable tool result. */
 export interface ToolResultDetailResponse {

@@ -68,6 +68,7 @@ fn protocol_activity_matches_the_safe_cross_surface_fixture() {
         agent_profile: None,
         context_fingerprint: None,
         provider_profile: Some("local".to_owned()),
+        provider_id: None,
         model: Some("model-a".to_owned()),
         model_profile: None,
         provider_model_id: None,

@@ -2,6 +2,9 @@
 
 use super::*;
 
+#[path = "run/connection_restored.rs"]
+mod connection_restored;
+
 /// Applies one action deterministically and returns work for the runtime.
 /// - `state`: Argument named `state`.
 /// - `action`: Argument named `action`.
@@ -22,8 +25,6 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             state.overlay = None;
             vec![Effect::None]
         }
-        Action::FocusNext => reduce_focus(state, false),
-        Action::FocusPrevious => reduce_focus(state, true),
         Action::CursorMoved(direction) => reduce_cursor(state, direction),
         Action::Activated => activate_current(state),
         Action::ActivateLocation(location) => {
@@ -104,20 +105,18 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                 },
             )
         }
-        Action::InputChanged(_)
-        | Action::ComposerCursorMoved(_)
-        | Action::Paste(_)
-        | Action::InputSubmitted => reduce_input(state, action),
-        Action::TerminalResized { width, height } => {
-            state.terminal_size = (width, height);
-            vec![Effect::None]
+        Action::InputChanged(_) | Action::Paste(_) | Action::InputSubmitted => {
+            reduce_input(state, action)
         }
         Action::InspectRequested {
             request_id,
             entity,
             snapshot,
+            switch_view,
         } => {
-            state.primary_view = crate::selection::PrimaryView::Overview;
+            if switch_view {
+                state.primary_view = crate::selection::PrimaryView::Overview;
+            }
             state.selection = Some(EntitySelection {
                 entity,
                 revision: None,
@@ -187,7 +186,22 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
         }
         Action::ViewSelected(view) => {
             state.primary_view = view;
-            state.focus = crate::state::Focus::Primary;
+            state.semantic_row_cursor = None;
+            if view == crate::selection::PrimaryView::Session {
+                state.cursor = match (&state.session, state.session_cursor) {
+                    (LoadState::Ready(model), Some(identity)) => {
+                        model.index_of(identity).unwrap_or(0)
+                    }
+                    _ => 0,
+                };
+            } else {
+                state.cursor = 0;
+                state.semantic_row_cursor = None;
+            }
+            crate::runtime::reconcile_semantic_row_cursor(state);
+            if view == crate::selection::PrimaryView::Plan {
+                crate::runtime::reconcile_plan_cursor(state);
+            }
             if view == crate::selection::PrimaryView::Operations {
                 return vec![Effect::ListOperations];
             }
@@ -209,6 +223,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             if matches!(state.history, LoadState::Loading { request_id: current } if current == request_id)
             {
                 state.history = LoadState::Ready(model);
+                crate::runtime::reconcile_semantic_row_cursor(state);
             }
             vec![Effect::None]
         }
@@ -216,6 +231,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             if matches!(state.find, LoadState::Loading { request_id: current } if current == request_id)
             {
                 state.find = LoadState::Ready(model);
+                crate::runtime::reconcile_semantic_row_cursor(state);
             }
             vec![Effect::None]
         }
@@ -223,6 +239,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             if matches!(state.diff, LoadState::Loading { request_id: current } if current == request_id)
             {
                 state.diff = LoadState::Ready(model);
+                crate::runtime::reconcile_semantic_row_cursor(state);
             }
             vec![Effect::None]
         }
@@ -260,8 +277,14 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                         .clone_into(&mut state.shell_message);
                     return vec![Effect::None];
                 }
+                let Some(candidate_snapshot) = model.candidate_snapshot else {
+                    "The reviewed candidate has no exact result snapshot."
+                        .clone_into(&mut state.shell_message);
+                    return vec![Effect::None];
+                };
                 let commit = crate::view::changes::ConfirmedCommit {
                     base_snapshot: model.base_snapshot,
+                    candidate_snapshot,
                     change: model.change.clone(),
                     branch: model.branch.clone(),
                 };
@@ -269,7 +292,11 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                     action: "commit change".to_owned(),
                     target: model.change.clone(),
                     base: model.base_snapshot.to_string(),
-                    summary: format!("{} affected semantic objects", model.deltas.len()),
+                    summary: format!(
+                        "Candidate {} · {} affected semantic objects",
+                        candidate_snapshot,
+                        model.deltas.len()
+                    ),
                     commit,
                 }));
             }
@@ -283,6 +310,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             if !model.conflicts.is_empty()
                 || model.validation != crate::view::changes::ReviewValidation::Passed
                 || model.base_snapshot != commit.base_snapshot
+                || model.candidate_snapshot != Some(commit.candidate_snapshot)
                 || model.change != commit.change
                 || model.branch != commit.branch
             {
@@ -362,36 +390,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                 request,
             }]
         }
-        Action::ConnectionRestored => {
-            state.connection = ConnectionState::Connected;
-            state.stale = true;
-            let mut effects = if state.selection.is_some() {
-                reduce(state, Action::RefreshRequested)
-            } else {
-                Vec::new()
-            };
-            for handle in state.agent_handles.clone() {
-                if !state.pending_operation_refresh.contains(&handle.operation) {
-                    state
-                        .pending_operation_refresh
-                        .push(handle.operation.clone());
-                    effects.push(Effect::OperationStatus {
-                        operation: handle.operation,
-                    });
-                }
-                let request_id = state.next_request_id;
-                state.next_request_id += 1;
-                effects.push(Effect::ReadSession {
-                    request_id,
-                    session: handle.session,
-                    branch: handle.branch,
-                });
-            }
-            if effects.is_empty() {
-                effects.push(Effect::None);
-            }
-            effects
-        }
+        Action::ConnectionRestored => connection_restored::reduce(state),
         _ => state_reducer_tail::reduce_tail(state, action).unwrap_or_default(),
     }
 }
