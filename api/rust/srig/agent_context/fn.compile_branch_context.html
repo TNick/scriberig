@@ -4,8 +4,8 @@
     session_id: EntityId,
     branch_id: EntityId,
     prompt: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-    project_scope: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../../scriberig_agent_runtime/context/struct.ProjectSemanticScope.html" title="struct scriberig_agent_runtime::context::ProjectSemanticScope">ProjectSemanticScope</a>&gt;,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_agent_runtime/context/compiler/struct.CompiledContext.html" title="struct scriberig_agent_runtime::context::compiler::CompiledContext">CompiledContext</a>, <a class="enum" href="../../scriberig_agent_runtime/enum.AgentError.html" title="enum scriberig_agent_runtime::AgentError">AgentError</a>&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Compiles exact persisted branch context for an integrated model invocation.</p>
+    project_scope: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;ProjectSemanticScope&gt;,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;CompiledContext, AgentError&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Compiles exact persisted branch context for an integrated model invocation.</p>
 <p>The current human instruction is carried by the runtime request itself, so
 this projection removes it from history to avoid sending it twice.</p>
 <ul>

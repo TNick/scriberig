@@ -7801,6 +7801,14 @@ does not consume the rollup cache.</p>
 stale coordinator recovery from worker-claim recovery. After recovery releases
 the coordinator claim, attempting to dispatch a still-ready node fails without
 advancing the plan revision. The focused session-structure test passes.</p>
+<p>Implementation update (2026-10-30): SQLite session branches now have a
+normalized per-branch compatibility projection. Legacy aggregate branches
+seed it once; subsequent reads hydrate branch views from those rows. Plan CAS
+updates only new or settled branch rows in its existing atomic root-promotion
+transaction and no longer rewrites <code>session_records.payload</code>. The disjoint
+settlement regression installs a trigger rejecting any session-payload update,
+then proves both sibling results survive conflict and retry. The complete
+<code>scriberig-session-sqlite</code> test target passes.</p>
 <p>Implementation update (2026-10-30): incremental rollup conformance now compares
 the cache against reference evaluation across all direct statuses, failed and
 running siblings, ignored and other abandoned descendants, completion-gate
@@ -8481,6 +8489,7 @@ The focused durable test passes.</p>
 <ul>
 <li>[x] Conflict/retry semantics are deterministic.</li>
 <li>[x] Disjoint successful settlements preserve both results after retry.</li>
+<li>[x] Plan settlement updates branch rows without rewriting the session payload.</li>
 </ul>
 <hr />
 <h1 id="14-phase-9-legacy-aggregate-migration">14. Phase 9 — Legacy Aggregate Migration<a class="headerlink" href="#14-phase-9-legacy-aggregate-migration" title="Permanent link">&para;</a></h1>
