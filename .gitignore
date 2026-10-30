@@ -31,3 +31,6 @@ output/playwright/
 .DS_Store
 .vscode/
 # .idea/ is intentionally not ignored globally; contributors may choose locally.
+# Local agent runtime and memory state
+.codex/
+.mnemon/
