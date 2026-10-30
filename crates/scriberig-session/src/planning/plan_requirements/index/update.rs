@@ -20,10 +20,10 @@ use super::PlanNodeRollupIndex;
 /// - `new_snapshot`: Exact snapshot represented after the change.
 /// - `changed_nodes`: Nodes whose canonical state or owned requirements changed.
 ///
-/// Unit after affected entries and snapshot identity are updated.
+/// Node identities whose derived rollup value changed.
 ///
 /// # Returns
-/// Unit when the sparse update is valid and committed.
+/// Changed derived rollups when the sparse update is valid and committed.
 ///
 /// # Errors
 /// Returns a plan error for stale input, missing nodes, or structural cycles.
@@ -33,11 +33,8 @@ pub(super) fn apply_change(
     expected_base: SnapshotId,
     new_snapshot: SnapshotId,
     changed_nodes: &[EntityId],
-) -> Result<(), PlanError> {
-    if index.source_snapshot != expected_base
-        || index.evaluator_version != 1
-        || changed_nodes.is_empty()
-    {
+) -> Result<Vec<EntityId>, PlanError> {
+    if index.source_snapshot != expected_base || index.evaluator_version != 1 {
         return Err(PlanError::StaleRollupIndex);
     }
 
@@ -116,11 +113,15 @@ pub(super) fn apply_change(
         )?;
     }
 
+    let changed_rollups = rollup_updates
+        .iter()
+        .filter_map(|(node, rollup)| (index.rollups.get(node) != Some(rollup)).then_some(*node))
+        .collect::<Vec<_>>();
     index.parents.extend(parent_updates);
     index.children.extend(children_updates);
     index.rollups.extend(rollup_updates);
     index.source_snapshot = new_snapshot;
-    Ok(())
+    Ok(changed_rollups)
 }
 
 /// Returns a staged child set, cloning only the one affected adjacency row.

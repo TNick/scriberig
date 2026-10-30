@@ -30,6 +30,65 @@ pub struct PlanNodeRollupIndex {
 }
 
 impl PlanNodeRollupIndex {
+    /// Restores an index from complete persisted rollups at one exact snapshot.
+    ///
+    /// # Parameters
+    /// - `plan`: Canonical plan projection at `source_snapshot`.
+    /// - `source_snapshot`: Exact snapshot represented by the cached values.
+    /// - `rollups`: Validated cached rollups keyed by node identity.
+    ///
+    /// A sparse-update index with reconstructed parent and child maps.
+    ///
+    /// # Returns
+    /// The index when every node has one matching cached rollup.
+    ///
+    /// # Errors
+    /// Returns an error when node identities, direct statuses, or structure do
+    /// not match the cached values.
+    pub fn from_cached_rollups(
+        plan: &Plan,
+        source_snapshot: SnapshotId,
+        rollups: BTreeMap<EntityId, PlanNodeRollup>,
+    ) -> Result<Self, PlanError> {
+        if rollups.len() != plan.nodes.len() {
+            return Err(PlanError::StaleRollupIndex);
+        }
+        let mut parents = BTreeMap::new();
+        let mut children = BTreeMap::<EntityId, BTreeSet<EntityId>>::new();
+        for node in &plan.nodes {
+            let parent = match node.parent {
+                Some(PlanNodeParent::Node(parent)) => Some(parent),
+                Some(PlanNodeParent::Branch(_)) | None => None,
+            };
+            let Some(rollup) = rollups.get(&node.id) else {
+                return Err(PlanError::StaleRollupIndex);
+            };
+            if rollup.node != node.id || rollup.direct_status != node.status {
+                return Err(PlanError::StaleRollupIndex);
+            }
+            if parents.insert(node.id, parent).is_some() {
+                return Err(PlanError::DuplicateNode);
+            }
+            if let Some(parent) = parent {
+                children.entry(parent).or_default().insert(node.id);
+            }
+        }
+        if parents
+            .values()
+            .flatten()
+            .any(|parent| !parents.contains_key(parent))
+        {
+            return Err(PlanError::MissingNode);
+        }
+        Ok(Self {
+            source_snapshot,
+            evaluator_version: 1,
+            rollups,
+            parents,
+            children,
+        })
+    }
+
     /// Builds a complete derived index from one exact plan snapshot.
     ///
     /// # Parameters
@@ -114,11 +173,8 @@ impl PlanNodeRollupIndex {
     /// - `new_snapshot`: Exact snapshot represented after the update.
     /// - `changed_nodes`: Nodes whose canonical state or owned requirements changed.
     ///
-    /// Unit after affected rollups and snapshot identity are updated.
-    ///
-    /// Returns a plan error for stale inputs, missing nodes, or structural cycles.
     /// # Returns
-    /// The operation result.
+    /// Node identities whose effective rollup values changed.
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn apply_change(
@@ -127,7 +183,7 @@ impl PlanNodeRollupIndex {
         expected_base: SnapshotId,
         new_snapshot: SnapshotId,
         changed_nodes: &[EntityId],
-    ) -> Result<(), PlanError> {
+    ) -> Result<Vec<EntityId>, PlanError> {
         update::apply_change(self, plan, expected_base, new_snapshot, changed_nodes)
     }
 }

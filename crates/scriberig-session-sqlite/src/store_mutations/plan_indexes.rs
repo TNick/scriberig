@@ -26,7 +26,19 @@ pub(super) fn delete_session_plan_indexes(
         .map_err(|error| error.to_string())?;
     transaction
         .execute(
+            "DELETE FROM plan_node_index_meta WHERE session_id=?1",
+            params![session.as_bytes().as_slice()],
+        )
+        .map_err(|error| error.to_string())?;
+    transaction
+        .execute(
             "DELETE FROM plan_node_rollup_index WHERE session_id=?1",
+            params![session.as_bytes().as_slice()],
+        )
+        .map_err(|error| error.to_string())?;
+    transaction
+        .execute(
+            "DELETE FROM plan_node_rollup_meta WHERE session_id=?1",
             params![session.as_bytes().as_slice()],
         )
         .map_err(|error| error.to_string())?;

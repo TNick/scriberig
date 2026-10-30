@@ -201,12 +201,11 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
         .expect("updated source snapshot");
     let indexed_snapshot: Vec<u8> = connection
         .query_row(
-            "SELECT source_snapshot FROM plan_node_index
-             WHERE session_id=?1 AND plan_id=?2 AND node_id=?3",
+            "SELECT source_snapshot FROM plan_node_index_meta
+             WHERE session_id=?1 AND plan_id=?2",
             rusqlite::params![
                 session_id.as_bytes().as_slice(),
                 plan_id.as_bytes().as_slice(),
-                child_id.as_bytes().as_slice(),
             ],
             |row| row.get(0),
         )
@@ -214,12 +213,11 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
     assert_eq!(indexed_snapshot.as_slice(), updated_snapshot.as_bytes());
     let rollup_snapshot: Vec<u8> = connection
         .query_row(
-            "SELECT source_snapshot FROM plan_node_rollup_index
-             WHERE session_id=?1 AND plan_id=?2 AND node_id=?3",
+            "SELECT source_snapshot FROM plan_node_rollup_meta
+             WHERE session_id=?1 AND plan_id=?2",
             rusqlite::params![
                 session_id.as_bytes().as_slice(),
                 plan_id.as_bytes().as_slice(),
-                child_id.as_bytes().as_slice(),
             ],
             |row| row.get(0),
         )

@@ -8,15 +8,20 @@ mod migration_marker;
 mod node_details;
 #[path = "semantic_plans/node_index.rs"]
 mod node_index;
+#[path = "semantic_plans/plan_write_set.rs"]
+mod plan_write_set;
 #[path = "semantic_plans/reads.rs"]
 mod reads;
 #[path = "semantic_plans/rollup_index.rs"]
 mod rollup_index;
+#[path = "semantic_plans/rollup_update.rs"]
+mod rollup_update;
 use history::{plan_at_revision, plan_revision, semantic_writes};
+use plan_write_set::build_plan_write_set;
 
-use scriberig_core::{EncodingVersion, EntityId, RootName};
+use scriberig_core::{EntityId, RootName};
 use scriberig_session::{Plan, PlanStoreError, Session};
-use scriberig_store::{Revision, RootStore, Snapshot, SnapshotChange, SnapshotStore};
+use scriberig_store::{RootStore, Snapshot};
 use scriberig_store_sqlite::PromotionError;
 
 use crate::SqliteSessionStore;
@@ -133,59 +138,46 @@ impl SqliteSessionStore {
         if proposed.revision != next_revision {
             return Err(plan_persistence("proposed plan has an unexpected revision"));
         }
-        let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(proposed)
-            .map_err(|error| plan_persistence(format!("plan encoding failed: {error:?}")))?;
-        let indexed_nodes = encoded.node_refs().map_err(|error| {
-            plan_persistence(format!("plan node index encode failed: {error:?}"))
-        })?;
-        let indexed_rollups = proposed
-            .node_rollups()
-            .map_err(|error| plan_persistence(format!("plan rollup index failed: {error:?}")))?;
-        let old_entries = self
-            .semantic_store
-            .iter(current_snapshot)
-            .map_err(|error| plan_persistence(format!("plan snapshot read failed: {error:?}")))?;
-        let new_entities = encoded
-            .objects
-            .iter()
-            .map(|object| object.entity)
-            .collect::<std::collections::BTreeSet<_>>();
-        let mut revisions = Vec::with_capacity(encoded.objects.len());
-        let mut changes = Vec::with_capacity(encoded.objects.len() + old_entries.len());
-        for object in encoded.objects {
-            let revision = Revision::from_parts(
-                object.revision,
-                EncodingVersion::V1,
-                object.object_type,
-                object.payload,
-            )
-            .map_err(|error| plan_persistence(format!("invalid plan revision: {error:?}")))?;
-            changes.push(SnapshotChange::Set(object.entity, revision.id()));
-            revisions.push(revision);
-        }
-        for (entity, _) in &old_entries {
-            if !new_entities.contains(entity) {
-                changes.push(SnapshotChange::Remove(*entity));
-            }
-        }
-        let successor_snapshot = Snapshot::from_entries(old_entries.iter().copied().collect())
-            .apply(changes.iter().copied())
-            .id();
+        let write_set =
+            build_plan_write_set(self, current_snapshot, proposed).map_err(plan_persistence)?;
+        let staged_rollups = rollup_update::stage_rollup_update(
+            self,
+            session,
+            &current,
+            proposed,
+            current_snapshot,
+            write_set.successor_snapshot,
+        )
+        .map_err(plan_persistence)?;
+        let staged_nodes = node_index::stage_update(
+            self,
+            session,
+            &current,
+            proposed,
+            current_snapshot,
+            write_set.successor_snapshot,
+            write_set.indexed_nodes.clone(),
+        )
+        .map_err(plan_persistence)?;
         match self.semantic_store.apply_revisions_and_promote_with(
             root,
             Some(current_snapshot),
             current_snapshot,
-            &revisions,
-            &changes,
+            &write_set.revisions,
+            &write_set.changes,
             |transaction| {
                 commit_related(transaction, &current)?;
-                node_index::replace_indexes_in_transaction(
+                node_index::persist_in_transaction(
                     transaction,
                     session,
                     proposed.id,
-                    successor_snapshot,
-                    &indexed_nodes,
-                    &indexed_rollups,
+                    &staged_nodes,
+                )?;
+                rollup_update::persist_in_transaction(
+                    transaction,
+                    session,
+                    proposed.id,
+                    &staged_rollups,
                 )
             },
         ) {
@@ -232,6 +224,7 @@ impl SqliteSessionStore {
             .transpose()?
             .map(|stored| stored.revision);
         let mut recovery_pending = self.legacy_migration_pending(session, plan.id)?;
+        let mut rebuild_indexes = recovery_pending;
         if recover_legacy_claims && expected.is_none() {
             self.set_legacy_migration_pending(session, plan.id, true)?;
             recovery_pending = true;
@@ -276,6 +269,7 @@ impl SqliteSessionStore {
                 .map_err(|error| format!("plan semantic migration failed: {error:?}"))?;
             base = promoted;
             expected = Some(promoted);
+            rebuild_indexes = true;
         }
         if recovery_pending
             && (plan.coordinator_claim.is_some()
@@ -297,9 +291,10 @@ impl SqliteSessionStore {
                     .apply_revisions_and_promote(root, expected, base, &revisions, &changes)
                     .map_err(|error| format!("recovered plan migration failed: {error:?}"))?;
                 expected = Some(promoted);
+                rebuild_indexes = true;
             }
         }
-        if expected.is_some() {
+        if expected.is_some() && rebuild_indexes {
             node_index::rebuild_plan_node_index(self, session, plan.id)?;
         }
         if recovery_pending {

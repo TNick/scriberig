@@ -373,8 +373,12 @@ mod rollup_conformance;
 #[path = "plan_semantic_parts/node_details.rs"]
 mod node_details;
 
+#[path = "plan_semantic_parts/completion_gates.rs"]
+mod completion_gates;
 #[path = "plan_semantic_parts/snapshots.rs"]
 mod snapshots;
+#[path = "plan_semantic_parts/summary_relations.rs"]
+mod summary_relations;
 
 use node_details::assert_node_detail_pages;
 use snapshots::plan;

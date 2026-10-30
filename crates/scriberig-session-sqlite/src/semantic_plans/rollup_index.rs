@@ -2,13 +2,17 @@
 
 use std::collections::BTreeMap;
 
-use rusqlite::{Connection, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use scriberig_core::{EntityId, SnapshotId};
 use scriberig_session::{PlanNodeRollup, PlanNodeStatus, PlanNodeStatusCounts};
 use scriberig_store::RootStore;
 
 use super::plan_root;
 use crate::SqliteSessionStore;
+
+#[path = "rollup_index/write.rs"]
+mod write;
+pub(super) use write::{replace_in_transaction, write_rollup_metadata, write_rollup_row};
 
 impl SqliteSessionStore {
     /// Reads cached rollups only when all rows match the requested snapshot.
@@ -60,6 +64,30 @@ fn read_rollup_rows(
     plan: EntityId,
     snapshot: SnapshotId,
 ) -> Result<Option<BTreeMap<EntityId, PlanNodeRollup>>, String> {
+    let metadata = connection
+        .query_row(
+            "SELECT source_snapshot, evaluator_version, node_count
+             FROM plan_node_rollup_meta WHERE session_id=?1 AND plan_id=?2",
+            params![session.as_bytes().as_slice(), plan.as_bytes().as_slice()],
+            |row| {
+                Ok((
+                    row.get::<_, Vec<u8>>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(|error| error.to_string())?;
+    let Some((source_snapshot, evaluator_version, node_count)) = metadata else {
+        return Ok(None);
+    };
+    if source_snapshot.as_slice() != snapshot.as_bytes() || evaluator_version != 1 {
+        return Ok(None);
+    }
+    if !node_index_matches_snapshot(connection, session, plan, snapshot, node_count)? {
+        return Ok(None);
+    }
     let mut statement = connection
         .prepare(
             "SELECT rollup.node_id, node.direct_status, rollup.effective_status,
@@ -67,8 +95,7 @@ fn read_rollup_rows(
                     rollup.child_planned, rollup.child_ready, rollup.child_running,
                     rollup.child_completed, rollup.child_failed,
                     rollup.child_abandoned, rollup.unsatisfied_completion_gates,
-                    rollup.evaluator_version, rollup.source_snapshot,
-                    node.source_snapshot
+                    rollup.evaluator_version
              FROM plan_node_rollup_index AS rollup
              JOIN plan_node_index AS node
                ON node.session_id=rollup.session_id
@@ -97,8 +124,6 @@ fn read_rollup_rows(
                     ],
                     row.get::<_, i64>(11)?,
                     row.get::<_, i64>(12)?,
-                    row.get::<_, Vec<u8>>(13)?,
-                    row.get::<_, Vec<u8>>(14)?,
                 ))
             },
         )
@@ -113,26 +138,70 @@ fn read_rollup_rows(
             |row| row.get(0),
         )
         .map_err(|error| error.to_string())?;
-    if usize::try_from(direct_count).ok() != Some(rows.len()) {
+    let rollup_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM plan_node_rollup_index
+             WHERE session_id=?1 AND plan_id=?2",
+            params![session.as_bytes().as_slice(), plan.as_bytes().as_slice()],
+            |row| row.get(0),
+        )
+        .map_err(|error| error.to_string())?;
+    if usize::try_from(node_count).ok() != Some(rows.len())
+        || direct_count != node_count
+        || rollup_count != node_count
+    {
         return Ok(None);
     }
-    decode_rollups(rows, snapshot)
+    decode_rollups(rows)
+}
+
+/// Checks whether direct-node index metadata matches the requested snapshot.
+///
+/// # Parameters
+/// - `connection`: SQLite connection guarded by the session repository.
+/// - `session`: Owning durable session identity.
+/// - `plan`: Stable plan identity.
+/// - `snapshot`: Exact snapshot requested by the caller.
+/// - `expected_count`: Node count declared by rollup metadata.
+///
+/// # Returns
+/// `true` when direct-index validity metadata matches the exact rollup cache.
+///
+/// # Errors
+/// Returns a diagnostic when SQLite cannot read direct-index metadata.
+fn node_index_matches_snapshot(
+    connection: &Connection,
+    session: EntityId,
+    plan: EntityId,
+    snapshot: SnapshotId,
+    expected_count: i64,
+) -> Result<bool, String> {
+    let metadata = connection
+        .query_row(
+            "SELECT source_snapshot, node_count FROM plan_node_index_meta
+             WHERE session_id=?1 AND plan_id=?2",
+            params![session.as_bytes().as_slice(), plan.as_bytes().as_slice()],
+            |row| Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, i64>(1)?)),
+        )
+        .optional()
+        .map_err(|error| error.to_string())?;
+    let Some((source_snapshot, node_count)) = metadata else {
+        return Ok(false);
+    };
+    Ok(source_snapshot.as_slice() == snapshot.as_bytes() && node_count == expected_count)
 }
 
 /// Converts validated SQLite records into exact-snapshot rollup values.
 ///
 /// # Parameters
 /// - `rows`: Normalized node and rollup columns ordered by node identity.
-/// - `snapshot`: Exact source snapshot requested by the caller.
-///
 /// # Returns
-/// All rollups, or `None` when any row has stale snapshot/version metadata.
+/// All joined rollups. Snapshot validity is checked by plan-level metadata.
 ///
 /// # Errors
 /// Returns a diagnostic when a row contains invalid status, identity, or count.
 fn decode_rollups(
     rows: Vec<RollupRow>,
-    snapshot: SnapshotId,
 ) -> Result<Option<BTreeMap<EntityId, PlanNodeRollup>>, String> {
     let mut rollups = BTreeMap::new();
     for (
@@ -144,14 +213,9 @@ fn decode_rollups(
         child_counts,
         unsatisfied_gates,
         evaluator_version,
-        source_snapshot,
-        direct_source_snapshot,
     ) in rows
     {
-        if evaluator_version != 1
-            || source_snapshot.as_slice() != snapshot.as_bytes()
-            || direct_source_snapshot.as_slice() != snapshot.as_bytes()
-        {
+        if evaluator_version != 1 {
             return Ok(None);
         }
         let id = decode_entity_id(&id)?;
@@ -179,80 +243,7 @@ fn decode_rollups(
 }
 
 /// Holds the SQLite columns required to reconstruct one rollup.
-type RollupRow = (
-    Vec<u8>,
-    String,
-    String,
-    bool,
-    bool,
-    [i64; 6],
-    i64,
-    i64,
-    Vec<u8>,
-    Vec<u8>,
-);
-
-/// Replaces normalized rollup rows inside the plan-promotion transaction.
-///
-/// # Parameters
-/// - `transaction`: Transaction promoting the canonical plan root.
-/// - `session`: Owning durable session identity.
-/// - `plan`: Stable plan identity.
-/// - `snapshot`: Exact successor snapshot represented by these rows.
-/// - `rollups`: Reference-evaluated derived state for every plan node.
-///
-/// # Returns
-/// Unit after every rollup row has been replaced.
-///
-/// # Errors
-/// Returns a SQLite diagnostic if any row cannot be written.
-pub(super) fn replace_in_transaction(
-    transaction: &Transaction<'_>,
-    session: EntityId,
-    plan: EntityId,
-    snapshot: SnapshotId,
-    rollups: &BTreeMap<EntityId, PlanNodeRollup>,
-) -> Result<(), String> {
-    transaction
-        .execute(
-            "DELETE FROM plan_node_rollup_index WHERE session_id=?1 AND plan_id=?2",
-            params![session.as_bytes().as_slice(), plan.as_bytes().as_slice()],
-        )
-        .map_err(|error| error.to_string())?;
-    for rollup in rollups.values() {
-        transaction
-            .execute(
-                "INSERT INTO plan_node_rollup_index (
-                     session_id, plan_id, node_id, effective_status,
-                     contains_ignored, contains_abandoned, child_planned,
-                     child_ready, child_running, child_completed, child_failed,
-                     child_abandoned, unsatisfied_completion_gates,
-                     evaluator_version, source_snapshot
-                 ) VALUES (
-                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
-                     ?13, 1, ?14
-                 )",
-                params![
-                    session.as_bytes().as_slice(),
-                    plan.as_bytes().as_slice(),
-                    rollup.node.as_bytes().as_slice(),
-                    status_tag(rollup.effective_status),
-                    rollup.contains_ignored,
-                    rollup.contains_abandoned,
-                    i64::from(rollup.child_counts.planned),
-                    i64::from(rollup.child_counts.ready),
-                    i64::from(rollup.child_counts.running),
-                    i64::from(rollup.child_counts.completed),
-                    i64::from(rollup.child_counts.failed),
-                    i64::from(rollup.child_counts.abandoned),
-                    i64::from(rollup.unsatisfied_completion_gates),
-                    snapshot.as_bytes().as_slice(),
-                ],
-            )
-            .map_err(|error| error.to_string())?;
-    }
-    Ok(())
-}
+type RollupRow = (Vec<u8>, String, String, bool, bool, [i64; 6], i64, i64);
 
 /// Decodes a fixed-width entity identifier from SQLite.
 ///
@@ -304,23 +295,5 @@ fn parse_status(value: &str) -> Result<PlanNodeStatus, String> {
         "failed" => Ok(PlanNodeStatus::Failed),
         "abandoned" => Ok(PlanNodeStatus::Abandoned),
         _ => Err("invalid status in plan rollup index".to_owned()),
-    }
-}
-
-/// Returns the stable database label for one canonical lifecycle status.
-///
-/// # Parameters
-/// - `status`: Canonical plan-node status to encode.
-///
-/// # Returns
-/// The normalized lowercase status label.
-fn status_tag(status: PlanNodeStatus) -> &'static str {
-    match status {
-        PlanNodeStatus::Planned => "planned",
-        PlanNodeStatus::Ready => "ready",
-        PlanNodeStatus::Running => "running",
-        PlanNodeStatus::Completed => "completed",
-        PlanNodeStatus::Failed => "failed",
-        PlanNodeStatus::Abandoned => "abandoned",
     }
 }

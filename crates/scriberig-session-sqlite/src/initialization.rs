@@ -72,6 +72,13 @@ impl SqliteSessionStore {
              );
              CREATE INDEX IF NOT EXISTS plan_node_index_parent
                  ON plan_node_index (session_id, plan_id, parent_node_id, node_id);
+             CREATE TABLE IF NOT EXISTS plan_node_index_meta (
+                 session_id BLOB NOT NULL,
+                 plan_id BLOB NOT NULL,
+                 source_snapshot BLOB NOT NULL,
+                 node_count INTEGER NOT NULL,
+                 PRIMARY KEY (session_id, plan_id)
+             );
              CREATE TABLE IF NOT EXISTS plan_node_rollup_index (
                  session_id BLOB NOT NULL,
                  plan_id BLOB NOT NULL,
@@ -89,6 +96,14 @@ impl SqliteSessionStore {
                  evaluator_version INTEGER NOT NULL,
                  source_snapshot BLOB NOT NULL,
                  PRIMARY KEY (session_id, plan_id, node_id)
+             );
+             CREATE TABLE IF NOT EXISTS plan_node_rollup_meta (
+                 session_id BLOB NOT NULL,
+                 plan_id BLOB NOT NULL,
+                 source_snapshot BLOB NOT NULL,
+                 evaluator_version INTEGER NOT NULL,
+                 node_count INTEGER NOT NULL,
+                 PRIMARY KEY (session_id, plan_id)
              );
              CREATE TABLE IF NOT EXISTS plan_legacy_migration_pending (
                  session_id BLOB NOT NULL,

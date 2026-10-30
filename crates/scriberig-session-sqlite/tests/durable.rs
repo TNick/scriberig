@@ -376,6 +376,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
 mod compact_plan_view;
 #[path = "durable_parts/legacy_plan_migration.rs"]
 mod legacy_plan_migration;
+#[path = "durable_parts/legacy_plan_migration_recovery.rs"]
+mod legacy_plan_migration_recovery;
 #[path = "durable_parts/part1.rs"]
 mod part1;
 #[path = "durable_parts/plan_attempt_recovery.rs"]
@@ -384,6 +386,8 @@ mod plan_attempt_recovery;
 mod plan_node_index;
 #[path = "durable_parts/plan_projection.rs"]
 mod plan_projection;
+#[path = "durable_parts/plan_rollup_sparse.rs"]
+mod plan_rollup_sparse;
 #[path = "durable_parts/plan_settlement_rollback.rs"]
 mod plan_settlement_rollback;
 #[path = "durable_parts/request_provenance.rs"]
