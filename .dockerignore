@@ -1,0 +1,16 @@
+# Keep build contexts small and exclude local state and credentials.
+.git
+**/node_modules
+**/target
+**/dist
+**/.vite
+**/__pycache__
+playground
+.env
+.env.*
+**/*.sqlite
+**/*.sqlite-*
+**/*.pem
+**/*.key
+.venv
+.vscode

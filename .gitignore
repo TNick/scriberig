@@ -25,6 +25,7 @@ __pycache__/
 site/
 playground/
 output/playwright/
+.playwright-cli/
 
 # Editors and OS
 .DS_Store

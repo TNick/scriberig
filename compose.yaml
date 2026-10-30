@@ -1,0 +1,38 @@
+# Run the local browser application and its private API service.
+services:
+  api:
+    image: scriberig-cli:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cli
+    command: ["serve", "--host", "0.0.0.0", "--port", "7337", "--db", "/var/lib/scriberig/scriberig.sqlite", "--project-root", "/workspace"]
+    volumes:
+      - type: bind
+        source: ${SCRIBERIG_PROJECT:-.}
+        target: /workspace
+        bind:
+          create_host_path: false
+      - scriberig-state:/var/lib/scriberig
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:7337/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+  web:
+    image: scriberig-web:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    ports:
+      - "127.0.0.1:${SCRIBERIG_WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+volumes:
+  scriberig-state:
