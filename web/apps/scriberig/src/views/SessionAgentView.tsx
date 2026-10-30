@@ -6,6 +6,7 @@ import {
   AgentPresentationControls,
   AgentOperationPanel,
   BranchActivityView,
+  PlanPanel,
   SessionBranchTree,
 } from "@scriberig/agent-ui";
 import {
@@ -292,6 +293,11 @@ export function SessionAgentView({
         branches={visibleBranches}
         onSelect={(branch) => setActiveBranchId(branch.branchId)}
         onNavigate={navigateResult}
+      />
+      <PlanPanel
+        sessionId={sessionId}
+        plans={agentState.plans}
+        onPlanUpdated={async () => model.setAgentSession(await client.getSession(sessionId))}
       />
       {modelLibrary ? (
         <AgentModelControls
