@@ -199,9 +199,9 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
             Action::FindRequested(command[name.len()..].trim().to_owned()),
         )),
         _ if descriptor.name == "/inspect" => {
-            let entity = command
-                .split_whitespace()
-                .nth(1)
+            let mut arguments = command.split_whitespace().skip(1);
+            let entity = arguments
+                .next()
                 .and_then(|value| value.parse().ok())
                 .or_else(|| state.selection.map(|selection| selection.entity));
             let Some(entity) = entity else {
@@ -209,6 +209,9 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                     Some("Select an entity or provide its identifier.".to_owned());
                 return Some(vec![Effect::None]);
             };
+            let snapshot = arguments
+                .next()
+                .and_then(|value| value.parse::<scriberig_core::SnapshotId>().ok());
             let request_id = state.next_request_id;
             state.next_request_id = state.next_request_id.saturating_add(1);
             Some(super::reduce(
@@ -216,7 +219,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                 Action::InspectRequested {
                     request_id,
                     entity,
-                    snapshot: None,
+                    snapshot,
                     switch_view: true,
                 },
             ))

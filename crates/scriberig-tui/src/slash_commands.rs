@@ -46,7 +46,7 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
     SlashCommandDescriptor {
         name: "/plan",
         summary: "Create or control a durable plan",
-        argument_hint: " <goal|action>",
+        argument_hint: " <goal|show|next|child|retry|waive|lifecycle>",
     },
     SlashCommandDescriptor {
         name: "/session",
@@ -61,7 +61,7 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
     SlashCommandDescriptor {
         name: "/inspect",
         summary: "Inspect the selected entity",
-        argument_hint: " [entity]",
+        argument_hint: " [entity] [snapshot]",
     },
     SlashCommandDescriptor {
         name: "/find",

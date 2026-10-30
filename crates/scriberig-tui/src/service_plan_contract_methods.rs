@@ -92,6 +92,86 @@ macro_rules! tui_plan_methods {
             })
         }
 
+        /// Retries one failed plan node through the shared application boundary.
+        ///
+        /// - `_context`: Authorized application request context.
+        /// - `_request`: Plan, node, and observed revision.
+        ///
+        /// The authoritative updated plan.
+        /// # Returns
+        /// The updated plan projection.
+        /// # Errors
+        /// Returns unsupported-operation or structured plan errors.
+        fn retry_plan_node(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_app::PlanRetryRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "TUI plan node retry".to_owned(),
+            })
+        }
+
+        /// Adds ordinary work through the shared running-plan operation.
+        ///
+        /// - `_context`: Authorized application request context.
+        /// - `_request`: Exact plan revision and proposed next step.
+        ///
+        /// The authoritative updated plan.
+        /// # Returns
+        /// The updated plan projection.
+        /// # Errors
+        /// Returns unsupported-operation or structured plan errors.
+        fn add_plan_next_step(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_app::PlanNextStepRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "TUI plan next step".to_owned(),
+            })
+        }
+
+        /// Decomposes a plan node through the shared application operation.
+        ///
+        /// - `_context`: Authorized application request context.
+        /// - `_request`: Exact plan revision, parent, and proposed children.
+        ///
+        /// The authoritative updated plan.
+        /// # Returns
+        /// The updated plan projection.
+        /// # Errors
+        /// Returns unsupported-operation or structured plan errors.
+        fn decompose_plan_node(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_app::PlanDecomposeRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "TUI plan decomposition".to_owned(),
+            })
+        }
+
+        /// Applies one typed plan summary, evidence, gate, or waiver mutation.
+        ///
+        /// - `_context`: Authorized application request context.
+        /// - `_request`: Exact plan revision and typed semantic mutation.
+        ///
+        /// The authoritative updated plan.
+        /// # Returns
+        /// The updated plan projection.
+        /// # Errors
+        /// Returns unsupported-operation or structured plan errors.
+        fn mutate_plan_semantics(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_app::PlanSemanticMutationRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "TUI plan semantic mutation".to_owned(),
+            })
+        }
+
         /// Reads bounded safe detail for one tool result.
         /// - `_context`: Authorized request context.
         /// - `_session`: Session containing the result.

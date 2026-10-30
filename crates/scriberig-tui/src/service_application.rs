@@ -6,6 +6,10 @@
 #[path = "service_application_handle_method.rs"]
 mod handle_method;
 
+#[path = "service_application_plan_mutation_methods.rs"]
+#[macro_use]
+mod plan_mutation_methods;
+
 use super::*;
 use scriberig_app::{AgentConsoleBackend, SessionBackend};
 
@@ -263,6 +267,8 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
     ) -> Result<scriberig_session::Plan, ApplicationError> {
         scriberig_app::SessionBackend::set_plan_node_assignment(&self.service, context, request)
     }
+
+    application_plan_mutation_methods!();
 
     /// Reads safe expanded detail through the application-owned session service.
     ///

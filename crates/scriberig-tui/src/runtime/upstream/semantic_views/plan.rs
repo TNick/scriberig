@@ -4,7 +4,8 @@ use rpi_tui::TreeItem;
 #[cfg(test)]
 use rpi_tui::TreeList;
 use scriberig_core::EntityId;
-use scriberig_session::{Plan, PlanNode, PlanNodeParent};
+use scriberig_session::{Plan, PlanNodeParent, PlanNodeView, PlanView, Session};
+use std::collections::BTreeMap;
 
 #[path = "plan/details.rs"]
 mod details;
@@ -31,6 +32,10 @@ pub(super) struct PlanTreeRow {
     pub(super) parent_id: Option<String>,
     /// Durable `ScribeRig` selection represented by the row.
     pub(super) selection: PlanSelection,
+    /// Shared semantic plan view supplying exact plan state.
+    pub(super) plan: PlanView,
+    /// Shared semantic node view supplying status and derived state.
+    pub(super) node: Option<PlanNodeView>,
 }
 
 /// Builds reusable plan tree items, selection, details, and stable rows.
@@ -42,7 +47,7 @@ pub(super) struct PlanTreeRow {
 /// Plan projection when a session snapshot with plans is available.
 pub(super) fn projection(state: &TuiState) -> Option<(TreeProjection, Vec<PlanTreeRow>)> {
     let session = state.session_snapshot.as_ref()?;
-    let rows = rows_for_plans(&session.plans);
+    let rows = rows_for_session(session)?;
     if rows.is_empty() {
         return None;
     }
@@ -113,7 +118,8 @@ pub fn retain_cursor_identity(state: &mut TuiState) {
         state.plan_cursor = None;
         return;
     };
-    state.plan_cursor = rows_for_plans(&session.plans)
+    state.plan_cursor = rows_for_session(session)
+        .unwrap_or_default()
         .get(state.cursor)
         .map(|row| row.selection);
 }
@@ -127,7 +133,11 @@ pub fn reconcile_cursor(state: &mut TuiState) {
         state.plan_cursor = None;
         return;
     };
-    let rows = rows_for_plans(&session.plans);
+    let Some(rows) = rows_for_session(session) else {
+        state.cursor = 0;
+        state.plan_cursor = None;
+        return;
+    };
     if rows.is_empty() {
         state.cursor = 0;
         state.plan_cursor = None;
@@ -143,43 +153,81 @@ pub fn reconcile_cursor(state: &mut TuiState) {
 
 /// Projects structural plan parents without using dependency edges as parents.
 ///
-/// - `plans`: Durable plans from the canonical session snapshot.
+/// - `session`: Canonical session snapshot supplying plans and results.
 ///
 /// Stable rows in plan and structural-node order.
 /// # Returns
 /// Plan headers and nodes in bounded structural order.
-fn rows_for_plans(plans: &[Plan]) -> Vec<PlanTreeRow> {
+fn rows_for_session(session: &Session) -> Option<Vec<PlanTreeRow>> {
     let mut rows = Vec::new();
-    for plan in plans {
+    let results = session
+        .branches
+        .iter()
+        .filter_map(|branch| branch.result.clone())
+        .collect::<Vec<_>>();
+    for plan in &session.plans {
         if rows.len() >= super::common::MAX_ROWS {
             break;
         }
+        let (plan_view, node_views) = plan_views(plan, &results)?;
         let plan_id = plan_row_id(plan.id, None);
         rows.push(PlanTreeRow {
             id: plan_id.clone(),
             label: bounded_label(&format!(
                 "Plan · {} · {:?} · r{}",
-                plan.goal, plan.status, plan.revision
+                plan_view.goal, plan_view.status, plan_view.mutation_revision
             )),
             parent_id: None,
             selection: PlanSelection {
                 plan: plan.id,
                 node: None,
             },
+            plan: plan_view.clone(),
+            node: None,
         });
-        append_plan_nodes(plan, &plan_id, &mut rows);
+        append_plan_nodes(plan, &plan_view, &node_views, &plan_id, &mut rows);
     }
-    rows
+    Some(rows)
+}
+
+/// Builds shared plan and node views from the canonical session projection.
+///
+/// - `plan`: Canonical durable plan.
+/// - `results`: Branch results visible in the same session snapshot.
+///
+/// The plan header and per-node semantic views.
+/// # Returns
+/// `None` when canonical view assembly detects invalid plan state.
+fn plan_views(
+    plan: &Plan,
+    results: &[scriberig_session::BranchResult],
+) -> Option<(PlanView, BTreeMap<EntityId, PlanNodeView>)> {
+    let (plan_view, node_views) = plan.semantic_views(plan.source_snapshot, results).ok()?;
+    let node_views = node_views.into_iter().map(|view| (view.id, view)).collect();
+    Some((plan_view, node_views))
 }
 
 /// Adds plan nodes in parent-before-child order, with malformed parents bounded.
 ///
 /// - `plan`: Durable plan supplying structural parent references.
+/// - `plan_view`: Shared plan view copied to each projected row.
+/// - `node_views`: Shared node projections keyed by their stable identities.
 /// - `plan_id`: Stable tree ID for the plan header.
 /// - `rows`: Ordered rows receiving the plan's nodes.
-fn append_plan_nodes(plan: &Plan, plan_id: &str, rows: &mut Vec<PlanTreeRow>) {
+fn append_plan_nodes(
+    plan: &Plan,
+    plan_view: &PlanView,
+    node_views: &BTreeMap<EntityId, PlanNodeView>,
+    plan_id: &str,
+    rows: &mut Vec<PlanTreeRow>,
+) {
     let remaining = super::common::MAX_ROWS.saturating_sub(rows.len());
-    let mut pending = plan.nodes.iter().take(remaining).collect::<Vec<_>>();
+    let mut pending = plan
+        .nodes
+        .iter()
+        .take(remaining)
+        .filter_map(|node| node_views.get(&node.id))
+        .collect::<Vec<_>>();
     let mut emitted = std::collections::BTreeSet::new();
     while !pending.is_empty() {
         let mut deferred = Vec::new();
@@ -190,12 +238,18 @@ fn append_plan_nodes(plan: &Plan, plan_id: &str, rows: &mut Vec<PlanTreeRow>) {
                 deferred.push(node);
                 continue;
             }
-            append_node_row(plan, node, parent_id, rows, &mut emitted);
+            append_node_row(plan_view, node, parent_id, rows, &mut emitted);
             progressed = true;
         }
         if !progressed {
             for node in deferred {
-                append_node_row(plan, node, Some(plan_id.to_owned()), rows, &mut emitted);
+                append_node_row(
+                    plan_view,
+                    node,
+                    Some(plan_id.to_owned()),
+                    rows,
+                    &mut emitted,
+                );
             }
             break;
         }
@@ -213,7 +267,7 @@ fn append_plan_nodes(plan: &Plan, plan_id: &str, rows: &mut Vec<PlanTreeRow>) {
 /// # Returns
 /// Parent row identity for this node.
 fn node_parent_id(
-    node: &PlanNode,
+    node: &PlanNodeView,
     plan_id: &str,
     emitted: &std::collections::BTreeSet<EntityId>,
 ) -> Option<String> {
@@ -234,8 +288,8 @@ fn node_parent_id(
 /// - `rows`: Ordered rows receiving the node.
 /// - `emitted`: Node identities receiving the new row.
 fn append_node_row(
-    plan: &Plan,
-    node: &PlanNode,
+    plan: &PlanView,
+    node: &PlanNodeView,
     parent_id: Option<String>,
     rows: &mut Vec<PlanTreeRow>,
     emitted: &mut std::collections::BTreeSet<EntityId>,
@@ -248,6 +302,8 @@ fn append_node_row(
             plan: plan.id,
             node: Some(node.id),
         },
+        plan: plan.clone(),
+        node: Some(node.clone()),
     });
     emitted.insert(node.id);
 }
@@ -260,7 +316,7 @@ fn append_node_row(
 /// A bounded label including node identity and parent type.
 /// # Returns
 /// Human-readable bounded node label.
-fn node_label(node: &PlanNode, coordinator_cursor: Option<EntityId>) -> String {
+fn node_label(node: &PlanNodeView, coordinator_cursor: Option<EntityId>) -> String {
     let parent = match node.parent {
         Some(PlanNodeParent::Branch(branch)) => format!(" · branch parent {branch}"),
         Some(PlanNodeParent::Node(parent)) => format!(" · node parent {parent}"),
@@ -271,9 +327,26 @@ fn node_label(node: &PlanNode, coordinator_cursor: Option<EntityId>) -> String {
     } else {
         ""
     };
+    let ignored = if node.contains_ignored {
+        " · contains ignored"
+    } else {
+        ""
+    };
+    let abandoned = if node.contains_abandoned {
+        " · contains abandoned"
+    } else {
+        ""
+    };
     bounded_label(&format!(
-        "{:?} · {} · {}{}{}",
-        node.status, node.title, node.id, parent, coordinator
+        "{:?}/{:?} · {} · {}{}{}{}{}",
+        node.direct_status,
+        node.effective_status,
+        node.title,
+        node.id,
+        parent,
+        coordinator,
+        ignored,
+        abandoned
     ))
 }
 

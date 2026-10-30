@@ -1,7 +1,7 @@
 //! Projects durable plan and dependency details into upstream Markdown.
 
 use crate::selection::PlanSelection;
-use scriberig_session::{Plan, PlanNode, PlanNodeParent, Session};
+use scriberig_session::{Plan, PlanGatePhase, PlanNodeParent, PlanNodeView, Session};
 
 /// Builds bounded details for a plan and its explicit dependency graph.
 ///
@@ -23,14 +23,27 @@ pub(super) fn plan_details(
     let Some(selection) = selection else {
         return "# Plans\n\nNo durable plans are available.".to_owned();
     };
+    let Some(row) = rows.iter().find(|row| row.selection == selection) else {
+        return "# Plans\n\nSelected plan is no longer available.".to_owned();
+    };
     let Some(plan) = session.plans.iter().find(|plan| plan.id == selection.plan) else {
         return "# Plans\n\nSelected plan is no longer available.".to_owned();
     };
     let mut output = String::from("# Plan\n\n");
-    super::super::common::append_value(&mut output, &format!("Identity: {}", plan.id));
-    super::super::common::append_value(&mut output, &format!("Revision: {}", plan.revision));
-    super::status::append_plan_status(&mut output, plan.status);
-    super::super::common::append_value(&mut output, &format!("Goal: {}", plan.goal));
+    super::super::common::append_value(&mut output, &format!("Identity: {}", row.plan.id));
+    super::super::common::append_value(
+        &mut output,
+        &format!("Mutation revision: {}", row.plan.mutation_revision),
+    );
+    super::super::common::append_value(
+        &mut output,
+        &format!("Exact revision: {}", row.plan.revision),
+    );
+    if let Some(snapshot) = row.plan.snapshot {
+        super::super::common::append_value(&mut output, &format!("Snapshot: {snapshot}"));
+    }
+    super::status::append_plan_status(&mut output, row.plan.status);
+    super::super::common::append_value(&mut output, &format!("Goal: {}", row.plan.goal));
     if let Some(claim) = &plan.coordinator_claim {
         super::super::common::append_value(
             &mut output,
@@ -43,20 +56,18 @@ pub(super) fn plan_details(
             );
         }
     }
-    if let Some(cursor) = plan.coordinator_cursor {
+    if let Some(cursor) = row.plan.coordinator_cursor {
         super::super::common::append_value(&mut output, &format!("Coordinator node: {cursor}"));
     }
-    if let Some(coordinator) = plan.coordinator {
+    if let Some(coordinator) = row.plan.coordinator {
         super::super::common::append_value(
             &mut output,
             &format!("Coordinator branch: {coordinator}"),
         );
     }
     append_plan_history(&mut output, plan);
-    if let Some(node_id) = selection.node
-        && let Some(node) = plan.nodes.iter().find(|node| node.id == node_id)
-    {
-        append_node_details(&mut output, node);
+    if let Some(node) = row.node.as_ref() {
+        append_node_details(&mut output, plan, node);
     }
     super::super::common::append_value(&mut output, "## Explicit dependency edges");
     for edge in plan
@@ -116,13 +127,46 @@ fn append_plan_history(output: &mut String, plan: &Plan) {
 ///
 /// # Parameters
 /// - `output`: Markdown receiving safe plan details.
-/// - `node`: Durable node from the selected plan.
-fn append_node_details(output: &mut String, node: &PlanNode) {
-    super::super::common::append_value(output, &format!("## Node {}", node.id));
-    super::super::common::append_value(output, &format!("Title: {}", node.title));
-    super::super::common::append_value(output, &format!("Purpose: {}", node.purpose));
-    super::status::append_node_status(output, node.status);
-    match node.parent {
+/// - `plan`: Canonical plan supplying gate, evidence, and attempt details.
+/// - `view`: Shared semantic view for the selected node.
+fn append_node_details(output: &mut String, plan: &Plan, view: &PlanNodeView) {
+    super::super::common::append_value(output, &format!("## Node {}", view.id));
+    super::super::common::append_value(output, &format!("Title: {}", view.title));
+    super::super::common::append_value(output, &format!("Purpose: {}", view.purpose));
+    super::status::append_node_status(output, "Direct status", view.direct_status);
+    super::status::append_node_status(output, "Effective status", view.effective_status);
+    super::super::common::append_value(
+        output,
+        &format!("Contains ignored: {}", view.contains_ignored),
+    );
+    super::super::common::append_value(
+        output,
+        &format!("Contains abandoned: {}", view.contains_abandoned),
+    );
+    if let Some(summary) = &view.summary_preview {
+        super::super::common::append_value(output, &format!("Summary: {summary}"));
+    }
+    super::super::common::append_value(
+        output,
+        &format!("Dependency blockers: {:?}", view.dependency_blockers),
+    );
+    super::super::common::append_value(output, &format!("Entry gates: {:?}", view.entry_gates));
+    super::super::common::append_value(
+        output,
+        &format!("Completion gates: {:?}", view.completion_gates),
+    );
+    super::super::common::append_value(output, &format!("Evidence count: {}", view.evidence_count));
+    super::super::common::append_value(output, &format!("Can retry: {}", view.can_retry));
+    if let Some(failure) = &view.last_failure {
+        super::super::common::append_value(
+            output,
+            &format!("Last failure: {}", evidence_reference(failure)),
+        );
+    }
+    let Some(node) = plan.nodes.iter().find(|node| node.id == view.id) else {
+        return;
+    };
+    match view.parent {
         Some(PlanNodeParent::Branch(branch)) => {
             super::super::common::append_value(
                 output,
@@ -137,16 +181,16 @@ fn append_node_details(output: &mut String, node: &PlanNode) {
         }
         None => super::super::common::append_value(output, "Structural parent: none"),
     }
-    if let Some(branch) = node.branch {
+    if let Some(branch) = view.branch {
         super::super::common::append_value(output, &format!("Execution branch: {branch}"));
     }
-    if let Some(result) = node.result {
+    if let Some(result) = view.result {
         super::super::common::append_value(output, &format!("BranchResult: {result}"));
     }
     if let Some(replacement) = node.superseded_by {
         super::super::common::append_value(output, &format!("Superseded by node: {replacement}"));
     }
-    if let Some(assignment) = &node.assignment {
+    if let Some(assignment) = &view.assignment {
         super::super::common::append_value(
             output,
             &format!(
@@ -169,4 +213,151 @@ fn append_node_details(output: &mut String, node: &PlanNode) {
     if let Some(expected) = &node.expected_result {
         super::super::common::append_value(output, &format!("Expected result: {}", expected.kind));
     }
+    append_gate_details(output, plan, node.id);
+    append_evidence_details(output, plan, node.id);
+    append_attempt_details(output, plan, node.id);
+}
+
+/// Lists bounded gate states and reasons from the shared evaluator.
+///
+/// - `output`: Markdown receiving safe gate detail.
+/// - `plan`: Canonical plan whose gates are evaluated by session semantics.
+/// - `node`: Stable owning node identity.
+fn append_gate_details(output: &mut String, plan: &Plan, node: scriberig_core::EntityId) {
+    super::super::common::append_value(output, "### Gate details");
+    for phase in [PlanGatePhase::Entry, PlanGatePhase::Completion] {
+        for evaluation in plan
+            .evaluate_node_gates(node, phase)
+            .into_iter()
+            .take(super::super::common::MAX_ROWS)
+        {
+            let requirement = plan
+                .gates
+                .iter()
+                .find(|gate| gate.id == evaluation.gate)
+                .map_or_else(
+                    || "unknown requirement".to_owned(),
+                    |gate| format!("{:?}", gate.requirement),
+                );
+            super::super::common::append_value(
+                output,
+                &format!(
+                    "{phase:?} gate {} · {:?} · {requirement}",
+                    evaluation.gate, evaluation.status
+                ),
+            );
+            if let Some(reason) = evaluation.reason {
+                super::super::common::append_value(output, &format!("Reason: {reason}"));
+            }
+        }
+    }
+}
+
+/// Lists exact evidence references attached to a node or its gates.
+///
+/// - `output`: Markdown receiving safe evidence references.
+/// - `plan`: Canonical plan containing evidence associations.
+/// - `node`: Stable owning node identity.
+fn append_evidence_details(output: &mut String, plan: &Plan, node: scriberig_core::EntityId) {
+    super::super::common::append_value(output, "### Evidence references");
+    super::super::common::append_value(
+        output,
+        "Inspect a source with /inspect <entity-id> [snapshot-id].",
+    );
+    let gate_ids = plan
+        .gates
+        .iter()
+        .filter(|gate| gate.owner == node)
+        .map(|gate| gate.id)
+        .collect::<std::collections::BTreeSet<_>>();
+    for association in plan
+        .evidence
+        .iter()
+        .filter(|item| match item.owner {
+            scriberig_session::PlanEvidenceOwner::Node(owner) => owner == node,
+            scriberig_session::PlanEvidenceOwner::Gate(gate) => gate_ids.contains(&gate),
+        })
+        .take(super::super::common::MAX_ROWS)
+    {
+        let reference = &association.evidence.reference;
+        super::super::common::append_value(
+            output,
+            &format!(
+                "{} · {:?} · {:?} · entity {} · revision {} · snapshot {}",
+                association.id,
+                association.role,
+                association.evidence.kind,
+                reference.entity,
+                reference
+                    .revision
+                    .map_or_else(|| "unspecified".to_owned(), |value| value.to_string()),
+                reference
+                    .snapshot
+                    .map_or_else(|| "unspecified".to_owned(), |value| value.to_string())
+            ),
+        );
+        if let Some(note) = &association.note {
+            super::super::common::append_value(output, &format!("Note: {note}"));
+        }
+    }
+}
+
+/// Lists durable attempt summaries without loading worker transcripts.
+///
+/// - `output`: Markdown receiving attempt identity and outcome.
+/// - `plan`: Canonical plan from which attempt history is derived.
+/// - `node`: Stable node identity whose attempts are shown.
+fn append_attempt_details(output: &mut String, plan: &Plan, node: scriberig_core::EntityId) {
+    super::super::common::append_value(output, "### Attempts");
+    if let Some(attempts) = plan.attempt_history(node) {
+        for attempt in attempts
+            .into_iter()
+            .rev()
+            .take(super::super::common::MAX_ROWS)
+        {
+            super::super::common::append_value(
+                output,
+                &format!(
+                    "Generation {} · {:?} · branch {} · claim {} · result {}",
+                    attempt.claim_generation,
+                    attempt.status,
+                    attempt.branch,
+                    attempt
+                        .claim
+                        .map_or_else(|| "unspecified".to_owned(), |id| id.to_string()),
+                    attempt
+                        .result
+                        .map_or_else(|| "none".to_owned(), |id| id.to_string())
+                ),
+            );
+            if let Some(failure) = attempt.failure {
+                super::super::common::append_value(
+                    output,
+                    &format!("Failure evidence: {}", evidence_reference(&failure)),
+                );
+            }
+        }
+    }
+}
+
+/// Formats an evidence source with exact revision and snapshot context.
+///
+/// - `evidence`: Typed evidence reference to show in the inspection view.
+///
+/// A safe identity-only description that can be opened with `/inspect`.
+/// # Returns
+/// Evidence kind, entity, and exact context identifiers.
+fn evidence_reference(evidence: &scriberig_session::PlanEvidenceReference) -> String {
+    let reference = evidence.reference;
+    format!(
+        "{:?} entity {} revision {} snapshot {}",
+        evidence.kind,
+        reference.entity,
+        reference
+            .revision
+            .map_or_else(|| "unspecified".to_owned(), |value| value.to_string()),
+        reference
+            .snapshot
+            .map_or_else(|| "unspecified".to_owned(), |value| value.to_string())
+    )
 }

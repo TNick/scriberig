@@ -121,6 +121,10 @@ fn worker_loop<'scope, S: TuiService + Sync>(
                     | Effect::StartNewConversation { .. }
                     | Effect::ContinueConversation { .. }
                     | Effect::PlanLifecycle { .. }
+                    | Effect::RetryPlanNode(_)
+                    | Effect::AddPlanNextStep(_)
+                    | Effect::DecomposePlanNode(_)
+                    | Effect::MutatePlanSemantics(_)
             )
         {
             let sender = sender.clone();

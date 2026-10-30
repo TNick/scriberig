@@ -5,6 +5,9 @@ use crate::state::TuiState;
 
 use super::super::plan;
 
+#[path = "plan_command/mutations.rs"]
+mod mutations;
+
 /// Routes one plan command to shared durable plan operations.
 ///
 /// - `state`: Current `ScribeRig` session and presentation state.
@@ -17,11 +20,23 @@ pub(super) fn plan_command(state: &mut TuiState, argument: &str) -> Vec<Effect> 
     if argument.is_empty() {
         return invalid_plan_command(
             state,
-            "Use /plan <goal>, /plan show, or /plan start|pause|resume|stop|complete.",
+            "Use /plan <goal>, show, next, child, retry, waive, or a lifecycle action.",
         );
     }
     if argument == "show" {
         return show_plan(state);
+    }
+    if let Some(work) = argument.strip_prefix("next ").map(str::trim) {
+        return mutations::add_next_step(state, work);
+    }
+    if let Some(work) = argument.strip_prefix("child ").map(str::trim) {
+        return mutations::decompose_selected_node(state, work);
+    }
+    if argument == "retry" {
+        return mutations::retry_selected_node(state);
+    }
+    if let Some(waiver) = argument.strip_prefix("waive ").map(str::trim) {
+        return mutations::waive_gate(state, waiver);
     }
     if let Some(reason) = argument.strip_prefix("replan ").map(str::trim)
         && !reason.is_empty()

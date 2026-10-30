@@ -182,6 +182,14 @@ pub enum Effect {
     },
     /// Changes one plan node's credential-safe model-library assignment.
     SetPlanNodeAssignment(scriberig_app::PlanAssignmentRequest),
+    /// Retries one failed plan node at its observed plan revision.
+    RetryPlanNode(scriberig_app::PlanRetryRequest),
+    /// Adds ordinary work to a running plan at its observed revision.
+    AddPlanNextStep(scriberig_app::PlanNextStepRequest),
+    /// Adds required structural children to a selected plan node.
+    DecomposePlanNode(scriberig_app::PlanDecomposeRequest),
+    /// Applies one typed summary, evidence, gate, or waiver mutation.
+    MutatePlanSemantics(scriberig_app::PlanSemanticMutationRequest),
     /// Run the deterministic semantic project agent for the selected entity.
     ProjectAgent {
         /// Monotonic request identifier.

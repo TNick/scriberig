@@ -304,7 +304,7 @@ mod plan_readiness;
 mod plan_requirement_types;
 #[path = "planning/plan_requirements.rs"]
 mod plan_requirements;
-#[path = "planning/plan_views.rs"]
+#[path = "planning/plan_views/mod.rs"]
 mod plan_views;
 #[path = "planning/plan_workers.rs"]
 mod plan_workers;

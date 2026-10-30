@@ -259,3 +259,5 @@ fn history_row_activation_inspects_historical_entity() {
 
 #[path = "state_tests_part1.rs"]
 mod part1;
+#[path = "state_plan_action_tests.rs"]
+mod plan_action_tests;

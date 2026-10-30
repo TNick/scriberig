@@ -31,6 +31,9 @@ mod service_operation_helpers;
 #[path = "service_operation_model_request.rs"]
 mod service_operation_model_request;
 #[macro_use]
+#[path = "service_application_operation_method.rs"]
+mod service_application_operation_method;
+#[macro_use]
 #[path = "service_plan_contract_methods.rs"]
 mod service_plan_contract_methods;
 #[macro_use]
@@ -54,6 +57,8 @@ mod service_remote;
 mod service_remote_agent;
 #[path = "service_remote_mapping.rs"]
 mod service_remote_mapping;
+#[cfg(test)]
+pub(crate) use service_remote_mapping::session_plan_from_response;
 #[path = "service_remote_model_request.rs"]
 mod service_remote_model_request;
 #[path = "service_remote_models.rs"]
@@ -200,26 +205,6 @@ pub trait TuiService: TuiModelRequestService {
     ) -> Result<(), ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "model property settings".to_owned(),
-        })
-    }
-
-    /// Executes one shared application operation when the adapter supports it.
-    /// - `_context`: Application context for the operation.
-    /// - `_request`: Public operation request.
-    ///   The operation result when supported.
-    ///   Returns a structured application error when the operation is unavailable
-    ///   or rejected by the owning application subsystem.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn execute_operation(
-        &self,
-        _context: &ApplicationContext,
-        _request: &ApplicationRequest,
-    ) -> Result<ApplicationResult, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "tui semantic operation".to_owned(),
         })
     }
 
@@ -394,6 +379,8 @@ pub trait TuiService: TuiModelRequestService {
             operation: "session removal".to_owned(),
         })
     }
+
+    tui_application_operation_methods!();
 
     tui_plan_methods!();
 

@@ -283,6 +283,38 @@ pub fn execute_effect<S: TuiService>(
                 category: error.category().to_owned(),
                 message: crate::inspector::sanitize(&error.to_string()),
             }),
+        Effect::RetryPlanNode(request) => service
+            .retry_plan_node(context, &request)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::AddPlanNextStep(request) => service
+            .add_plan_next_step(context, &request)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::DecomposePlanNode(request) => service
+            .decompose_plan_node(context, &request)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::MutatePlanSemantics(request) => service
+            .mutate_plan_semantics(context, &request)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
         Effect::ProjectAgent {
             request_id,
             entity,

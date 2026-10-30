@@ -1,6 +1,9 @@
 //! Sends shared plan operations through the remote protocol client.
 
 use super::{ApplicationError, RemoteAdapter, service_remote_mapping};
+#[path = "service_remote_plan_operations/mutations.rs"]
+mod mutations;
+pub(super) use mutations::{decompose, next_step, retry, semantic_mutation};
 use scriberig_app::{
     PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest,
 };

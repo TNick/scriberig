@@ -84,6 +84,78 @@ macro_rules! remote_plan_contract_methods {
             plan_operations::assign(self, request)
         }
 
+        /// Retries one failed node through the shared remote plan operation.
+        ///
+        /// - `_context`: Local context; remote authorization is transport-owned.
+        /// - `request`: Plan, node, and observed revision.
+        ///
+        /// The authoritative updated plan.
+        /// # Returns
+        /// The updated plan projection.
+        /// # Errors
+        /// Returns a sanitized remote application error.
+        fn retry_plan_node(
+            &self,
+            _context: &ApplicationContext,
+            request: &scriberig_app::PlanRetryRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            plan_operations::retry(self, request)
+        }
+
+        /// Adds next-step work through the shared remote plan operation.
+        ///
+        /// - `_context`: Local context; remote authorization is transport-owned.
+        /// - `request`: Plan revision and proposed work item.
+        ///
+        /// The authoritative updated plan.
+        /// # Returns
+        /// The updated plan projection.
+        /// # Errors
+        /// Returns a sanitized remote application error.
+        fn add_plan_next_step(
+            &self,
+            _context: &ApplicationContext,
+            request: &scriberig_app::PlanNextStepRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            plan_operations::next_step(self, request)
+        }
+
+        /// Decomposes one node through the shared remote plan operation.
+        ///
+        /// - `_context`: Local context; remote authorization is transport-owned.
+        /// - `request`: Parent, children, and observed revision.
+        ///
+        /// The authoritative updated plan.
+        /// # Returns
+        /// The updated plan projection.
+        /// # Errors
+        /// Returns a sanitized remote application error.
+        fn decompose_plan_node(
+            &self,
+            _context: &ApplicationContext,
+            request: &scriberig_app::PlanDecomposeRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            plan_operations::decompose(self, request)
+        }
+
+        /// Applies a typed semantic mutation through the shared remote operation.
+        ///
+        /// - `_context`: Local context; remote authorization is transport-owned.
+        /// - `request`: Exact plan revision and typed semantic mutation.
+        ///
+        /// The authoritative updated plan.
+        /// # Returns
+        /// The updated plan projection.
+        /// # Errors
+        /// Returns a sanitized remote application error.
+        fn mutate_plan_semantics(
+            &self,
+            _context: &ApplicationContext,
+            request: &scriberig_app::PlanSemanticMutationRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            plan_operations::semantic_mutation(self, request)
+        }
+
         /// Reads bounded safe result detail through the protocol client.
         /// - `_context`: Authorized application context.
         /// - `session`: Session containing the result.
