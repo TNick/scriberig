@@ -36,6 +36,10 @@ export function PlanPanel({
   const [reason, setReason] = useState("");
   const [evidenceEntity, setEvidenceEntity] = useState("");
   const [evidenceNote, setEvidenceNote] = useState("");
+  const [nextTitle, setNextTitle] = useState("");
+  const [nextPurpose, setNextPurpose] = useState("");
+  const [childTitle, setChildTitle] = useState("");
+  const [childPurpose, setChildPurpose] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const plan = plans.find((item) => item.id === selected?.plan);
@@ -93,6 +97,39 @@ export function PlanPanel({
           <h3>
             {item.goal} ({item.status})
           </h3>
+          {item.status === "Running" ? (
+            <form
+              aria-label={`Add next step to ${item.goal}`}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void mutate(() =>
+                  client.addPlanNextStep({
+                    session: { id: sessionId },
+                    plan: item.id,
+                    expected_revision: item.revision,
+                    title: nextTitle.trim(),
+                    purpose: nextPurpose.trim(),
+                    semantic_scope: [],
+                  }),
+                );
+              }}
+            >
+              <label>
+                Next-step title{" "}
+                <input value={nextTitle} onChange={(event) => setNextTitle(event.target.value)} />
+              </label>
+              <label>
+                Next-step purpose{" "}
+                <input
+                  value={nextPurpose}
+                  onChange={(event) => setNextPurpose(event.target.value)}
+                />
+              </label>
+              <button type="submit" disabled={busy || !nextTitle.trim() || !nextPurpose.trim()}>
+                Add next step
+              </button>
+            </form>
+          ) : null}
           <ul>
             {item.nodes.map((entry) => (
               <li key={entry.id}>
@@ -128,6 +165,45 @@ export function PlanPanel({
           <h3>{node.title}</h3>
           <p>{node.purpose}</p>
           <p>{node.summaryPreview ?? "No summary"}</p>
+          {plan.status === "Running" ? (
+            <form
+              aria-label={`Decompose ${node.title}`}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void mutate(() =>
+                  client.decomposePlanNode({
+                    session: { id: sessionId },
+                    plan: plan.id,
+                    parent: node.id,
+                    expected_revision: plan.revision,
+                    children: [
+                      {
+                        title: childTitle.trim(),
+                        purpose: childPurpose.trim(),
+                        semantic_scope: [],
+                      },
+                    ],
+                    required: true,
+                  }),
+                );
+              }}
+            >
+              <label>
+                Child title{" "}
+                <input value={childTitle} onChange={(event) => setChildTitle(event.target.value)} />
+              </label>
+              <label>
+                Child purpose{" "}
+                <input
+                  value={childPurpose}
+                  onChange={(event) => setChildPurpose(event.target.value)}
+                />
+              </label>
+              <button type="submit" disabled={busy || !childTitle.trim() || !childPurpose.trim()}>
+                Add required child
+              </button>
+            </form>
+          ) : null}
           <h4>Gates</h4>
           <label>
             Waiver reason{" "}

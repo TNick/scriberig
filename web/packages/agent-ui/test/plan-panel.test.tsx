@@ -13,7 +13,7 @@ describe("plan panel", () => {
       revision: 3,
       snapshot: "snapshot-3",
       goal: "Ship feature",
-      status: "Failed",
+      status: "Running",
       rootBranch: "branch-1" as never,
       dependencies: [],
       rootNodes: ["node-1"],
@@ -52,9 +52,10 @@ describe("plan panel", () => {
         />
       </ScriberigProvider>,
     );
-    expect(markup).toContain("Ship feature (Failed)");
+    expect(markup).toContain("Ship feature (Running)");
     expect(markup).toContain("Implement: Failed / Failed");
     expect(markup).toContain("Blocked by node-0");
     expect(markup).toContain(">Retry</button>");
+    expect(markup).toContain('aria-label="Add next step to Ship feature"');
   });
 });
