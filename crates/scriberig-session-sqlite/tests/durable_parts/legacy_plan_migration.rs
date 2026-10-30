@@ -3,8 +3,8 @@
 use rusqlite::{Connection, params};
 use scriberig_core::EntityId;
 use scriberig_session::{
-    Branch, BranchResult, BranchStatus, ContinuationAnchor, Plan, PlanNode, PlanNodeParent,
-    PlanNodeStatus, PlanStatus, Session, SessionStore,
+    Branch, BranchResult, BranchStatus, ContinuationAnchor, ModelAssignment, Plan, PlanNode,
+    PlanNodeParent, PlanNodeStatus, PlanStatus, Session, SessionStore,
 };
 use scriberig_session_sqlite::SqliteSessionStore;
 
@@ -24,6 +24,8 @@ fn legacy_plan_migration_preserves_historical_completed_result() {
     let plan_id = EntityId::from_bytes([83; 16]);
     let node_id = EntityId::from_bytes([84; 16]);
     let dependent_id = EntityId::from_bytes([90; 16]);
+    let superseded_id = EntityId::from_bytes([91; 16]);
+    let replacement_id = EntityId::from_bytes([92; 16]);
     let worker_branch = EntityId::from_bytes([85; 16]);
     let claim_id = EntityId::from_bytes([86; 16]);
     let result_id = EntityId::from_bytes([87; 16]);
@@ -49,7 +51,11 @@ fn legacy_plan_migration_preserves_historical_completed_result() {
         superseded_by: None,
         abandon_reason: None,
         last_failure: None,
-        assignment: None,
+        assignment: Some(ModelAssignment {
+            provider_id: "provider-a".to_owned(),
+            model_id: "model-a".to_owned(),
+            thinking_level: Some("high".to_owned()),
+        }),
         claim: None,
         claim_generation: 0,
     })
@@ -72,6 +78,24 @@ fn legacy_plan_migration_preserves_historical_completed_result() {
         claim_generation: 0,
     })
     .expect("dependent node");
+    plan.add_node(PlanNode {
+        id: superseded_id,
+        parent: Some(PlanNodeParent::Branch(root_branch)),
+        title: "obsolete work".to_owned(),
+        purpose: "be replaced in the paused plan".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("superseded node");
     plan.add_dependency(node_id, dependent_id)
         .expect("dependency");
     plan.transition(PlanStatus::Planned).expect("plan");
@@ -96,6 +120,32 @@ fn legacy_plan_migration_preserves_historical_completed_result() {
     plan.complete_node(node_id, claim_id, &result)
         .expect("complete work");
     plan.transition(PlanStatus::Paused).expect("pause plan");
+    plan.replan(
+        vec![PlanNode {
+            id: replacement_id,
+            parent: Some(PlanNodeParent::Branch(root_branch)),
+            title: "replacement work".to_owned(),
+            purpose: "replace obsolete work".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            status: PlanNodeStatus::Planned,
+            branch: None,
+            result: None,
+            superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
+            assignment: None,
+            claim: None,
+            claim_generation: 0,
+        }],
+        Vec::new(),
+        &[],
+        &[(superseded_id, replacement_id)],
+        &[],
+        &[node_id],
+        "replace obsolete work",
+    )
+    .expect("replace stale planned node");
     let expected_history = plan.history.clone();
     let expected_plan = plan.clone();
     let expected_coordinator_generation = plan.coordinator_generation;
@@ -132,14 +182,23 @@ fn legacy_plan_migration_preserves_historical_completed_result() {
     assert_eq!(migrated.nodes[0].id, node_id);
     assert_eq!(migrated.nodes[0].status, PlanNodeStatus::Completed);
     assert_eq!(migrated.nodes[0].result, Some(result_id));
+    assert_eq!(migrated.nodes[0].branch, Some(worker_branch));
+    assert_eq!(
+        migrated.nodes[0].assignment,
+        expected_plan.nodes[0].assignment
+    );
     assert_eq!(migrated.nodes[1].id, dependent_id);
     assert_eq!(
         migrated.nodes[1].parent,
         Some(PlanNodeParent::Node(node_id))
     );
-    assert_eq!(migrated.root_nodes, vec![node_id]);
+    assert_eq!(migrated.root_nodes, expected_plan.root_nodes);
     assert_eq!(migrated.dependencies.len(), 1);
     assert_eq!(migrated.dependencies, expected_plan.dependencies);
+    assert_eq!(migrated.nodes[2].id, superseded_id);
+    assert_eq!(migrated.nodes[2].superseded_by, Some(replacement_id));
+    assert_eq!(migrated.nodes[3].id, replacement_id);
+    assert_eq!(migrated.nodes, expected_plan.nodes);
     assert_eq!(
         migrated.coordinator_generation,
         expected_coordinator_generation
