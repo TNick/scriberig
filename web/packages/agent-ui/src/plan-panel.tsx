@@ -9,6 +9,7 @@ import type {
 } from "@scriberig/protocol";
 import { useScriberig } from "@scriberig/react";
 import { useEffect, useState, type ReactElement } from "react";
+import { PlanAssignmentForm } from "./plan-assignment-form";
 
 /** Displays plan nodes, exact-snapshot evidence, attempts, and recovery actions.
  * @param props Session and authoritative plan projection.
@@ -165,6 +166,12 @@ export function PlanPanel({
           <h3>{node.title}</h3>
           <p>{node.purpose}</p>
           <p>{node.summaryPreview ?? "No summary"}</p>
+          <PlanAssignmentForm
+            sessionId={sessionId}
+            plan={plan}
+            node={node}
+            onPlanUpdated={onPlanUpdated}
+          />
           {plan.status === "Running" ? (
             <form
               aria-label={`Decompose ${node.title}`}

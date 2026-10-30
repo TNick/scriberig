@@ -2,6 +2,7 @@
 
 import type {
   SessionPlan,
+  SessionPlanAssignmentMutationRequest,
   SessionPlanDecomposeRequest,
   SessionPlanNextStepRequest,
   SessionPlanSemanticMutation,
@@ -15,6 +16,20 @@ import { PlanNodeDetailsClient } from "./plan-node-details-client";
  * Private members: None.
  */
 export class SessionPlanEvolutionClient extends PlanNodeDetailsClient {
+  /** Updates or clears a node assignment through the shared application route.
+   * @param request Plan revision and safe upstream provider/model selection.
+   * @param signal Optional request cancellation signal.
+   * @returns The authoritative updated plan projection.
+   */
+  setPlanAssignment(
+    request: SessionPlanAssignmentMutationRequest,
+    signal?: AbortSignal,
+  ): Promise<SessionPlan> {
+    return this.transport
+      .request<unknown>("plan_assignment", request, signal)
+      .then(normalizeSessionPlan);
+  }
+
   /** Appends ordinary work to a running plan at an observed revision.
    * @param request Shared application request for the new work.
    * @param signal Optional request cancellation signal.

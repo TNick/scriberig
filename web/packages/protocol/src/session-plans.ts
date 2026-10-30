@@ -334,6 +334,20 @@ export interface SessionPlanDecomposeRequest {
   required: boolean;
 }
 
+/** Request to update or clear one node's model-library assignment. */
+export interface SessionPlanAssignmentMutationRequest {
+  /** Owning durable session. */
+  session: { id: string };
+  /** Stable plan identity. */
+  plan: string;
+  /** Stable node identity. */
+  node: string;
+  /** Plan mutation revision observed by the caller. */
+  expected_revision: number;
+  /** New safe upstream assignment, or null to inherit defaults. */
+  assignment: SessionPlanAssignmentRequest | null;
+}
+
 /** Reads a bounded page of node attempts at an exact semantic snapshot. */
 export interface SessionPlanAttemptHistoryRequest {
   session: { id: string };

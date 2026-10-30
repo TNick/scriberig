@@ -52,12 +52,25 @@ describe("plan evolution client operations", () => {
       ],
       required: true,
     } as const;
+    const assignment = {
+      session: { id: "session-1" },
+      plan: "plan-1",
+      node: "node-1",
+      expected_revision: 5,
+      assignment: {
+        provider_id: "provider-1",
+        model_id: "model-1",
+        thinking_level: "deep",
+      },
+    } as const;
 
     expect((await client.addPlanNextStep(nextStep)).revision).toBe(4);
     expect((await client.decomposePlanNode(decomposition)).revision).toBe(4);
+    expect((await client.setPlanAssignment(assignment)).revision).toBe(4);
     expect(requests).toEqual([
       { operation: "plan_next_step", payload: nextStep },
       { operation: "plan_decompose", payload: decomposition },
+      { operation: "plan_assignment", payload: assignment },
     ]);
   });
 });
