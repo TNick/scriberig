@@ -155,10 +155,7 @@ impl PlanNodeRollupIndex {
                     affected_parents.insert(parent);
                 }
                 if let Some(parent) = new_parent {
-                    if !proposed.parents.contains_key(&parent)
-                        && !changed.contains(&parent)
-                        && !plan.nodes.iter().any(|candidate| candidate.id == parent)
-                    {
+                    if !proposed.parents.contains_key(&parent) && !changed.contains(&parent) {
                         return Err(PlanError::MissingNode);
                     }
                     proposed
@@ -172,11 +169,7 @@ impl PlanNodeRollupIndex {
             proposed.parents.insert(*node_id, new_parent);
             proposed.children.entry(*node_id).or_default();
         }
-        if plan
-            .nodes
-            .iter()
-            .any(|node| !proposed.parents.contains_key(&node.id) && !changed.contains(&node.id))
-        {
+        if plan.nodes.len() != proposed.parents.len() {
             return Err(PlanError::StaleRollupIndex);
         }
         let mut changed_order = changed.into_iter().collect::<Vec<_>>();
