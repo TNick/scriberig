@@ -223,6 +223,32 @@ fn stale_plan_claim_recovery_is_deterministic_and_blocks_dependents() {
     assert!(!plan.ready_nodes_from_results(&[]).contains(&dependent));
 }
 
+/// Prevents a recovered stale coordinator from dispatching ready work.
+#[test]
+fn stale_coordinator_cannot_dispatch_after_recovery() {
+    let mut plan = plan_fixture();
+    let node = plan.nodes[0].id;
+    plan.transition(PlanStatus::Running).expect("run plan");
+    plan.claim_coordinator(EntityId::from_bytes([213; 16]), "stale-runtime")
+        .expect("claim coordinator");
+
+    assert_eq!(plan.recover_stale_claims(|_| false), Ok(1));
+    let recovered_revision = plan.revision;
+    assert!(plan.coordinator_claim.is_none());
+    assert_eq!(
+        plan.start_node(
+            node,
+            EntityId::from_bytes([214; 16]),
+            EntityId::from_bytes([215; 16]),
+            "stale-runtime",
+            &[],
+        ),
+        Err(PlanError::InvalidTransition)
+    );
+    assert_eq!(plan.revision, recovered_revision);
+    assert_eq!(plan.nodes[0].status, PlanNodeStatus::Ready);
+}
+
 /// Requires exact result class and handle evidence before releasing dependents.
 #[test]
 fn plan_readiness_requires_explicit_result_contract() {
