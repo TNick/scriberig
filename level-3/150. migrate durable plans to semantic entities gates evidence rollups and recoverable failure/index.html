@@ -7643,6 +7643,12 @@ payloads omit plan contents; an ordered session-to-plan root index locates
 independently stored semantic plans. Reads assemble the public <code>Session</code> plan
 projection from those roots. Legacy aggregate input is migration-only, and
 stale aggregate saves cannot override an existing semantic root.</p>
+<p>Implementation update (2026-10-30): named-root enumeration is now part of the
+backend-neutral <code>RootStore</code> contract. SQLite session reads reconcile the
+session-to-plan locator against deterministic semantic plan roots, restoring
+missing locator rows and removing stale ones. The durable regression deletes
+the locator row, reopens the store, and verifies the plan is reconstructed from
+its semantic root and the locator is repaired.</p>
 <p>Implementation update (2026-10-30): exact plan snapshot reads now reject
 snapshots outside the plan root's ancestry and preserve historical membership.
 Plan-attempt outcomes are independently revisioned semantic objects. Plan
@@ -8203,8 +8209,9 @@ writer succeeds and the competing writer receives <code>PromotionError::Root</co
 </code></pre></div>
 <p>so they produce/validate semantic change batches rather than relying on aggregate persistence.</p>
 <ul>
-<li>[ ] Existing behavior remains available through shared application operations.</li>
+<li>[x] Existing behavior remains available through shared application operations. Reverified 2026-10-30 with <code>application_plan_operations_validate_and_persist_structured_work</code>, <code>application_semantic_plan_mutations_preserve_exact_evidence_and_waivers</code>, <code>application_next_step_requires_running_plan_and_current_revision</code>, <code>application_decomposition_creates_required_child_gates_once</code>, and <code>application_retry_is_revision_checked_and_preserves_failure</code> (<code>cargo test --locked --offline -p scriberig-app --test session_runtime &lt;test-name&gt;</code>, 1/1 each).</li>
 <li>[x] Aggregate Rust structs may remain as in-memory/view helpers but are no longer canonical persistence units. SQLite session payloads omit plans; reads reconstruct them from semantic roots, including after restart.</li>
+<li>[x] Missing session-to-plan locator rows can be rebuilt from canonical semantic roots. <code>missing_plan_locator_is_rebuilt_from_semantic_roots</code> (<code>crates/scriberig-session-sqlite/tests/durable_parts/plan_projection.rs</code>) deletes the derived locator row, reopens the database, and verifies semantic plan reconstruction and locator repair; shared root enumeration is checked by <code>run_core_conformance</code> for SQLite and memory backends.</li>
 </ul>
 <hr />
 <h1 id="10-phase-5-live-plan-growth-summary-evidence-and-gates">10. Phase 5 — Live Plan Growth, Summary, Evidence, and Gates<a class="headerlink" href="#10-phase-5-live-plan-growth-summary-evidence-and-gates" title="Permanent link">&para;</a></h1>
