@@ -2,6 +2,8 @@
 
 #[path = "semantic_plans/history.rs"]
 mod history;
+#[path = "semantic_plans/node_details.rs"]
+mod node_details;
 #[path = "semantic_plans/reads.rs"]
 mod reads;
 use history::{plan_at_revision, plan_revision, semantic_writes};

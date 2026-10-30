@@ -51,6 +51,39 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
         claim_generation: 0,
     })
     .expect("add node");
+    let gate_id = EntityId::from_bytes([82; 16]);
+    let evidence_id = EntityId::from_bytes([83; 16]);
+    plan.add_gate(scriberig_session::PlanGate {
+        id: gate_id,
+        owner: node_id,
+        phase: scriberig_session::PlanGatePhase::Completion,
+        requirement: scriberig_session::PlanGateRequirement::EvidencePresent {
+            kind: scriberig_session::PlanEvidenceKind::BranchResult,
+        },
+        waiver: Some(scriberig_session::PlanGateWaiver {
+            reason: "test fixture waiver".to_owned(),
+            actor: None,
+            operation: None,
+        }),
+    })
+    .expect("add gate");
+    plan.attach_evidence(scriberig_session::PlanEvidenceAssociation {
+        id: evidence_id,
+        owner: scriberig_session::PlanEvidenceOwner::Gate(gate_id),
+        role: scriberig_session::PlanEvidenceRole::Informational,
+        evidence: scriberig_session::PlanEvidenceReference {
+            kind: scriberig_session::PlanEvidenceKind::Artifact,
+            reference: scriberig_session::PlanSemanticReference {
+                entity: EntityId::from_bytes([84; 16]),
+                revision: None,
+                snapshot: None,
+            },
+            attributes: std::collections::BTreeMap::new(),
+        },
+        note: Some("inspection record".to_owned()),
+        actor: None,
+    })
+    .expect("attach evidence");
     plan.transition(scriberig_session::PlanStatus::Planned)
         .expect("plan");
     plan.start_with_coordinator_claim(EntityId::from_bytes([81; 16]), "coordinator", None)
@@ -256,12 +289,24 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
         .load_plan_attempts_at_snapshot(session_id, plan_id, node_id, snapshot, 1, 1)
         .expect("read second attempt page")
         .expect("snapshot belongs to plan");
+    let node_details = store
+        .load_plan_node_details_at_snapshot(session_id, plan_id, node_id, snapshot, 0, 10)
+        .expect("read node detail page")
+        .expect("snapshot belongs to plan");
 
     assert_eq!(semantic_attempts.len(), 2);
     assert_eq!(first_page.len(), 1);
     assert_eq!(first_page[0].branch, first_branch);
     assert_eq!(second_page.len(), 1);
     assert_eq!(second_page[0].branch, second_branch);
+    assert_eq!(node_details.gates.len(), 1);
+    assert_eq!(node_details.gates[0].id, gate_id);
+    assert_eq!(
+        node_details.gates[0].waiver.as_ref().unwrap().reason,
+        "test fixture waiver"
+    );
+    assert_eq!(node_details.evidence.len(), 1);
+    assert_eq!(node_details.evidence[0].id, evidence_id);
     assert_eq!(semantic_attempts[0].branch, first_branch);
     assert_eq!(semantic_attempts[0].status, PlanNodeStatus::Failed);
     assert_eq!(

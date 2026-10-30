@@ -9,6 +9,8 @@ mod plan_view;
 
 pub(super) use assemble::into_plan;
 pub(super) use plan_view::plan_view;
+#[path = "decode/details.rs"]
+mod details;
 
 use scriberig_core::{EncodingVersion, EntityId, revision_id};
 use serde::Deserialize;
@@ -268,6 +270,28 @@ pub(super) fn attempts(
     }
     attempts.sort_by_key(|attempt| (attempt.node, attempt.claim_generation, attempt.entity));
     Ok(attempts)
+}
+
+/// Decodes one page of gate and evidence records owned by a plan node.
+///
+/// # Parameters
+/// - `snapshot`: Exact semantic records selected by the repository.
+/// - `node`: Stable node identity whose details are requested.
+/// - `offset`: Number of matching records to skip, per category.
+/// - `limit`: Maximum records returned, per category.
+///
+/// # Returns
+/// The requested gate and evidence pages.
+///
+/// # Errors
+/// Returns an error for malformed, unsupported, or mismatched payloads.
+pub(super) fn node_details(
+    snapshot: &PlanSemanticSnapshot,
+    node: EntityId,
+    offset: usize,
+    limit: usize,
+) -> Result<super::PlanSemanticNodeDetails, PlanSemanticError> {
+    details::node_details(snapshot, node, offset, limit)
 }
 
 /// Decodes safe mutation metadata from a semantic plan object set.

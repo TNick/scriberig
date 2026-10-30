@@ -14,7 +14,7 @@ pub mod views;
 
 /// Defines the durable session repository boundary.
 pub mod repository {
-    use crate::{Plan, PlanSemanticAttempt, PlanView, Session};
+    use crate::{Plan, PlanSemanticAttempt, PlanSemanticNodeDetails, PlanView, Session};
     use scriberig_core::{EntityId, SnapshotId};
 
     /// Reports durable execution-selection update failures.
@@ -140,6 +140,33 @@ pub mod repository {
             Err("plan attempt history reads are unsupported".to_owned())
         }
 
+        /// Loads one page of gate and evidence details for a node.
+        ///
+        /// - `_session`: Owning durable session identity.
+        /// - `_plan`: Stable plan identity.
+        /// - `_node`: Stable plan-node identity.
+        /// - `_snapshot`: Exact semantic snapshot to resolve.
+        /// - `_offset`: Number of records to skip in each category.
+        /// - `_limit`: Maximum records to return in each category.
+        ///
+        /// The requested details, or `None` when the snapshot is outside the
+        /// selected plan's retained history.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns a persistence diagnostic when records cannot be read.
+        fn load_plan_node_details_at_snapshot(
+            &self,
+            _session: EntityId,
+            _plan: EntityId,
+            _node: EntityId,
+            _snapshot: SnapshotId,
+            _offset: usize,
+            _limit: usize,
+        ) -> Result<Option<PlanSemanticNodeDetails>, String> {
+            Err("plan node detail reads are unsupported".to_owned())
+        }
+
         /// Removes one exact durable session graph.
         ///
         /// - `_session`: Stable session identity to remove.
@@ -238,8 +265,8 @@ pub use planning::{
     PlanNodeView, PlanRevision, PlanSemanticPredicate, PlanSemanticReference, PlanStatus, PlanView,
     WorkerClaim,
     semantic::{
-        PlanSemanticAttempt, PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef,
-        PlanSemanticRevision, PlanSemanticSnapshot,
+        PlanSemanticAttempt, PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeDetails,
+        PlanSemanticNodeRef, PlanSemanticRevision, PlanSemanticSnapshot,
     },
 };
 pub use repository::{PlanStoreError, SelectionStoreError, SessionStore};

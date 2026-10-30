@@ -92,6 +92,22 @@ pub struct PlanSemanticAttempt {
     pub failure: Option<super::PlanEvidenceReference>,
 }
 
+/// Returns one page of gate and evidence records for a plan node.
+///
+/// # Public members
+/// - `gates`: Gate definitions owned by the node.
+/// - `evidence`: Evidence associated with the node or its gates.
+///
+/// # Private members
+/// None.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanSemanticNodeDetails {
+    /// Gate definitions owned by the node.
+    pub gates: Vec<super::PlanGate>,
+    /// Evidence associated with the node or its gates.
+    pub evidence: Vec<super::PlanEvidenceAssociation>,
+}
+
 /// Reports invalid or incomplete semantic plan object payloads.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PlanSemanticError {
@@ -217,5 +233,27 @@ impl PlanSemanticSnapshot {
     /// Returns an error for malformed payloads or mismatched identities.
     pub fn attempts(&self) -> Result<Vec<PlanSemanticAttempt>, PlanSemanticError> {
         decode::attempts(self)
+    }
+
+    /// Reads a bounded page of gates and their evidence for one node.
+    ///
+    /// # Parameters
+    /// - `self`: Exact semantic plan object set.
+    /// - `node`: Stable node identity whose details are requested.
+    /// - `offset`: Number of matching records to skip, applied per category.
+    /// - `limit`: Maximum gates and evidence associations returned per category.
+    ///
+    /// # Returns
+    /// The requested gate and evidence pages.
+    ///
+    /// # Errors
+    /// Returns an error for malformed records or a node outside this plan.
+    pub fn node_details(
+        &self,
+        node: scriberig_core::EntityId,
+        offset: usize,
+        limit: usize,
+    ) -> Result<PlanSemanticNodeDetails, PlanSemanticError> {
+        decode::node_details(self, node, offset, limit)
     }
 }

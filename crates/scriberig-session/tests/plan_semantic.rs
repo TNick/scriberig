@@ -132,6 +132,7 @@ fn semantic_plan_requirement_records_round_trip_and_block_entry() {
         vec![plan.evidence[0].evidence.clone()]
     );
     let snapshot = PlanSemanticSnapshot::from_plan(&plan).expect("encode");
+    assert_node_detail_pages(&snapshot, &plan, node_id, gate_id);
     let decoded = snapshot.into_plan(plan.history.clone()).expect("decode");
     assert_eq!(decoded, plan);
     assert_summary_view(&plan, node_id, summary_id);
@@ -366,7 +367,11 @@ fn semantic_encoder_rejects_structural_cycles() {
 #[path = "plan_semantic_parts/rollup_views.rs"]
 mod rollup_views;
 
+#[path = "plan_semantic_parts/node_details.rs"]
+mod node_details;
+
 #[path = "plan_semantic_parts/snapshots.rs"]
 mod snapshots;
 
+use node_details::assert_node_detail_pages;
 use snapshots::plan;

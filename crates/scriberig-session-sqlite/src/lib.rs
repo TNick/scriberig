@@ -214,6 +214,32 @@ impl SessionStore for SqliteSessionStore {
         self.load_plan_attempts_snapshot(session, plan, node, snapshot, offset, limit)
     }
 
+    /// Loads one page of gate and evidence details for one node.
+    ///
+    /// - `session`: Owning durable session identity.
+    /// - `plan`: Stable plan identity.
+    /// - `node`: Stable plan-node identity.
+    /// - `snapshot`: Exact semantic snapshot to resolve.
+    /// - `offset`: Number of records to skip in each category.
+    /// - `limit`: Maximum records to return in each category.
+    ///
+    /// The requested detail page, or `None` outside retained plan history.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns a bounded persistence diagnostic when records cannot be read.
+    fn load_plan_node_details_at_snapshot(
+        &self,
+        session: EntityId,
+        plan: EntityId,
+        node: EntityId,
+        snapshot: SnapshotId,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Option<scriberig_session::PlanSemanticNodeDetails>, String> {
+        self.load_plan_node_details_snapshot(session, plan, node, snapshot, offset, limit)
+    }
+
     /// Removes one exact session graph from the SQLite repository.
     ///
     /// - `session`: Stable session identity to remove.
