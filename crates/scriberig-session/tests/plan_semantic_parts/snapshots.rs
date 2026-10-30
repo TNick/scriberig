@@ -112,6 +112,89 @@ fn semantic_plan_node_revision_is_independent_from_plan_revision() {
     assert_ne!(original_node.revision, changed_node.revision);
 }
 
+/// Limits worker-claim revision churn to the plan and claimed attempt records.
+#[test]
+fn semantic_worker_claim_preserves_unrelated_node_and_relation_revisions() {
+    let mut plan = plan();
+    let claimed_node = plan.nodes[0].id;
+    let sibling_node = plan.nodes[1].id;
+    plan.start_with_coordinator_claim(EntityId::from_bytes([86; 16]), "coordinator", None)
+        .expect("start plan");
+    let before = PlanSemanticSnapshot::from_plan(&plan).expect("encode ready plan");
+    let mutation_revision = plan.revision;
+
+    plan.start_node(
+        claimed_node,
+        EntityId::from_bytes([87; 16]),
+        EntityId::from_bytes([88; 16]),
+        "worker",
+        &[],
+    )
+    .expect("claim ready node");
+    let after = PlanSemanticSnapshot::from_plan(&plan).expect("encode claimed plan");
+
+    assert_eq!(plan.revision, mutation_revision + 1);
+    let changed_objects = after
+        .objects
+        .iter()
+        .filter(|current| {
+            before
+                .objects
+                .iter()
+                .find(|prior| prior.entity == current.entity)
+                .is_none_or(|prior| prior.revision != current.revision)
+        })
+        .map(|object| (object.entity, object.object_type.as_str()))
+        .collect::<Vec<_>>();
+    assert_eq!(changed_objects.len(), 4);
+    assert!(changed_objects.contains(&(plan.id, "scriberig.session.plan")));
+    assert!(changed_objects.contains(&(claimed_node, "scriberig.session.plan-node")));
+    let attempt = after
+        .attempts()
+        .expect("attempt records")
+        .into_iter()
+        .next()
+        .expect("new worker attempt");
+    assert!(changed_objects.contains(&(attempt.entity, "scriberig.session.plan-attempt")));
+    assert_eq!(
+        changed_objects
+            .iter()
+            .filter(|(_, object_type)| *object_type == "scriberig.session.plan-revision")
+            .count(),
+        1
+    );
+    let prior_sibling = before
+        .objects
+        .iter()
+        .find(|object| object.entity == sibling_node)
+        .expect("prior sibling revision");
+    let current_sibling = after
+        .objects
+        .iter()
+        .find(|object| object.entity == sibling_node)
+        .expect("current sibling revision");
+    assert_eq!(prior_sibling.revision, current_sibling.revision);
+    for object_type in [
+        "scriberig.session.plan-membership",
+        "scriberig.session.plan-structure",
+        "scriberig.session.plan-dependency",
+    ] {
+        let prior = before
+            .objects
+            .iter()
+            .filter(|object| object.object_type.as_str() == object_type)
+            .map(|object| (object.entity, object.revision))
+            .collect::<Vec<_>>();
+        let current = after
+            .objects
+            .iter()
+            .filter(|object| object.object_type.as_str() == object_type)
+            .map(|object| (object.entity, object.revision))
+            .collect::<Vec<_>>();
+        assert_eq!(prior, current, "unexpected {object_type} revision churn");
+    }
+}
+
 /// Keeps each worker attempt independently identified across status revisions.
 #[test]
 fn semantic_plan_attempt_has_stable_identity_and_exact_revision() {
