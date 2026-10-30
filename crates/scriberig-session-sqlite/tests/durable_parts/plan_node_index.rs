@@ -79,6 +79,66 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
             .as_bytes()
     );
     assert_eq!(child_ref.status, PlanNodeStatus::Ready);
+    let expected_rollup = stored_plan.node_rollups().expect("reference rollups")[&parent_id];
+    let indexed_rollup: (String, i64, i64, [i64; 7], Vec<u8>, i64) = connection
+        .query_row(
+            "SELECT effective_status, contains_ignored, contains_abandoned,
+                    child_planned, child_ready, child_running, child_completed,
+                    child_failed, child_abandoned, unsatisfied_completion_gates,
+                    source_snapshot, evaluator_version
+             FROM plan_node_rollup_index
+             WHERE session_id=?1 AND plan_id=?2 AND node_id=?3",
+            rusqlite::params![
+                session_id.as_bytes().as_slice(),
+                plan_id.as_bytes().as_slice(),
+                parent_id.as_bytes().as_slice(),
+            ],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    [
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                        row.get(8)?,
+                        row.get(9)?,
+                    ],
+                    row.get(10)?,
+                    row.get(11)?,
+                ))
+            },
+        )
+        .expect("read indexed rollup");
+    assert_eq!(
+        indexed_rollup.0,
+        status_tag(expected_rollup.effective_status)
+    );
+    assert_eq!(indexed_rollup.1 != 0, expected_rollup.contains_ignored);
+    assert_eq!(indexed_rollup.2 != 0, expected_rollup.contains_abandoned);
+    assert_eq!(
+        indexed_rollup.3,
+        [
+            i64::from(expected_rollup.child_counts.planned),
+            i64::from(expected_rollup.child_counts.ready),
+            i64::from(expected_rollup.child_counts.running),
+            i64::from(expected_rollup.child_counts.completed),
+            i64::from(expected_rollup.child_counts.failed),
+            i64::from(expected_rollup.child_counts.abandoned),
+            i64::from(expected_rollup.unsatisfied_completion_gates),
+        ]
+    );
+    assert_eq!(
+        indexed_rollup.4,
+        stored_plan
+            .source_snapshot
+            .expect("source snapshot")
+            .as_bytes()
+    );
+    assert_eq!(indexed_rollup.5, 1);
 
     let mut changed_session = store
         .load(session_id)
@@ -116,6 +176,19 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
         )
         .expect("read updated index snapshot");
     assert_eq!(indexed_snapshot.as_slice(), updated_snapshot.as_bytes());
+    let rollup_snapshot: Vec<u8> = connection
+        .query_row(
+            "SELECT source_snapshot FROM plan_node_rollup_index
+             WHERE session_id=?1 AND plan_id=?2 AND node_id=?3",
+            rusqlite::params![
+                session_id.as_bytes().as_slice(),
+                plan_id.as_bytes().as_slice(),
+                child_id.as_bytes().as_slice(),
+            ],
+            |row| row.get(0),
+        )
+        .expect("read updated rollup snapshot");
+    assert_eq!(rollup_snapshot.as_slice(), updated_snapshot.as_bytes());
 
     connection
         .execute(
@@ -126,6 +199,15 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
             ],
         )
         .expect("delete index rows");
+    connection
+        .execute(
+            "DELETE FROM plan_node_rollup_index WHERE session_id=?1 AND plan_id=?2",
+            rusqlite::params![
+                session_id.as_bytes().as_slice(),
+                plan_id.as_bytes().as_slice()
+            ],
+        )
+        .expect("delete rollup rows");
     store
         .rebuild_plan_node_index(session_id, plan_id)
         .expect("rebuild index");
@@ -140,9 +222,38 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
         )
         .expect("count rebuilt rows");
     assert_eq!(indexed_count, 2);
+    let rollup_count: u32 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM plan_node_rollup_index WHERE session_id=?1 AND plan_id=?2",
+            rusqlite::params![
+                session_id.as_bytes().as_slice(),
+                plan_id.as_bytes().as_slice()
+            ],
+            |row| row.get(0),
+        )
+        .expect("count rebuilt rollups");
+    assert_eq!(rollup_count, 2);
     drop(connection);
     drop(store);
     let _ = std::fs::remove_file(path);
+}
+
+/// Converts a lifecycle status into the normalized SQLite label.
+///
+/// # Parameters
+/// - `status`: Canonical plan-node status.
+///
+/// # Returns
+/// The stable lowercase label written by the session repository.
+fn status_tag(status: PlanNodeStatus) -> &'static str {
+    match status {
+        PlanNodeStatus::Planned => "planned",
+        PlanNodeStatus::Ready => "ready",
+        PlanNodeStatus::Running => "running",
+        PlanNodeStatus::Completed => "completed",
+        PlanNodeStatus::Failed => "failed",
+        PlanNodeStatus::Abandoned => "abandoned",
+    }
 }
 
 /// Creates a planned node with the requested structural parent.

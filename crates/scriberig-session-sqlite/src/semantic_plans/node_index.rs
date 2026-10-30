@@ -56,6 +56,9 @@ pub(super) fn rebuild_plan_node_index(
     let nodes = semantic
         .node_refs()
         .map_err(|error| format!("plan node index decode failed: {error:?}"))?;
+    let rollups = projection
+        .node_rollups()
+        .map_err(|error| format!("plan rollup index rebuild failed: {error:?}"))?;
     let mut connection = store
         .connection
         .lock()
@@ -64,6 +67,7 @@ pub(super) fn rebuild_plan_node_index(
         .transaction()
         .map_err(|error| error.to_string())?;
     replace_in_transaction(&transaction, session, plan, snapshot, &nodes)?;
+    super::rollup_index::replace_in_transaction(&transaction, session, plan, snapshot, &rollups)?;
     transaction.commit().map_err(|error| error.to_string())
 }
 
@@ -120,6 +124,33 @@ pub(super) fn replace_in_transaction(
             .map_err(|error| error.to_string())?;
     }
     Ok(())
+}
+
+/// Replaces direct and derived node index rows in one root-promotion transaction.
+///
+/// # Parameters
+/// - `transaction`: Transaction promoting the plan root.
+/// - `session`: Owning durable session identity.
+/// - `plan`: Stable plan identity.
+/// - `snapshot`: Exact successor snapshot represented by both indexes.
+/// - `nodes`: Revision-bound canonical node rows.
+/// - `rollups`: Reference-evaluated derived rollup rows.
+///
+/// # Returns
+/// Unit after both indexes identify the successor snapshot.
+///
+/// # Errors
+/// Returns a diagnostic from either index replacement operation.
+pub(super) fn replace_indexes_in_transaction(
+    transaction: &Transaction<'_>,
+    session: EntityId,
+    plan: EntityId,
+    snapshot: SnapshotId,
+    nodes: &[PlanSemanticNodeRef],
+    rollups: &std::collections::BTreeMap<EntityId, scriberig_session::PlanNodeRollup>,
+) -> Result<(), String> {
+    replace_in_transaction(transaction, session, plan, snapshot, nodes)?;
+    super::rollup_index::replace_in_transaction(transaction, session, plan, snapshot, rollups)
 }
 
 /// Returns the stable database label for one canonical node status.

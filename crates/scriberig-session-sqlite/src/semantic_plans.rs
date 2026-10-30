@@ -8,6 +8,8 @@ mod node_details;
 mod node_index;
 #[path = "semantic_plans/reads.rs"]
 mod reads;
+#[path = "semantic_plans/rollup_index.rs"]
+mod rollup_index;
 use history::{plan_at_revision, plan_revision, semantic_writes};
 
 use scriberig_core::{EncodingVersion, EntityId, RootName};
@@ -129,6 +131,9 @@ impl SqliteSessionStore {
         let indexed_nodes = encoded.node_refs().map_err(|error| {
             plan_persistence(format!("plan node index encode failed: {error:?}"))
         })?;
+        let indexed_rollups = proposed
+            .node_rollups()
+            .map_err(|error| plan_persistence(format!("plan rollup index failed: {error:?}")))?;
         let old_entries = self
             .semantic_store
             .iter(current_snapshot)
@@ -167,12 +172,13 @@ impl SqliteSessionStore {
             &changes,
             |transaction| {
                 commit_related(transaction, &current)?;
-                node_index::replace_in_transaction(
+                node_index::replace_indexes_in_transaction(
                     transaction,
                     session,
                     proposed.id,
                     successor_snapshot,
                     &indexed_nodes,
+                    &indexed_rollups,
                 )
             },
         ) {

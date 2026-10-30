@@ -2,6 +2,8 @@
 
 mod initialization;
 mod payload;
+#[path = "store_mutations/plan_indexes.rs"]
+mod plan_indexes;
 #[path = "store_mutations/plan.rs"]
 mod plan_mutation;
 mod recovery;
@@ -265,12 +267,7 @@ impl SessionStore for SqliteSessionStore {
                 params![session.as_bytes().as_slice()],
             )
             .map_err(|error| error.to_string())?;
-        transaction
-            .execute(
-                "DELETE FROM plan_node_index WHERE session_id=?1",
-                params![session.as_bytes().as_slice()],
-            )
-            .map_err(|error| error.to_string())?;
+        plan_indexes::delete_session_plan_indexes(&transaction, session)?;
         transaction.commit().map_err(|error| error.to_string())?;
         Ok(())
     }

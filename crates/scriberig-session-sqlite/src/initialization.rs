@@ -71,7 +71,25 @@ impl SqliteSessionStore {
                  PRIMARY KEY (session_id, plan_id, node_id)
              );
              CREATE INDEX IF NOT EXISTS plan_node_index_parent
-                 ON plan_node_index (session_id, plan_id, parent_node_id, node_id);",
+                 ON plan_node_index (session_id, plan_id, parent_node_id, node_id);
+             CREATE TABLE IF NOT EXISTS plan_node_rollup_index (
+                 session_id BLOB NOT NULL,
+                 plan_id BLOB NOT NULL,
+                 node_id BLOB NOT NULL,
+                 effective_status TEXT NOT NULL,
+                 contains_ignored INTEGER NOT NULL,
+                 contains_abandoned INTEGER NOT NULL,
+                 child_planned INTEGER NOT NULL,
+                 child_ready INTEGER NOT NULL,
+                 child_running INTEGER NOT NULL,
+                 child_completed INTEGER NOT NULL,
+                 child_failed INTEGER NOT NULL,
+                 child_abandoned INTEGER NOT NULL,
+                 unsatisfied_completion_gates INTEGER NOT NULL,
+                 evaluator_version INTEGER NOT NULL,
+                 source_snapshot BLOB NOT NULL,
+                 PRIMARY KEY (session_id, plan_id, node_id)
+             );",
         )?;
         drop(connection_guard);
         Ok(Self {
