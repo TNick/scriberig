@@ -297,6 +297,7 @@ export function SessionAgentView({
       <PlanPanel
         sessionId={sessionId}
         plans={agentState.plans}
+        branches={visibleBranches}
         onPlanUpdated={async () => model.setAgentSession(await client.getSession(sessionId))}
       />
       {modelLibrary ? (

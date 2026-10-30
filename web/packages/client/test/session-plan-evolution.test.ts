@@ -63,14 +63,67 @@ describe("plan evolution client operations", () => {
         thinking_level: "deep",
       },
     } as const;
+    const creation = {
+      session: { id: "session-1" },
+      anchor: { BranchHead: { branch: "branch-1" as never } },
+      goal: "Ship feature",
+      nodes: [
+        {
+          key: "first",
+          parent_index: null,
+          title: "Implement",
+          purpose: "Write the feature",
+          expected_result: null,
+          semantic_scope: [],
+          assignment: null,
+        },
+      ],
+      dependencies: [],
+    } as const;
+    const replan = {
+      session: { id: "session-1" },
+      plan: "plan-1",
+      expected_revision: 7,
+      additions: [
+        {
+          key: "repair",
+          parent_index: null,
+          title: "Repair",
+          purpose: "Fix failed work",
+          expected_result: null,
+          semantic_scope: [],
+          assignment: null,
+        },
+      ],
+      dependencies: [[{ Existing: { id: "node-0" } }, { Proposed: { key: "repair" } }]],
+      removed_dependencies: [["node-0", "node-1"]],
+      superseded: [["node-1", "repair"]],
+      assignment_changes: [["node-2", null]],
+      preserved_terminal_nodes: ["node-0"],
+      reason: "Replace failed work",
+    } as const;
 
+    expect((await client.createPlan(creation)).revision).toBe(4);
+    expect((await client.replan(replan)).revision).toBe(4);
     expect((await client.addPlanNextStep(nextStep)).revision).toBe(4);
     expect((await client.decomposePlanNode(decomposition)).revision).toBe(4);
     expect((await client.setPlanAssignment(assignment)).revision).toBe(4);
+    expect((await client.mutatePlanLifecycle("session-1", "plan-1", 6, "Start")).revision).toBe(4);
     expect(requests).toEqual([
+      { operation: "plan_create", payload: creation },
+      { operation: "plan_replan", payload: replan },
       { operation: "plan_next_step", payload: nextStep },
       { operation: "plan_decompose", payload: decomposition },
       { operation: "plan_assignment", payload: assignment },
+      {
+        operation: "plan_lifecycle",
+        payload: {
+          session: { id: "session-1" },
+          plan: "plan-1",
+          expected_revision: 6,
+          action: "Start",
+        },
+      },
     ]);
   });
 });

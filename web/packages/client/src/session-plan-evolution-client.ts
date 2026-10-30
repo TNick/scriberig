@@ -1,10 +1,14 @@
 /** @file Adds shared semantic plan mutation and evolution operations. */
 
 import type {
+  SessionPlanAction,
   SessionPlan,
   SessionPlanAssignmentMutationRequest,
+  SessionPlanCreateRequest,
   SessionPlanDecomposeRequest,
+  SessionPlanLifecycleRequest,
   SessionPlanNextStepRequest,
+  SessionPlanReplanRequest,
   SessionPlanSemanticMutation,
 } from "@scriberig/protocol";
 import { normalizeSessionPlan } from "./session-plan-views";
@@ -16,6 +20,54 @@ import { PlanNodeDetailsClient } from "./plan-node-details-client";
  * Private members: None.
  */
 export class SessionPlanEvolutionClient extends PlanNodeDetailsClient {
+  /** Creates a durable plan through the shared application route.
+   * @param request Exact session anchor and structured plan proposal.
+   * @param signal Optional request cancellation signal.
+   * @returns The authoritative newly created plan projection.
+   */
+  createPlan(request: SessionPlanCreateRequest, signal?: AbortSignal): Promise<SessionPlan> {
+    return this.transport
+      .request<unknown>("plan_create", request, signal)
+      .then(normalizeSessionPlan);
+  }
+
+  /** Applies a revision-checked shared plan lifecycle transition.
+   * @param sessionId Owning durable session.
+   * @param planId Stable plan identity.
+   * @param expectedRevision Plan mutation revision observed by the caller.
+   * @param action Supported lifecycle action.
+   * @param signal Optional request cancellation signal.
+   * @returns The authoritative updated plan projection.
+   */
+  mutatePlanLifecycle(
+    sessionId: string,
+    planId: string,
+    expectedRevision: number,
+    action: SessionPlanAction,
+    signal?: AbortSignal,
+  ): Promise<SessionPlan> {
+    const request: SessionPlanLifecycleRequest = {
+      session: { id: sessionId },
+      plan: planId,
+      expected_revision: expectedRevision,
+      action,
+    };
+    return this.transport
+      .request<unknown>("plan_lifecycle", request, signal)
+      .then(normalizeSessionPlan);
+  }
+
+  /** Applies a structured replan through the shared application route.
+   * @param request Observed revision, replacement proposal, and preservation set.
+   * @param signal Optional request cancellation signal.
+   * @returns The authoritative updated plan projection.
+   */
+  replan(request: SessionPlanReplanRequest, signal?: AbortSignal): Promise<SessionPlan> {
+    return this.transport
+      .request<unknown>("plan_replan", request, signal)
+      .then(normalizeSessionPlan);
+  }
+
   /** Updates or clears a node assignment through the shared application route.
    * @param request Plan revision and safe upstream provider/model selection.
    * @param signal Optional request cancellation signal.

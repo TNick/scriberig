@@ -1,5 +1,6 @@
 /** @file Defines typed plan projections and mutations for session clients. */
 import type { BranchId } from "./ids";
+export * from "./session-plan-operations";
 
 /** Durable lifecycle state for a planned work item. */
 export type SessionPlanNodeStatus =
@@ -248,104 +249,6 @@ export interface SessionPlanSemanticMutationRequest {
   plan: string;
   expected_revision: number;
   mutation: SessionPlanSemanticMutation;
-}
-
-/** Proposed structural child work item for plan evolution. */
-export interface SessionPlanChildDraft {
-  /** Human-readable work title. */
-  title: string;
-  /** Focused work instruction. */
-  purpose: string;
-  /** Provider-neutral result contract, when required. */
-  expected_result?: SessionPlanExpectedResultRequest;
-  /** Semantic handles selected for the work. */
-  semantic_scope: readonly string[];
-  /** Optional upstream model-library assignment in protocol field casing. */
-  assignment?: SessionPlanAssignmentRequest;
-}
-
-/** Provider-neutral result requirements in transport field casing. */
-export interface SessionPlanExpectedResultRequest {
-  /** Result category. */
-  kind: string;
-  /** Whether completion must reference a durable result handle. */
-  requires_handle: boolean;
-}
-
-/** Safe model-library assignment in transport field casing. */
-export interface SessionPlanAssignmentRequest {
-  /** Upstream provider identity. */
-  provider_id: string;
-  /** Provider-scoped model identity. */
-  model_id: string;
-  /** Optional advertised thinking level. */
-  thinking_level?: string;
-}
-
-/** Request to append ordinary work to a running plan.
- * @param session Owning durable session.
- * @param plan Stable plan identity.
- * @param expected_revision Plan mutation revision observed by the caller.
- * @param title Human-readable work title.
- * @param purpose Focused work instruction.
- * @param expected_result Optional provider-neutral result contract.
- * @param semantic_scope Semantic handles selected for this work.
- * @param assignment Optional upstream model-library assignment.
- */
-export interface SessionPlanNextStepRequest {
-  /** Owning durable session. */
-  session: { id: string };
-  /** Stable plan identity. */
-  plan: string;
-  /** Plan mutation revision observed by the caller. */
-  expected_revision: number;
-  /** Human-readable work title. */
-  title: string;
-  /** Focused work instruction. */
-  purpose: string;
-  /** Optional provider-neutral result contract. */
-  expected_result?: SessionPlanExpectedResultRequest;
-  /** Semantic handles selected for this work. */
-  semantic_scope: readonly string[];
-  /** Optional upstream model-library assignment. */
-  assignment?: SessionPlanAssignmentRequest;
-}
-
-/** Request to decompose one plan node into structural children.
- * @param session Owning durable session.
- * @param plan Stable plan identity.
- * @param parent Stable identity of the node to decompose.
- * @param expected_revision Plan mutation revision observed by the caller.
- * @param children Proposed structural child work items.
- * @param required Whether each child is required for parent completion.
- */
-export interface SessionPlanDecomposeRequest {
-  /** Owning durable session. */
-  session: { id: string };
-  /** Stable plan identity. */
-  plan: string;
-  /** Stable identity of the node to decompose. */
-  parent: string;
-  /** Plan mutation revision observed by the caller. */
-  expected_revision: number;
-  /** Proposed structural child work items. */
-  children: readonly SessionPlanChildDraft[];
-  /** Whether each child is required for parent completion. */
-  required: boolean;
-}
-
-/** Request to update or clear one node's model-library assignment. */
-export interface SessionPlanAssignmentMutationRequest {
-  /** Owning durable session. */
-  session: { id: string };
-  /** Stable plan identity. */
-  plan: string;
-  /** Stable node identity. */
-  node: string;
-  /** Plan mutation revision observed by the caller. */
-  expected_revision: number;
-  /** New safe upstream assignment, or null to inherit defaults. */
-  assignment: SessionPlanAssignmentRequest | null;
 }
 
 /** Reads a bounded page of node attempts at an exact semantic snapshot. */

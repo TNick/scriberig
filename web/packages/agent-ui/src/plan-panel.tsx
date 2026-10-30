@@ -1,6 +1,7 @@
 /** @file Presents durable plan state and shared plan operations. */
 
 import type {
+  BranchDescriptor,
   SessionId,
   SessionPlan,
   SessionPlanAttempt,
@@ -10,6 +11,7 @@ import type {
 import { useScriberig } from "@scriberig/react";
 import { useEffect, useState, type ReactElement } from "react";
 import { PlanAssignmentForm } from "./plan-assignment-form";
+import { PlanCreateForm, PlanLifecycleActions, PlanReplanForm } from "./plan-management-forms";
 import { PlanNodeAuthoringForm } from "./plan-node-authoring-form";
 
 /** Displays plan nodes, exact-snapshot evidence, attempts, and recovery actions.
@@ -22,10 +24,12 @@ import { PlanNodeAuthoringForm } from "./plan-node-authoring-form";
 export function PlanPanel({
   sessionId,
   plans,
+  branches = [],
   onPlanUpdated,
 }: {
   sessionId: SessionId;
   plans: readonly SessionPlan[];
+  branches?: readonly BranchDescriptor[];
   onPlanUpdated: () => Promise<void>;
 }): ReactElement | null {
   const { client } = useScriberig();
@@ -76,8 +80,6 @@ export function PlanPanel({
     };
   }, [client, node, plan, sessionId]);
 
-  if (plans.length === 0) return null;
-
   const mutate = async (action: () => Promise<unknown>): Promise<void> => {
     setBusy(true);
     setMessage("");
@@ -94,11 +96,13 @@ export function PlanPanel({
   return (
     <section aria-label="Plans">
       <h2>Plans</h2>
+      <PlanCreateForm sessionId={sessionId} branches={branches} onPlanUpdated={onPlanUpdated} />
       {plans.map((item) => (
         <section key={item.id} aria-label={`Plan ${item.goal}`}>
           <h3>
             {item.goal} ({item.status})
           </h3>
+          <PlanLifecycleActions sessionId={sessionId} plan={item} onPlanUpdated={onPlanUpdated} />
           {item.status === "Running" ? (
             <form
               aria-label={`Add next step to ${item.goal}`}
@@ -168,6 +172,12 @@ export function PlanPanel({
           <p>{node.purpose}</p>
           <p>{node.summaryPreview ?? "No summary"}</p>
           <PlanNodeAuthoringForm
+            sessionId={sessionId}
+            plan={plan}
+            node={node}
+            onPlanUpdated={onPlanUpdated}
+          />
+          <PlanReplanForm
             sessionId={sessionId}
             plan={plan}
             node={node}
