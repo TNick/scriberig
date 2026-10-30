@@ -18,10 +18,10 @@
     node: &amp;PlanNode,
     claim: &amp;WorkerClaim,
     execution: &amp;ResolvedPlanExecution,
-    worker_context: &amp;PlanWorkerContext,
+    worker_context: &amp;<a class="struct" href="../../../scriberig_agent_runtime/plan_context/struct.PlanWorkerContext.html" title="struct scriberig_agent_runtime::plan_context::PlanWorkerContext">PlanWorkerContext</a>,
     cancelled: &amp;<a class="type" href="https://doc.rust-lang.org/1.99.1/core/sync/atomic/type.AtomicBool.html" title="type core::sync::atomic::AtomicBool">AtomicBool</a>,
     connection: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;PlanWorkerExecutionResult&gt;, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Attempts the upstream provider path when production composition exists.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../../../scriberig_agent_runtime/scheduler/results/struct.PlanWorkerExecutionResult.html" title="struct scriberig_agent_runtime::scheduler::results::PlanWorkerExecutionResult">PlanWorkerExecutionResult</a>&gt;, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Attempts the upstream provider path when production composition exists.</p>
 <ul>
 <li><code>node</code>: Exact durable work node selected by the coordinator.</li>
 <li><code>claim</code>: Exclusive branch claim persisted before provider execution.</li>
@@ -39,12 +39,12 @@
     node: &amp;PlanNode,
     claim: &amp;WorkerClaim,
     execution: &amp;ResolvedPlanExecution,
-    worker_context: &amp;PlanWorkerContext,
+    worker_context: &amp;<a class="struct" href="../../../scriberig_agent_runtime/plan_context/struct.PlanWorkerContext.html" title="struct scriberig_agent_runtime::plan_context::PlanWorkerContext">PlanWorkerContext</a>,
     cancelled: &amp;<a class="type" href="https://doc.rust-lang.org/1.99.1/core/sync/atomic/type.AtomicBool.html" title="type core::sync::atomic::AtomicBool">AtomicBool</a>,
     upstream_provider: <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;dyn Provider&gt;,
     model: Model,
     request_secret: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;RequestSecret&gt;,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;PlanWorkerExecutionResult, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Executes one branch using an already authorized upstream provider.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../../scriberig_agent_runtime/scheduler/results/struct.PlanWorkerExecutionResult.html" title="struct scriberig_agent_runtime::scheduler::results::PlanWorkerExecutionResult">PlanWorkerExecutionResult</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Executes one branch using an already authorized upstream provider.</p>
 <h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
 <ul>
 <li><code>node</code>: Exact durable work node selected by the coordinator.</li>
@@ -79,8 +79,8 @@
 </ul>
 <h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
 <p>The configured worker executor.</p>
-</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-PlanWorkerExecutor-for-NativePlanWorkerExecutor%3C'_,+B%3E" class="impl"><a class="src rightside" href="../../../src/srig/native_tui_agent/plan_worker.rs.html#106-241">Source</a><a href="#impl-PlanWorkerExecutor-for-NativePlanWorkerExecutor%3C'_,+B%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; PlanWorkerExecutor for <a class="struct" href="struct.NativePlanWorkerExecutor.html" title="struct srig::native_tui_agent::plan_worker::NativePlanWorkerExecutor">NativePlanWorkerExecutor</a>&lt;'_, B&gt;<div class="where">where
-    B: ApplicationBackend + <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.execute" class="method trait-impl"><a class="src rightside" href="../../../src/srig/native_tui_agent/plan_worker.rs.html#125-132">Source</a><a href="#method.execute" class="anchor">§</a><h4 class="code-header">fn <a class="fn">execute</a>(
+</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-PlanWorkerExecutor-for-NativePlanWorkerExecutor%3C'_,+B%3E" class="impl"><a class="src rightside" href="../../../src/srig/native_tui_agent/plan_worker.rs.html#106-241">Source</a><a href="#impl-PlanWorkerExecutor-for-NativePlanWorkerExecutor%3C'_,+B%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="trait" href="../../../scriberig_agent_runtime/scheduler/trait.PlanWorkerExecutor.html" title="trait scriberig_agent_runtime::scheduler::PlanWorkerExecutor">PlanWorkerExecutor</a> for <a class="struct" href="struct.NativePlanWorkerExecutor.html" title="struct srig::native_tui_agent::plan_worker::NativePlanWorkerExecutor">NativePlanWorkerExecutor</a>&lt;'_, B&gt;<div class="where">where
+    B: ApplicationBackend + <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.execute" class="method trait-impl"><a class="src rightside" href="../../../src/srig/native_tui_agent/plan_worker.rs.html#125-132">Source</a><a href="#method.execute" class="anchor">§</a><h4 class="code-header">fn <a href="../../../scriberig_agent_runtime/scheduler/trait.PlanWorkerExecutor.html#tymethod.execute" class="fn">execute</a>(
     &amp;self,
     _node: &amp;PlanNode,
     _claim: &amp;WorkerClaim,
@@ -100,12 +100,12 @@ without its exact continuation and dependency inputs.</p>
 <p>An error explaining that the exact context is required.</p>
 <h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
 <p>Always returns an error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.execute_with_context" class="method trait-impl"><a class="src rightside" href="../../../src/srig/native_tui_agent/plan_worker.rs.html#149-158">Source</a><a href="#method.execute_with_context" class="anchor">§</a><h4 class="code-header">fn <a class="fn">execute_with_context</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.execute_with_context" class="method trait-impl"><a class="src rightside" href="../../../src/srig/native_tui_agent/plan_worker.rs.html#149-158">Source</a><a href="#method.execute_with_context" class="anchor">§</a><h4 class="code-header">fn <a href="../../../scriberig_agent_runtime/scheduler/trait.PlanWorkerExecutor.html#method.execute_with_context" class="fn">execute_with_context</a>(
     &amp;self,
     node: &amp;PlanNode,
     claim: &amp;WorkerClaim,
     execution: &amp;ResolvedPlanExecution,
-    worker_context: &amp;PlanWorkerContext,
+    worker_context: &amp;<a class="struct" href="../../../scriberig_agent_runtime/plan_context/struct.PlanWorkerContext.html" title="struct scriberig_agent_runtime::plan_context::PlanWorkerContext">PlanWorkerContext</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;BranchResult, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Runs the provider and semantic tools inside the claimed isolated branch.</p>
 <ul>
 <li><code>node</code>: Exact durable work node selected by the coordinator.</li>
@@ -120,13 +120,13 @@ local branch context compiled by the shared runtime.</li>
 <p>The durable branch result.</p>
 <h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
 <p>Returns an error when worker execution fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.execute_with_context_and_requests" class="method trait-impl"><a class="src rightside" href="../../../src/srig/native_tui_agent/plan_worker.rs.html#172-240">Source</a><a href="#method.execute_with_context_and_requests" class="anchor">§</a><h4 class="code-header">fn <a class="fn">execute_with_context_and_requests</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.execute_with_context_and_requests" class="method trait-impl"><a class="src rightside" href="../../../src/srig/native_tui_agent/plan_worker.rs.html#172-240">Source</a><a href="#method.execute_with_context_and_requests" class="anchor">§</a><h4 class="code-header">fn <a href="../../../scriberig_agent_runtime/scheduler/trait.PlanWorkerExecutor.html#method.execute_with_context_and_requests" class="fn">execute_with_context_and_requests</a>(
     &amp;self,
     node: &amp;PlanNode,
     claim: &amp;WorkerClaim,
     execution: &amp;ResolvedPlanExecution,
-    worker_context: &amp;PlanWorkerContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;PlanWorkerExecutionResult, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Runs a claimed worker and returns its bounded request projections.</p>
+    worker_context: &amp;<a class="struct" href="../../../scriberig_agent_runtime/plan_context/struct.PlanWorkerContext.html" title="struct scriberig_agent_runtime::plan_context::PlanWorkerContext">PlanWorkerContext</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../../scriberig_agent_runtime/scheduler/results/struct.PlanWorkerExecutionResult.html" title="struct scriberig_agent_runtime::scheduler::results::PlanWorkerExecutionResult">PlanWorkerExecutionResult</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Runs a claimed worker and returns its bounded request projections.</p>
 <ul>
 <li><code>node</code>: Exact durable work node selected by the coordinator.</li>
 <li><code>claim</code>: Exclusive branch claim persisted before provider execution.</li>

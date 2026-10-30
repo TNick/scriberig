@@ -7787,6 +7787,20 @@ evidence fails the gate, and an explicitly waived gate remains visibly
 waived. A new completion regression confirms a pending completion gate keeps
 the plan Running and waiver allows completion. The <code>plan_semantic</code> target
 passes all 22 tests.</p>
+<p>Implementation update (2026-10-30): required decomposition coverage now proves
+the generated <code>RequiredChildCompleted</code> gate keeps plan completion blocked
+while the child is unfinished, then permits completion after the child has an
+accepted result. The focused <code>plan_semantic</code> target passes.</p>
+<p>Implementation update (2026-10-30): a scheduler regression forces a node's
+direct status to stale <code>Ready</code> after adding a pending canonical entry gate and
+proves the scheduler re-evaluates the gate before dispatch. The focused
+scheduler test passes. The separate rollup-cache-corruption dispatch scenario
+remains open because the scheduler currently receives canonical Plan state and
+does not consume the rollup cache.</p>
+<p>Implementation update (2026-10-30): a focused session regression now isolates
+stale coordinator recovery from worker-claim recovery. After recovery releases
+the coordinator claim, attempting to dispatch a still-ready node fails without
+advancing the plan revision. The focused session-structure test passes.</p>
 <p>Implementation update (2026-10-30): incremental rollup conformance now compares
 the cache against reference evaluation across all direct statuses, failed and
 running siblings, ignored and other abandoned descendants, completion-gate
@@ -8652,7 +8666,7 @@ The focused durable test passes.</p>
 <ul>
 <li>[x] Running plan accepts next step.</li>
 <li>[x] Running plan accepts required decomposition.</li>
-<li>[ ] Parent completion becomes blocked by new required child gate.</li>
+<li>[x] Parent completion becomes blocked by new required child gate.</li>
 <li>[x] Replan remains reserved for replacement/invalidation cases.</li>
 </ul>
 <h2 id="task-126-restartreconnect-tests">Task 12.6 — Restart/reconnect tests<a class="headerlink" href="#task-126-restartreconnect-tests" title="Permanent link">&para;</a></h2>
@@ -8738,7 +8752,7 @@ The focused durable test passes.</p>
 <li>[x] Protocol/client/server tests pass when touched.</li>
 <li>[x] Web tests/typecheck pass when touched.</li>
 <li>[ ] TUI tests pass only against the upstream-first component architecture when that phase is implemented.</li>
-<li>[ ] Repository lint/format/clippy gates for touched code pass.</li>
+<li>[x] Repository lint/format/clippy gates for touched code pass.</li>
 </ul>
 <hr />
 <h1 id="21-final-review">21. Final Review<a class="headerlink" href="#21-final-review" title="Permanent link">&para;</a></h1>
