@@ -5,6 +5,8 @@ use scriberig_core::EntityId;
 use super::super::Plan;
 use super::{PlanSemanticError, PlanSemanticSnapshot};
 
+#[path = "encode/details.rs"]
+mod details;
 #[path = "encode/helpers.rs"]
 mod helpers;
 pub(super) use helpers::{parent_identity, push_object, push_relation, relation_id};
@@ -20,6 +22,7 @@ pub(super) const EVIDENCE_TYPE: &str = crate::schema::SessionEntityType::PlanEvi
 pub(super) const SUMMARY_TYPE: &str = crate::schema::SessionEntityType::PlanSummary.as_str();
 pub(super) const SUMMARY_LINK_TYPE: &str =
     crate::schema::SessionEntityType::PlanSummaryLink.as_str();
+pub(super) const ATTEMPT_TYPE: &str = crate::schema::SessionEntityType::PlanAttempt.as_str();
 
 /// Encodes stable plan-level lifecycle and coordinator fields.
 #[derive(serde::Serialize)]
@@ -160,10 +163,29 @@ struct EvidencePayload<'a> {
     actor: Option<EntityId>,
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "The canonical encoder keeps all semantic record families in one deterministic pass."
-)]
+/// Encodes one isolated worker attempt independently from its plan node.
+#[derive(serde::Serialize)]
+struct AttemptPayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    branch: EntityId,
+    claim_generation: u64,
+    claim: Option<EntityId>,
+    status: super::super::PlanNodeStatus,
+    result: Option<EntityId>,
+    failure: &'a Option<super::super::PlanEvidenceReference>,
+}
+
+/// Provides stable identity for one plan-node execution generation.
+#[derive(serde::Serialize)]
+struct AttemptIdentity {
+    plan: EntityId,
+    node: EntityId,
+    branch: EntityId,
+    claim_generation: u64,
+}
+
 /// Encodes a plan view into current independently revisioned objects.
 ///
 /// # Parameters
@@ -173,8 +195,11 @@ struct EvidencePayload<'a> {
 /// A stable object set sorted by entity and type identity.
 ///
 /// # Errors
-/// Returns a serialization or canonical identity error.
+/// Returns a serialization, canonical identity, or graph validation error.
 pub(super) fn from_plan(plan: &Plan) -> Result<PlanSemanticSnapshot, PlanSemanticError> {
+    plan.node_rollups().map_err(|error| {
+        PlanSemanticError::InvalidObject(format!("invalid plan structure: {error:?}"))
+    })?;
     let mut objects = Vec::new();
     push_object(
         &mut objects,
@@ -255,104 +280,7 @@ pub(super) fn from_plan(plan: &Plan) -> Result<PlanSemanticSnapshot, PlanSemanti
         )?;
     }
 
-    for dependency in &plan.dependencies {
-        let payload = DependencyPayload {
-            schema_version: 1,
-            plan: plan.id,
-            prerequisite: dependency.prerequisite,
-            dependent: dependency.dependent,
-            fulfilled_by: dependency.fulfilled_by,
-        };
-        push_relation(
-            &mut objects,
-            DEPENDENCY_TYPE,
-            &DependencyIdentity {
-                plan: plan.id,
-                prerequisite: dependency.prerequisite,
-                dependent: dependency.dependent,
-            },
-            &payload,
-        )?;
-    }
-
-    for summary in &plan.summaries {
-        push_object(
-            &mut objects,
-            summary.id,
-            SUMMARY_TYPE,
-            &SummaryPayload {
-                schema_version: 1,
-                plan: plan.id,
-                node: summary.node,
-                text: &summary.text,
-                sources: &summary.sources,
-            },
-        )?;
-        push_relation(
-            &mut objects,
-            SUMMARY_LINK_TYPE,
-            &RelationIdentity {
-                owner: summary.node,
-                target: summary.id,
-            },
-            &SummaryLinkPayload {
-                schema_version: 1,
-                plan: plan.id,
-                node: summary.node,
-                summary: summary.id,
-            },
-        )?;
-    }
-
-    for gate in &plan.gates {
-        push_object(
-            &mut objects,
-            gate.id,
-            GATE_TYPE,
-            &GatePayload {
-                schema_version: 1,
-                plan: plan.id,
-                owner: gate.owner,
-                phase: gate.phase,
-                requirement: &gate.requirement,
-                waiver: &gate.waiver,
-            },
-        )?;
-    }
-
-    for association in &plan.evidence {
-        push_object(
-            &mut objects,
-            association.id,
-            EVIDENCE_TYPE,
-            &EvidencePayload {
-                schema_version: 1,
-                plan: plan.id,
-                owner: association.owner,
-                role: association.role,
-                evidence: &association.evidence,
-                note: &association.note,
-                actor: association.actor,
-            },
-        )?;
-    }
-
-    for history in &plan.history {
-        push_relation(
-            &mut objects,
-            HISTORY_TYPE,
-            &HistoryIdentity {
-                plan: plan.id,
-                mutation_revision: history.revision,
-            },
-            &HistoryPayload {
-                schema_version: 1,
-                plan: plan.id,
-                mutation_revision: history.revision,
-                reason: &history.reason,
-            },
-        )?;
-    }
+    details::append_related(plan, &mut objects)?;
 
     objects.sort_by(|left, right| {
         (&left.entity, left.object_type.as_str()).cmp(&(&right.entity, right.object_type.as_str()))

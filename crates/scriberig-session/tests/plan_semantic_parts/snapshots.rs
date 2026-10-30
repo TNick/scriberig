@@ -112,6 +112,48 @@ fn semantic_plan_node_revision_is_independent_from_plan_revision() {
     assert_ne!(original_node.revision, changed_node.revision);
 }
 
+/// Keeps each worker attempt independently identified across status revisions.
+#[test]
+fn semantic_plan_attempt_has_stable_identity_and_exact_revision() {
+    let mut running = plan();
+    let node = running.nodes[0].id;
+    let branch = EntityId::from_bytes([81; 16]);
+    let claim = EntityId::from_bytes([82; 16]);
+    running
+        .start_with_coordinator_claim(EntityId::from_bytes([83; 16]), "coordinator", None)
+        .expect("start plan");
+    running
+        .start_node(node, branch, claim, "worker", &[])
+        .expect("start worker attempt");
+    let running_attempt = PlanSemanticSnapshot::from_plan(&running)
+        .expect("encode running plan")
+        .attempts()
+        .expect("read attempt")
+        .into_iter()
+        .next()
+        .expect("running attempt exists");
+
+    let mut failed = running.clone();
+    failed
+        .fail_node(node, claim)
+        .expect("settle failed attempt");
+    let failed_attempt = PlanSemanticSnapshot::from_plan(&failed)
+        .expect("encode failed plan")
+        .attempts()
+        .expect("read attempt")
+        .into_iter()
+        .next()
+        .expect("failed attempt exists");
+
+    assert_eq!(running_attempt.entity, failed_attempt.entity);
+    assert_ne!(running_attempt.revision, failed_attempt.revision);
+    assert_eq!(running_attempt.node, node);
+    assert_eq!(running_attempt.branch, branch);
+    assert_eq!(running_attempt.claim, Some(claim));
+    assert_eq!(running_attempt.status, PlanNodeStatus::Running);
+    assert_eq!(failed_attempt.status, PlanNodeStatus::Failed);
+}
+
 /// Changes structural parentage without revising the node content object.
 #[test]
 fn semantic_reparenting_revises_structure_without_revising_node_content() {

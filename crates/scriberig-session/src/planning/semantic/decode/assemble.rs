@@ -4,12 +4,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::encode::RelationIdentity;
 use super::{
-    DEPENDENCY_TYPE, DependencyIdentity, DependencyPayload, EVIDENCE_TYPE, EvidencePayload,
-    GATE_TYPE, GatePayload, HISTORY_TYPE, HistoryIdentity, HistoryPayload, MEMBERSHIP_TYPE,
-    MembershipPayload, NODE_TYPE, NodePayload, PLAN_TYPE, PlanPayload, PlanSemanticError,
-    PlanSemanticSnapshot, STRUCTURE_TYPE, SUMMARY_LINK_TYPE, SUMMARY_TYPE, StructurePayload,
-    SummaryLinkPayload, SummaryPayload, decode_payload, invalid, parent_identity, relation_id,
-    validate_revision,
+    ATTEMPT_TYPE, DEPENDENCY_TYPE, DependencyIdentity, DependencyPayload, EVIDENCE_TYPE,
+    EvidencePayload, GATE_TYPE, GatePayload, HISTORY_TYPE, HistoryIdentity, HistoryPayload,
+    MEMBERSHIP_TYPE, MembershipPayload, NODE_TYPE, NodePayload, PLAN_TYPE, PlanPayload,
+    PlanSemanticError, PlanSemanticSnapshot, STRUCTURE_TYPE, SUMMARY_LINK_TYPE, SUMMARY_TYPE,
+    StructurePayload, SummaryLinkPayload, SummaryPayload, decode_payload, invalid, parent_identity,
+    relation_id, validate_revision,
 };
 use crate::planning::{
     Plan, PlanDependency, PlanEvidenceAssociation, PlanEvidenceOwner, PlanGate,
@@ -35,6 +35,7 @@ pub(in crate::planning::semantic) fn into_plan(
     snapshot: &PlanSemanticSnapshot,
     history: Vec<PlanRevision>,
 ) -> Result<Plan, PlanSemanticError> {
+    super::attempts(snapshot)?;
     let mut plan_payload = None;
     let mut nodes = BTreeMap::new();
     let mut memberships = BTreeMap::new();
@@ -210,6 +211,7 @@ pub(in crate::planning::semantic) fn into_plan(
                     actor: payload.actor,
                 });
             }
+            ATTEMPT_TYPE => {}
             type_name => {
                 return Err(invalid(format!(
                     "unsupported semantic object type {type_name}"

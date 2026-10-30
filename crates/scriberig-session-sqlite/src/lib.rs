@@ -11,17 +11,17 @@ mod semantic_plans;
 pub use payload::LegacyExecutionRecord;
 
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use rusqlite::{Connection, TransactionBehavior, params};
-use scriberig_core::EntityId;
+use scriberig_core::{EntityId, SnapshotId};
 use scriberig_session::{PlanStoreError, SelectionStoreError, Session, SessionStore};
 use scriberig_store_sqlite::SqliteStore;
 
 /// SQLite-backed repository for immutable session graph snapshots.
 pub struct SqliteSessionStore {
     /// Connection guarded for serialized repository operations.
-    connection: Mutex<Connection>,
+    connection: Arc<Mutex<Connection>>,
     /// Universal immutable store used as canonical plan persistence.
     semantic_store: SqliteStore,
 }
@@ -40,7 +40,8 @@ impl SqliteSessionStore {
     /// Returns an error when the operation fails.
     pub fn open(path: impl AsRef<Path>) -> rusqlite::Result<Self> {
         let path = path.as_ref();
-        Self::from_connections(Connection::open(path)?, SqliteStore::open(path)?)
+        let semantic_store = SqliteStore::open(path)?;
+        Self::from_semantic_store(semantic_store)
     }
 
     /// Creates an isolated in-memory session repository.
@@ -53,10 +54,8 @@ impl SqliteSessionStore {
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn open_in_memory() -> rusqlite::Result<Self> {
-        Self::from_connections(
-            Connection::open_in_memory()?,
-            SqliteStore::open_in_memory()?,
-        )
+        let semantic_store = SqliteStore::open_in_memory()?;
+        Self::from_semantic_store(semantic_store)
     }
 
     /// Initializes the repository schema and universal semantic store.
@@ -71,18 +70,20 @@ impl SqliteSessionStore {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    fn from_connections(
-        connection: Connection,
-        semantic_store: SqliteStore,
-    ) -> rusqlite::Result<Self> {
-        connection.execute_batch(
+    fn from_semantic_store(semantic_store: SqliteStore) -> rusqlite::Result<Self> {
+        let connection = semantic_store.shared_connection();
+        let connection_guard = connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        connection_guard.execute_batch(
             "CREATE TABLE IF NOT EXISTS session_records (
                  session_id BLOB PRIMARY KEY,
                  payload BLOB NOT NULL
              );",
         )?;
+        drop(connection_guard);
         Ok(Self {
-            connection: Mutex::new(connection),
+            connection,
             semantic_store,
         })
     }
@@ -103,11 +104,11 @@ impl SessionStore for SqliteSessionStore {
     /// # Errors
     /// Returns an error when stored sessions cannot be read or decoded.
     fn list(&self) -> Result<Vec<Session>, String> {
-        let mut connection = self
-            .connection
-            .lock()
-            .map_err(|_| "session repository lock poisoned".to_owned())?;
         let records = {
+            let connection = self
+                .connection
+                .lock()
+                .map_err(|_| "session repository lock poisoned".to_owned())?;
             let mut statement = connection
                 .prepare("SELECT session_id, payload FROM session_records ORDER BY session_id")
                 .map_err(|error| error.to_string())?;
@@ -133,6 +134,10 @@ impl SessionStore for SqliteSessionStore {
             sessions.push(decoded.session);
         }
         if !rewrites.is_empty() {
+            let mut connection = self
+                .connection
+                .lock()
+                .map_err(|_| "session repository lock poisoned".to_owned())?;
             let transaction = connection
                 .transaction_with_behavior(TransactionBehavior::Immediate)
                 .map_err(|error| error.to_string())?;
@@ -163,18 +168,20 @@ impl SessionStore for SqliteSessionStore {
     /// # Errors
     /// Returns an error when the operation fails.
     fn load(&self, session: EntityId) -> Result<Option<Session>, String> {
-        let mut connection = self
-            .connection
-            .lock()
-            .map_err(|_| "session repository lock poisoned".to_owned())?;
-        let payload = connection
-            .query_row(
-                "SELECT payload FROM session_records WHERE session_id=?1",
-                params![session.as_bytes().as_slice()],
-                |row| row.get::<_, Vec<u8>>(0),
-            )
-            .optional()
-            .map_err(|error| error.to_string())?;
+        let payload = {
+            let connection = self
+                .connection
+                .lock()
+                .map_err(|_| "session repository lock poisoned".to_owned())?;
+            connection
+                .query_row(
+                    "SELECT payload FROM session_records WHERE session_id=?1",
+                    params![session.as_bytes().as_slice()],
+                    |row| row.get::<_, Vec<u8>>(0),
+                )
+                .optional()
+                .map_err(|error| error.to_string())?
+        };
         let Some(payload) = payload else {
             return Ok(None);
         };
@@ -183,6 +190,10 @@ impl SessionStore for SqliteSessionStore {
         if !decoded.requires_rewrite {
             return Ok(Some(decoded.session));
         }
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| "session repository lock poisoned".to_owned())?;
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| error.to_string())?;
@@ -195,6 +206,48 @@ impl SessionStore for SqliteSessionStore {
             .map_err(|error| error.to_string())?;
         transaction.commit().map_err(|error| error.to_string())?;
         Ok(Some(decoded.session))
+    }
+
+    /// Loads one exact plan revision from its retained semantic history.
+    ///
+    /// - `session`: Owning durable session identity.
+    /// - `plan`: Stable plan identity.
+    /// - `snapshot`: Exact semantic snapshot to resolve.
+    ///
+    /// The plan projection or `None` when the snapshot is outside its history.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns a persistence diagnostic when ancestry or semantic data cannot
+    /// be read.
+    fn load_plan_at_snapshot(
+        &self,
+        session: EntityId,
+        plan: EntityId,
+        snapshot: SnapshotId,
+    ) -> Result<Option<scriberig_session::Plan>, String> {
+        self.load_plan_snapshot(session, plan, snapshot)
+    }
+
+    /// Loads compact plan metadata without fetching detailed semantic records.
+    ///
+    /// # Parameters
+    /// - `session`: Owning durable session identity.
+    /// - `plan`: Stable plan identity.
+    /// - `snapshot`: Exact semantic snapshot to resolve.
+    ///
+    /// # Returns
+    /// The compact plan view, or `None` outside the plan's retained history.
+    ///
+    /// # Errors
+    /// Returns a bounded persistence diagnostic when objects cannot be read.
+    fn load_plan_view_at_snapshot(
+        &self,
+        session: EntityId,
+        plan: EntityId,
+        snapshot: SnapshotId,
+    ) -> Result<Option<scriberig_session::PlanView>, String> {
+        self.load_plan_view_snapshot(session, plan, snapshot)
     }
 
     /// Removes one exact session graph from the SQLite repository.

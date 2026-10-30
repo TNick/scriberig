@@ -85,8 +85,8 @@ fn semantic_plan_requirement_records_round_trip_and_block_entry() {
             kind: PlanEvidenceKind::ValidationResult,
             reference: PlanSemanticReference {
                 entity: EntityId::from_bytes([9; 16]),
-                revision: None,
-                snapshot: None,
+                revision: Some(scriberig_core::RevisionId::new([10; 32])),
+                snapshot: Some(scriberig_core::SnapshotId::new([11; 32])),
             },
             attributes,
         },
@@ -94,28 +94,125 @@ fn semantic_plan_requirement_records_round_trip_and_block_entry() {
         actor: None,
     })
     .expect("evidence");
+    plan.attach_evidence(PlanEvidenceAssociation {
+        id: EntityId::from_bytes([13; 16]),
+        owner: PlanEvidenceOwner::Node(node_id),
+        role: PlanEvidenceRole::Informational,
+        evidence: PlanEvidenceReference {
+            kind: PlanEvidenceKind::BranchResult,
+            reference: PlanSemanticReference {
+                entity: EntityId::from_bytes([14; 16]),
+                revision: Some(scriberig_core::RevisionId::new([15; 32])),
+                snapshot: Some(scriberig_core::SnapshotId::new([16; 32])),
+            },
+            attributes: std::collections::BTreeMap::new(),
+        },
+        note: None,
+        actor: None,
+    })
+    .expect("branch result evidence");
     plan.update_summary(PlanNodeSummary {
         id: summary_id,
         node: node_id,
         text: "Validation is complete".to_owned(),
         sources: vec![PlanSemanticReference {
             entity: EntityId::from_bytes([9; 16]),
-            revision: None,
-            snapshot: None,
+            revision: Some(scriberig_core::RevisionId::new([10; 32])),
+            snapshot: Some(scriberig_core::SnapshotId::new([11; 32])),
         }],
     })
     .expect("summary");
 
     assert_eq!(plan.nodes[0].status, PlanNodeStatus::Ready);
     assert_eq!(plan.ready_nodes_from_results(&[]), vec![node_id]);
+    let evaluation = plan.evaluate_gate(gate_id).expect("evaluation");
+    assert_eq!(evaluation.status, PlanGateStatus::Satisfied);
     assert_eq!(
-        plan.evaluate_gate(gate_id).expect("evaluation").status,
-        PlanGateStatus::Satisfied
+        evaluation.supporting_evidence,
+        vec![plan.evidence[0].evidence.clone()]
     );
     let snapshot = PlanSemanticSnapshot::from_plan(&plan).expect("encode");
     let decoded = snapshot.into_plan(plan.history.clone()).expect("decode");
-
     assert_eq!(decoded, plan);
+    assert_summary_view(&plan, node_id, summary_id);
+}
+
+/// Verifies a plan node view retains its summary and work purpose.
+///
+/// # Parameters
+/// - `plan`: Plan used to project the node.
+/// - `node_id`: Stable node identity to inspect.
+/// - `summary_id`: Stable summary identity expected in the view.
+fn assert_summary_view(plan: &Plan, node_id: EntityId, summary_id: EntityId) {
+    let rollups = plan.node_rollups().expect("rollups");
+    let view = plan
+        .node_view(node_id, None, None, &rollups)
+        .expect("node view");
+
+    assert_eq!(view.summary_id, Some(summary_id));
+    assert_eq!(
+        view.summary_preview.as_deref(),
+        Some("Validation is complete")
+    );
+    assert_eq!(view.purpose, "validated step");
+    assert_eq!(view.result, None);
+}
+
+/// Marks a validation gate failed when exact evidence contradicts it.
+#[test]
+fn contradictory_validation_evidence_fails_entry_gate() {
+    let branch = EntityId::from_bytes([2; 16]);
+    let node_id = EntityId::from_bytes([4; 16]);
+    let gate_id = EntityId::from_bytes([6; 16]);
+    let mut plan = Plan::new(
+        EntityId::from_bytes([3; 16]),
+        EntityId::from_bytes([1; 16]),
+        ContinuationAnchor::BranchHead { branch },
+        "contradictory gate evidence",
+    )
+    .expect("plan");
+    plan.add_node(node(4, branch, "validated step"))
+        .expect("node");
+    plan.transition(PlanStatus::Planned).expect("planned");
+    plan.transition(PlanStatus::Running).expect("running");
+    plan.add_gate(PlanGate {
+        id: gate_id,
+        owner: node_id,
+        phase: PlanGatePhase::Entry,
+        requirement: PlanGateRequirement::ValidationPassed {
+            profile: Some("lint".to_owned()),
+        },
+        waiver: None,
+    })
+    .expect("gate");
+    plan.attach_evidence(PlanEvidenceAssociation {
+        id: EntityId::from_bytes([17; 16]),
+        owner: PlanEvidenceOwner::Gate(gate_id),
+        role: PlanEvidenceRole::Contradicts,
+        evidence: PlanEvidenceReference {
+            kind: PlanEvidenceKind::ValidationResult,
+            reference: PlanSemanticReference {
+                entity: EntityId::from_bytes([18; 16]),
+                revision: Some(scriberig_core::RevisionId::new([19; 32])),
+                snapshot: Some(scriberig_core::SnapshotId::new([20; 32])),
+            },
+            attributes: std::collections::BTreeMap::from([
+                ("passed".to_owned(), "false".to_owned()),
+                ("profile".to_owned(), "lint".to_owned()),
+            ]),
+        },
+        note: None,
+        actor: None,
+    })
+    .expect("contradict gate evidence");
+
+    assert_eq!(
+        plan.evaluate_gate(gate_id)
+            .expect("contradicted gate")
+            .status,
+        PlanGateStatus::Failed
+    );
+    assert_eq!(plan.ready_nodes_from_results(&[]), Vec::new());
 }
 
 /// Derives effective parent status and ignored/abandoned descendant flags.
@@ -165,6 +262,70 @@ fn plan_rollup_respects_required_abandoned_child_and_waiver() {
     assert_eq!(waived.effective_status, PlanNodeStatus::Completed);
     assert_eq!(waived.unsatisfied_completion_gates, 0);
     assert!(waived.contains_ignored);
+    assert_eq!(
+        plan.evaluate_gate(gate).expect("waived gate").status,
+        PlanGateStatus::Waived
+    );
+}
+
+/// Checks deterministic rollup precedence across required child outcomes.
+#[test]
+fn plan_rollup_status_cases_are_table_driven() {
+    let cases = [
+        (PlanNodeStatus::Planned, None, PlanNodeStatus::Planned),
+        (PlanNodeStatus::Ready, None, PlanNodeStatus::Ready),
+        (PlanNodeStatus::Running, None, PlanNodeStatus::Running),
+        (PlanNodeStatus::Failed, None, PlanNodeStatus::Failed),
+        (PlanNodeStatus::Completed, None, PlanNodeStatus::Completed),
+        (
+            PlanNodeStatus::Abandoned,
+            Some(scriberig_session::PlanAbandonReason::Ignored),
+            PlanNodeStatus::Planned,
+        ),
+    ];
+    let branch = EntityId::from_bytes([2; 16]);
+
+    for (index, (child_status, abandon_reason, expected)) in cases.into_iter().enumerate() {
+        let index = u8::try_from(index).expect("rollup case count fits in u8");
+        let parent_id = EntityId::from_bytes([100 + index; 16]);
+        let child_id = EntityId::from_bytes([120 + index; 16]);
+        let mut plan = Plan::new(
+            EntityId::from_bytes([140 + index; 16]),
+            EntityId::from_bytes([1; 16]),
+            ContinuationAnchor::BranchHead { branch },
+            "table-driven rollup",
+        )
+        .expect("plan");
+        plan.add_node(node(100 + index, branch, "parent"))
+            .expect("parent");
+        let mut child = node(120 + index, branch, "child");
+        child.parent = Some(PlanNodeParent::Node(parent_id));
+        plan.add_node(child).expect("child");
+        plan.add_gate(PlanGate {
+            id: EntityId::from_bytes([160 + index; 16]),
+            owner: parent_id,
+            phase: PlanGatePhase::Completion,
+            requirement: PlanGateRequirement::RequiredChildCompleted { child: child_id },
+            waiver: None,
+        })
+        .expect("required child gate");
+        let child_node = plan
+            .nodes
+            .iter_mut()
+            .find(|candidate| candidate.id == child_id)
+            .expect("child node");
+        child_node.status = child_status;
+        child_node.abandon_reason = abandon_reason;
+        plan.nodes
+            .iter_mut()
+            .find(|candidate| candidate.id == parent_id)
+            .expect("parent node")
+            .status = PlanNodeStatus::Completed;
+
+        let rollup = plan.node_rollups().expect("rollup")[&parent_id];
+        assert_eq!(rollup.effective_status, expected);
+        assert_eq!(rollup.contains_ignored, abandon_reason.is_some());
+    }
 }
 
 /// Rejects malformed structural cycles before deriving effective status.
@@ -182,113 +343,28 @@ fn plan_rollup_rejects_structural_cycles() {
     );
 }
 
-/// Keeps incremental status propagation equivalent to full reference rebuild.
+/// Prevents a malformed structural cycle from reaching semantic persistence.
 #[test]
-fn incremental_rollup_tracks_leaf_changes_and_reparenting() {
-    let branch = EntityId::from_bytes([2; 16]);
-    let mut plan = Plan::new(
-        EntityId::from_bytes([3; 16]),
-        EntityId::from_bytes([1; 16]),
-        ContinuationAnchor::BranchHead { branch },
-        "incremental rollups",
-    )
-    .expect("plan");
-    let mut parent = node(10, branch, "parent");
-    parent.status = PlanNodeStatus::Running;
-    plan.add_node(parent).expect("parent");
-    let mut child = node(11, branch, "child");
-    child.parent = Some(PlanNodeParent::Node(EntityId::from_bytes([10; 16])));
-    plan.add_node(child).expect("child");
-    let mut leaf = node(12, branch, "leaf");
-    leaf.parent = Some(PlanNodeParent::Node(EntityId::from_bytes([11; 16])));
-    plan.add_node(leaf).expect("leaf");
-    plan.add_node(node(13, branch, "other root"))
-        .expect("other root");
-    let first_snapshot = scriberig_core::SnapshotId::new([1; 32]);
-    let second_snapshot = scriberig_core::SnapshotId::new([2; 32]);
-    let third_snapshot = scriberig_core::SnapshotId::new([3; 32]);
-    let mut index = PlanNodeRollupIndex::rebuild(&plan, first_snapshot).expect("build index");
-    let leaf_id = EntityId::from_bytes([12; 16]);
-    plan.nodes
-        .iter_mut()
-        .find(|item| item.id == leaf_id)
-        .expect("leaf node")
-        .status = PlanNodeStatus::Failed;
-    index
-        .apply_change(&plan, first_snapshot, second_snapshot, &[leaf_id])
-        .expect("propagate leaf change");
-    assert_eq!(
-        index.all(),
-        &plan.node_rollups().expect("reference rollups")
-    );
+fn semantic_encoder_rejects_structural_cycles() {
+    let mut plan = plan();
+    let first = plan.nodes[0].id;
+    let second = plan.nodes[1].id;
+    plan.nodes[0].parent = Some(PlanNodeParent::Node(second));
+    plan.nodes[1].parent = Some(PlanNodeParent::Node(first));
 
-    let moved_node = EntityId::from_bytes([11; 16]);
-    let new_parent = EntityId::from_bytes([13; 16]);
-    plan.nodes
-        .iter_mut()
-        .find(|item| item.id == moved_node)
-        .expect("child node")
-        .parent = Some(PlanNodeParent::Node(new_parent));
-    index
-        .apply_change(&plan, second_snapshot, third_snapshot, &[moved_node])
-        .expect("propagate reparenting");
-    assert_eq!(
-        index.all(),
-        &plan.node_rollups().expect("reference rollups")
+    let encoded = PlanSemanticSnapshot::from_plan(&plan);
+    assert!(
+        matches!(
+            &encoded,
+            Err(scriberig_session::PlanSemanticError::InvalidObject(_))
+        ),
+        "{encoded:?}"
     );
-    assert_eq!(index.source_snapshot(), third_snapshot);
+    assert!(format!("{encoded:?}").contains("StructuralCycle"));
 }
 
-/// Refuses to reuse a derived index after its canonical base snapshot changes.
-#[test]
-fn incremental_rollup_rejects_a_stale_base_snapshot() {
-    let plan = plan();
-    let expected = scriberig_core::SnapshotId::new([1; 32]);
-    let stale = scriberig_core::SnapshotId::new([2; 32]);
-    let new = scriberig_core::SnapshotId::new([3; 32]);
-    let mut index = PlanNodeRollupIndex::rebuild(&plan, expected).expect("index");
-
-    assert_eq!(
-        index.apply_change(&plan, stale, new, &[plan.nodes[0].id]),
-        Err(scriberig_session::PlanError::StaleRollupIndex)
-    );
-    assert_eq!(index.source_snapshot(), expected);
-}
-
-/// Produces shared exact-revision views with dependency blockers and counts.
-#[test]
-fn plan_views_expose_exact_revisions_and_shared_blockers() {
-    let plan = plan();
-    let snapshot = scriberig_core::SnapshotId::new([25; 32]);
-    let plan_view = plan.plan_view(Some(snapshot)).expect("plan view");
-    let rollups = plan.node_rollups().expect("rollups");
-    let producer = EntityId::from_bytes([4; 16]);
-    let consumer = EntityId::from_bytes([5; 16]);
-    let consumer_view = plan
-        .node_view(consumer, Some(snapshot), Some(&[]), &rollups)
-        .expect("node view");
-    let semantic = PlanSemanticSnapshot::from_plan(&plan).expect("semantic records");
-    let plan_revision = semantic
-        .objects
-        .iter()
-        .find(|object| object.entity == plan.id)
-        .expect("plan revision");
-    let node_revision = semantic
-        .objects
-        .iter()
-        .find(|object| object.entity == consumer)
-        .expect("node revision");
-
-    assert_eq!(plan_view.revision, plan_revision.revision);
-    assert_eq!(plan_view.snapshot, Some(snapshot));
-    assert_eq!(plan_view.node_count, 2);
-    assert_eq!(plan_view.status_counts.ready, 1);
-    assert_eq!(plan_view.status_counts.planned, 1);
-    assert_eq!(consumer_view.revision, node_revision.revision);
-    assert_eq!(consumer_view.snapshot, Some(snapshot));
-    assert_eq!(consumer_view.dependency_blockers, vec![producer]);
-    assert_eq!(consumer_view.effective_status, PlanNodeStatus::Planned);
-}
+#[path = "plan_semantic_parts/rollup_views.rs"]
+mod rollup_views;
 
 #[path = "plan_semantic_parts/snapshots.rs"]
 mod snapshots;

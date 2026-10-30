@@ -372,9 +372,15 @@ fn plan_dependencies_and_assignments_survive_reopen() {
     let _ = std::fs::remove_file(path);
 }
 
+#[path = "durable_parts/compact_plan_view.rs"]
+mod compact_plan_view;
+#[path = "durable_parts/legacy_plan_migration.rs"]
+mod legacy_plan_migration;
 #[path = "durable_parts/part1.rs"]
 mod part1;
 #[path = "durable_parts/plan_attempt_recovery.rs"]
 mod plan_attempt_recovery;
+#[path = "durable_parts/plan_projection.rs"]
+mod plan_projection;
 #[path = "durable_parts/request_provenance.rs"]
 mod request_provenance;

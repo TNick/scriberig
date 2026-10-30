@@ -3,6 +3,7 @@
 #![allow(clippy::needless_pass_by_value)]
 
 mod connection;
+mod development;
 mod gc;
 mod indexes;
 mod integrity;
@@ -22,18 +23,19 @@ mod storage;
 mod workflow;
 
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-use rusqlite::Connection;
+use rusqlite::{Connection, TransactionBehavior};
 use scriberig_core::{ProjectId, RevisionId, RootName, SnapshotId};
-use scriberig_store::{Revision, Snapshot, SnapshotError};
+use scriberig_store::{Revision, SnapshotError};
 
 /// A durable SQLite-backed revision, snapshot, and root store.
 #[derive(Debug)]
 pub struct SqliteStore {
-    connection: Mutex<Connection>,
+    connection: Arc<Mutex<Connection>>,
 }
 
+pub use development::initialize_development_database;
 pub use project_files::{ProjectEntityRecord, ProjectFileRecord};
 pub use projects::{ProjectRecord, ProjectStatus};
 pub use workflow::{
@@ -107,8 +109,24 @@ impl SqliteStore {
         let mut connection = connection;
         schema::initialize(&mut connection)?;
         Ok(Self {
-            connection: Mutex::new(connection),
+            connection: Arc::new(Mutex::new(connection)),
         })
+    }
+
+    /// Shares this store's SQLite connection with a companion repository.
+    ///
+    /// The connection is useful when two SQLite-backed layers must commit
+    /// their rows in the same transaction.
+    ///
+    /// # Parameters
+    /// - `self`: Universal SQLite store owning the connection.
+    ///
+    /// A cloneable synchronized connection handle.
+    /// # Returns
+    /// The shared connection handle.
+    #[must_use]
+    pub fn shared_connection(&self) -> Arc<Mutex<Connection>> {
+        Arc::clone(&self.connection)
     }
 
     /// Returns the detected backend storage schema version.
@@ -184,6 +202,37 @@ impl SqliteStore {
         revisions: &[Revision],
         changes: &[scriberig_store::SnapshotChange],
     ) -> Result<SnapshotId, PromotionError> {
+        self.apply_revisions_and_promote_with(name, expected, base, revisions, changes, |_| Ok(()))
+    }
+
+    /// Promotes a snapshot and commits related SQLite rows in the same transaction.
+    ///
+    /// # Parameters
+    /// - `name`: Named root to promote.
+    /// - `expected`: Root value required for promotion.
+    /// - `base`: Existing snapshot to change.
+    /// - `revisions`: New immutable revisions to insert idempotently.
+    /// - `changes`: Mapping changes to apply to the base snapshot.
+    /// - `commit_related`: Related writes executed after root validation and
+    ///   before the transaction commits.
+    ///
+    /// The promoted immutable snapshot identity.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns a snapshot, missing-revision, stale-root, or transaction error.
+    pub fn apply_revisions_and_promote_with<F>(
+        &self,
+        name: scriberig_core::RootName,
+        expected: Option<SnapshotId>,
+        base: SnapshotId,
+        revisions: &[Revision],
+        changes: &[scriberig_store::SnapshotChange],
+        commit_related: F,
+    ) -> Result<SnapshotId, PromotionError>
+    where
+        F: FnOnce(&rusqlite::Transaction<'_>) -> Result<(), String>,
+    {
         let source = self.snapshot(base).map_err(PromotionError::Snapshot)?;
         let next = source.apply(changes.iter().copied());
         let mut connection = self
@@ -191,7 +240,7 @@ impl SqliteStore {
             .lock()
             .map_err(|_| PromotionError::Backend("lock poisoned".to_owned()))?;
         let transaction = connection
-            .transaction()
+            .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| PromotionError::Backend(error.to_string()))?;
         for revision in revisions {
             revision::insert_in_transaction(&transaction, revision)
@@ -229,6 +278,7 @@ impl SqliteStore {
         }
         roots::write_root_in_transaction(&transaction, &name, next.id())
             .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        commit_related(&transaction).map_err(PromotionError::Backend)?;
         transaction
             .commit()
             .map_err(|error| PromotionError::Backend(error.to_string()))?;
@@ -341,43 +391,6 @@ impl SqliteStore {
             .map_err(|error| PromotionError::Backend(error.to_string()))?;
         Ok(next.id())
     }
-
-    /// Stores a snapshot and its persistent map root in an open transaction.
-    ///
-    /// - `transaction`: Transaction receiving the immutable records.
-    /// - `snapshot`: Snapshot to persist.
-    /// - `crate`: Internal visibility marker.
-    ///
-    /// Unit after the records are prepared.
-    ///
-    /// Returns the SQLite insertion error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub(crate) fn store_snapshot_in_transaction(
-        transaction: &rusqlite::Transaction<'_>,
-        snapshot: &Snapshot,
-    ) -> rusqlite::Result<()> {
-        snapshot::store_in_transaction(transaction, snapshot)
-    }
-}
-
-/// Initializes a development database path and its schema.
-///
-/// - `path`: SQLite database path.
-///
-/// Unit after initialization.
-///
-/// Returns a database initialization error.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-pub fn initialize_development_database(
-    path: impl AsRef<Path>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    SqliteStore::open(path).map(|_| ()).map_err(Into::into)
 }
 
 #[cfg(test)]

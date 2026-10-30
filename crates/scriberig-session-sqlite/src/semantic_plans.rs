@@ -2,15 +2,13 @@
 
 #[path = "semantic_plans/history.rs"]
 mod history;
+#[path = "semantic_plans/reads.rs"]
+mod reads;
 use history::{plan_at_revision, plan_revision, semantic_writes};
 
-use std::collections::BTreeMap;
-
-use scriberig_core::{EncodingVersion, EntityId, RootName, SnapshotId};
+use scriberig_core::{EncodingVersion, EntityId, RootName};
 use scriberig_session::{Plan, PlanStoreError, Session};
-use scriberig_store::{
-    Revision, RevisionStore, RootStore, Snapshot, SnapshotChange, SnapshotStore,
-};
+use scriberig_store::{Revision, RootStore, Snapshot, SnapshotChange, SnapshotStore};
 use scriberig_store_sqlite::PromotionError;
 
 use crate::SqliteSessionStore;
@@ -88,12 +86,16 @@ impl SqliteSessionStore {
     /// Returns a plan revision conflict or bounded persistence diagnostic.
     /// # Returns
     /// Unit after the semantic root is promoted.
-    pub(super) fn compare_and_swap_semantic_plan(
+    pub(super) fn compare_and_swap_semantic_plan<F>(
         &self,
         session: EntityId,
         proposed: &Plan,
         expected_revision: u64,
-    ) -> Result<(), PlanStoreError> {
+        commit_related: F,
+    ) -> Result<(), PlanStoreError>
+    where
+        F: FnOnce(&rusqlite::Transaction<'_>) -> Result<(), String>,
+    {
         let root = plan_root(session, proposed.id).map_err(plan_persistence)?;
         if self.semantic_store.read_root(&root).is_none() {
             self.migrate_plan_history(session, proposed)
@@ -147,12 +149,13 @@ impl SqliteSessionStore {
                 changes.push(SnapshotChange::Remove(entity));
             }
         }
-        match self.semantic_store.apply_revisions_and_promote(
+        match self.semantic_store.apply_revisions_and_promote_with(
             root,
             Some(current_snapshot),
             current_snapshot,
             &revisions,
             &changes,
+            commit_related,
         ) {
             Ok(_) => Ok(()),
             Err(PromotionError::Root(scriberig_store::RootError::Conflict { actual, .. })) => {
@@ -232,124 +235,6 @@ impl SqliteSessionStore {
             expected = Some(promoted);
         }
         Ok(())
-    }
-
-    /// Loads one plan projection from an exact root snapshot.
-    ///
-    /// # Parameters
-    /// - `_session`: Owning session identity retained for call-site context.
-    /// - `plan`: Stable plan identity.
-    /// - `snapshot`: Exact universal snapshot to assemble.
-    ///
-    /// # Returns
-    /// The plan projection represented by the exact semantic snapshot.
-    ///
-    /// # Errors
-    /// Returns a diagnostic for missing, invalid, or corrupt semantic objects.
-    fn load_plan_at_snapshot(
-        &self,
-        _session: EntityId,
-        plan: EntityId,
-        snapshot: SnapshotId,
-    ) -> Result<Plan, String> {
-        let current_semantics = self.read_semantic_snapshot(plan, snapshot)?;
-        let mut current = current_semantics
-            .clone()
-            .into_plan(Vec::new())
-            .map_err(|error| format!("plan semantic decode failed: {error:?}"))?;
-        let mut history = BTreeMap::new();
-        for ancestor in self
-            .semantic_store
-            .ancestors(snapshot)
-            .map_err(|error| format!("plan history read failed: {error:?}"))?
-        {
-            if ancestor == Snapshot::empty().id() {
-                continue;
-            }
-            let historical = self
-                .read_semantic_snapshot(plan, ancestor)?
-                .into_plan(Vec::new())
-                .map_err(|error| format!("plan history decode failed: {error:?}"))?;
-            history
-                .entry(historical.revision)
-                .or_insert_with(|| plan_revision(&historical));
-        }
-        history
-            .entry(current.revision)
-            .or_insert_with(|| plan_revision(&current));
-        for metadata in current_semantics
-            .history_metadata()
-            .map_err(|error| format!("plan history metadata is invalid: {error:?}"))?
-        {
-            if let Some(record) = history.get_mut(&metadata.mutation_revision) {
-                record.reason = metadata.reason;
-            }
-        }
-        current.history = history.into_values().collect();
-        Ok(current)
-    }
-
-    /// Loads semantic objects for one exact plan snapshot.
-    ///
-    /// # Parameters
-    /// - `plan`: Expected plan identity.
-    /// - `snapshot`: Exact snapshot containing the plan.
-    ///
-    /// # Returns
-    /// The typed object set stored in the snapshot.
-    ///
-    /// # Errors
-    /// Returns an error when a referenced revision is missing or unreadable.
-    fn read_semantic_snapshot(
-        &self,
-        plan: EntityId,
-        snapshot: SnapshotId,
-    ) -> Result<scriberig_session::PlanSemanticSnapshot, String> {
-        let mut objects = Vec::new();
-        for (entity, revision_id) in self
-            .semantic_store
-            .iter(snapshot)
-            .map_err(|error| format!("plan snapshot read failed: {error:?}"))?
-        {
-            let Some(revision) = self
-                .semantic_store
-                .get(revision_id)
-                .map_err(|error| format!("plan revision read failed: {error:?}"))?
-            else {
-                return Err(format!("plan revision {revision_id} is missing"));
-            };
-            objects.push(scriberig_session::PlanSemanticRevision {
-                entity,
-                object_type: revision.object_type().clone(),
-                revision: revision.id(),
-                payload: revision.payload().to_vec(),
-            });
-        }
-        Ok(scriberig_session::PlanSemanticSnapshot {
-            plan,
-            snapshot: Some(snapshot),
-            objects,
-        })
-    }
-
-    /// Loads the plan selected by its current named root.
-    ///
-    /// # Parameters
-    /// - `session`: Owning session identity.
-    /// - `plan`: Stable plan identity.
-    ///
-    /// # Returns
-    /// The current plan projection.
-    ///
-    /// # Errors
-    /// Returns a diagnostic when the root is absent or its snapshot is invalid.
-    fn load_semantic_plan(&self, session: EntityId, plan: EntityId) -> Result<Plan, String> {
-        let root = plan_root(session, plan)?;
-        let snapshot = self
-            .semantic_store
-            .read_root(&root)
-            .ok_or_else(|| "plan semantic root is absent".to_owned())?;
-        self.load_plan_at_snapshot(session, plan, snapshot)
     }
 }
 

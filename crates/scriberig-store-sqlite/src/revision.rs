@@ -4,6 +4,7 @@ use crate::SqliteStore;
 use rusqlite::{OptionalExtension, Transaction, params};
 use scriberig_core::{EncodingVersion, ObjectType, RevisionId};
 use scriberig_store::{Revision, RevisionStore, StoreError};
+use std::collections::BTreeMap;
 
 /// Converts a SQLite error to a revision backend error.
 ///
@@ -110,6 +111,138 @@ impl RevisionStore for SqliteStore {
             Revision::from_parts(id, EncodingVersion::new(version), object_type, payload)
         })
         .transpose()
+    }
+    /// Reads immutable revisions in bounded payload queries.
+    ///
+    /// # Parameters
+    /// - `ids`: Immutable revision identities to load.
+    ///
+    /// # Returns
+    /// Retained revisions keyed by identity; missing IDs are omitted.
+    ///
+    /// # Errors
+    /// Returns a storage, encoding, or integrity error.
+    fn get_many(&self, ids: &[RevisionId]) -> Result<BTreeMap<RevisionId, Revision>, StoreError> {
+        let mut revisions = BTreeMap::new();
+        let connection = self.connection()?;
+        for chunk in ids.chunks(400) {
+            if chunk.is_empty() {
+                continue;
+            }
+            let placeholders = (1..=chunk.len())
+                .map(|index| format!("?{index}"))
+                .collect::<Vec<_>>()
+                .join(",");
+            let query = format!(
+                "SELECT id,version,object_type,payload FROM revisions WHERE id IN ({placeholders})"
+            );
+            let values = chunk
+                .iter()
+                .map(|id| id.as_bytes().to_vec())
+                .collect::<Vec<_>>();
+            let mut statement = connection.prepare(&query).map_err(sql_store)?;
+            let rows = statement
+                .query_map(rusqlite::params_from_iter(values.iter()), |row| {
+                    Ok((
+                        row.get::<_, Vec<u8>>(0)?,
+                        row.get::<_, u16>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, Vec<u8>>(3)?,
+                    ))
+                })
+                .map_err(sql_store)?;
+            for row in rows {
+                let (bytes, version, kind, payload) = row.map_err(sql_store)?;
+                let bytes: [u8; 32] = bytes
+                    .try_into()
+                    .map_err(|_| StoreError::Backend("invalid revision identity".to_owned()))?;
+                let id = RevisionId::from_bytes(bytes);
+                let object_type = ObjectType::new(kind)
+                    .map_err(|_| StoreError::Backend("invalid object type".to_owned()))?;
+                let revision =
+                    Revision::from_parts(id, EncodingVersion::new(version), object_type, payload)?;
+                revisions.insert(id, revision);
+            }
+        }
+        Ok(revisions)
+    }
+    /// Reads revision type metadata without loading its content payload.
+    ///
+    /// # Parameters
+    /// - `id`: Immutable revision identity.
+    ///
+    /// # Returns
+    /// The declared object type, or `None` when the revision is absent.
+    ///
+    /// # Errors
+    /// Returns a backend error when SQLite or type validation fails.
+    fn get_object_type(
+        &self,
+        id: RevisionId,
+    ) -> Result<Option<scriberig_core::TypeId>, StoreError> {
+        let connection = self.connection()?;
+        let kind = connection
+            .query_row(
+                "SELECT object_type FROM revisions WHERE id=?",
+                params![id.as_bytes().as_slice()],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(sql_store)?;
+        kind.map(|value| {
+            ObjectType::new(value)
+                .map_err(|_| StoreError::Backend("invalid object type".to_owned()))
+        })
+        .transpose()
+    }
+    /// Reads declared revision types in bounded metadata-only queries.
+    ///
+    /// # Parameters
+    /// - `ids`: Immutable revision identities to inspect.
+    ///
+    /// # Returns
+    /// Types for retained revisions, keyed by revision identity.
+    ///
+    /// # Errors
+    /// Returns a backend error for invalid metadata or SQLite failures.
+    fn get_object_types(
+        &self,
+        ids: &[RevisionId],
+    ) -> Result<BTreeMap<RevisionId, scriberig_core::TypeId>, StoreError> {
+        let mut types = BTreeMap::new();
+        let connection = self.connection()?;
+        for chunk in ids.chunks(400) {
+            if chunk.is_empty() {
+                continue;
+            }
+            let placeholders = (1..=chunk.len())
+                .map(|index| format!("?{index}"))
+                .collect::<Vec<_>>()
+                .join(",");
+            let query =
+                format!("SELECT id,object_type FROM revisions WHERE id IN ({placeholders})");
+            let values = chunk
+                .iter()
+                .map(|id| id.as_bytes().to_vec())
+                .collect::<Vec<_>>();
+            let mut statement = connection.prepare(&query).map_err(sql_store)?;
+            let rows = statement
+                .query_map(rusqlite::params_from_iter(values.iter()), |row| {
+                    Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, String>(1)?))
+                })
+                .map_err(sql_store)?;
+            for row in rows {
+                let (bytes, kind) = row.map_err(sql_store)?;
+                let bytes: [u8; 32] = bytes
+                    .try_into()
+                    .map_err(|_| StoreError::Backend("invalid revision identity".to_owned()))?;
+                let id = RevisionId::from_bytes(bytes);
+                let object_type = ObjectType::new(kind)
+                    .map_err(|_| StoreError::Backend("invalid object type".to_owned()))?;
+                types.insert(id, object_type);
+            }
+        }
+        Ok(types)
     }
     /// - `id`: Operation input.
     ///

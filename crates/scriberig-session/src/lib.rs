@@ -14,8 +14,8 @@ pub mod views;
 
 /// Defines the durable session repository boundary.
 pub mod repository {
-    use crate::Session;
-    use scriberig_core::EntityId;
+    use crate::{Plan, PlanView, Session};
+    use scriberig_core::{EntityId, SnapshotId};
 
     /// Reports durable execution-selection update failures.
     #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,6 +64,50 @@ pub mod repository {
         /// # Errors
         /// Returns an error when the operation fails.
         fn load(&self, session: EntityId) -> Result<Option<Session>, String>;
+
+        /// Loads one plan from an exact snapshot in that plan's history.
+        ///
+        /// - `_session`: Owning durable session identity.
+        /// - `_plan`: Stable plan identity.
+        /// - `_snapshot`: Exact semantic snapshot to resolve.
+        ///
+        /// The plan projection or `None` when the snapshot is not in the
+        /// selected plan's retained history.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns a bounded persistence diagnostic when the snapshot cannot
+        /// be read or decoded.
+        fn load_plan_at_snapshot(
+            &self,
+            _session: EntityId,
+            _plan: EntityId,
+            _snapshot: SnapshotId,
+        ) -> Result<Option<Plan>, String> {
+            Err("exact plan snapshot reads are unsupported".to_owned())
+        }
+
+        /// Loads compact plan metadata at an exact retained snapshot.
+        ///
+        /// - `_session`: Owning durable session identity.
+        /// - `_plan`: Stable plan identity.
+        /// - `_snapshot`: Exact semantic snapshot to resolve.
+        ///
+        /// The compact plan projection or `None` when the snapshot is outside
+        /// the selected plan's retained history.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns a bounded persistence diagnostic when the view cannot be
+        /// read or assembled.
+        fn load_plan_view_at_snapshot(
+            &self,
+            _session: EntityId,
+            _plan: EntityId,
+            _snapshot: SnapshotId,
+        ) -> Result<Option<PlanView>, String> {
+            Err("compact plan snapshot reads are unsupported".to_owned())
+        }
 
         /// Removes one exact durable session graph.
         ///
@@ -163,8 +207,8 @@ pub use planning::{
     PlanNodeView, PlanRevision, PlanSemanticPredicate, PlanSemanticReference, PlanStatus, PlanView,
     WorkerClaim,
     semantic::{
-        PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef, PlanSemanticRevision,
-        PlanSemanticSnapshot,
+        PlanSemanticAttempt, PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef,
+        PlanSemanticRevision, PlanSemanticSnapshot,
     },
 };
 pub use repository::{PlanStoreError, SelectionStoreError, SessionStore};

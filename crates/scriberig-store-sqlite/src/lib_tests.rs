@@ -2,7 +2,7 @@
 
 use super::*;
 use scriberig_core::{EntityId, ProjectId, RevisionId, RootName};
-use scriberig_store::{RootStore, SnapshotChange};
+use scriberig_store::{RootStore, Snapshot, SnapshotChange};
 
 /// Verifies an interrupted transaction does not publish prepared content.
 #[test]

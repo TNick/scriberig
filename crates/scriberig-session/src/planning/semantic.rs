@@ -38,6 +38,8 @@ pub struct PlanSemanticNodeRef {
     pub entity: EntityId,
     /// Exact immutable `PlanNode` revision identity.
     pub revision: RevisionId,
+    /// Canonical direct lifecycle state from the node revision.
+    pub status: super::PlanNodeStatus,
     /// Direct structural parent, separate from dependency scheduling.
     pub parent: Option<super::PlanNodeParent>,
     /// Stable insertion order within its plan membership.
@@ -51,6 +53,43 @@ pub struct PlanSemanticHistory {
     pub mutation_revision: u64,
     /// Optional safe reason supplied for the mutation.
     pub reason: Option<String>,
+}
+
+/// Exposes one independently revisioned worker execution attempt.
+///
+/// # Public members
+/// - `entity`: Stable semantic attempt identity.
+/// - `revision`: Exact immutable attempt revision.
+/// - `node`: Plan node executed by this attempt.
+/// - `branch`: Isolated session branch used for this attempt.
+/// - `claim_generation`: Monotonic attempt generation for the node.
+/// - `claim`: Worker claim identity retained for provenance.
+/// - `status`: Latest durable outcome using the plan-node lifecycle enum.
+/// - `result`: Accepted successful result identity, when completed.
+/// - `failure`: Exact failed result evidence, when failed.
+///
+/// # Private members
+/// None.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanSemanticAttempt {
+    /// Stable semantic attempt identity.
+    pub entity: EntityId,
+    /// Exact immutable attempt revision.
+    pub revision: RevisionId,
+    /// Plan node executed by this attempt.
+    pub node: EntityId,
+    /// Isolated session branch used for this attempt.
+    pub branch: EntityId,
+    /// Monotonic attempt generation for the node.
+    pub claim_generation: u64,
+    /// Worker claim identity retained for provenance.
+    pub claim: Option<EntityId>,
+    /// Latest durable outcome using the plan-node lifecycle enum.
+    pub status: super::PlanNodeStatus,
+    /// Accepted successful result identity, when completed.
+    pub result: Option<EntityId>,
+    /// Exact failed result evidence, when failed.
+    pub failure: Option<super::PlanEvidenceReference>,
 }
 
 /// Reports invalid or incomplete semantic plan object payloads.
@@ -130,6 +169,20 @@ impl PlanSemanticSnapshot {
         decode::node_refs(self)
     }
 
+    /// Builds a compact plan view without decoding evidence, gates, or history.
+    ///
+    /// # Parameters
+    /// - `self`: Exact semantic object set containing the plan and its nodes.
+    ///
+    /// # Returns
+    /// A compact plan view with exact plan/node revisions and direct counts.
+    ///
+    /// # Errors
+    /// Returns an error when required plan or structural objects are invalid.
+    pub fn plan_view(&self) -> Result<super::PlanView, PlanSemanticError> {
+        decode::plan_view(self)
+    }
+
     /// Lists direct child nodes of a branch or plan node.
     ///
     /// # Parameters
@@ -150,5 +203,19 @@ impl PlanSemanticSnapshot {
             .into_iter()
             .filter(|node| node.parent == Some(parent))
             .collect())
+    }
+
+    /// Lists independently revisioned attempts in this exact semantic view.
+    ///
+    /// # Parameters
+    /// - `self`: Exact semantic plan object set.
+    ///
+    /// Attempts ordered by node, generation, and stable identity.
+    /// # Returns
+    /// The validated attempt records.
+    /// # Errors
+    /// Returns an error for malformed payloads or mismatched identities.
+    pub fn attempts(&self) -> Result<Vec<PlanSemanticAttempt>, PlanSemanticError> {
+        decode::attempts(self)
     }
 }

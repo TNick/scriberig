@@ -4,8 +4,11 @@
 mod assemble;
 #[path = "decode/node_refs.rs"]
 mod node_refs;
+#[path = "decode/plan_view.rs"]
+mod plan_view;
 
 pub(super) use assemble::into_plan;
+pub(super) use plan_view::plan_view;
 
 use scriberig_core::{EncodingVersion, EntityId, revision_id};
 use serde::Deserialize;
@@ -17,13 +20,13 @@ use super::super::{
     PlanNodeStatus, PlanStatus, WorkerClaim,
 };
 use super::encode::{
-    DEPENDENCY_TYPE, DependencyIdentity, EVIDENCE_TYPE, GATE_TYPE, HISTORY_TYPE, MEMBERSHIP_TYPE,
-    NODE_TYPE, PLAN_TYPE, STRUCTURE_TYPE, SUMMARY_LINK_TYPE, SUMMARY_TYPE, parent_identity,
-    relation_id,
+    ATTEMPT_TYPE, DEPENDENCY_TYPE, DependencyIdentity, EVIDENCE_TYPE, GATE_TYPE, HISTORY_TYPE,
+    MEMBERSHIP_TYPE, NODE_TYPE, PLAN_TYPE, STRUCTURE_TYPE, SUMMARY_LINK_TYPE, SUMMARY_TYPE,
+    parent_identity, relation_id,
 };
 use super::{
-    PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef, PlanSemanticRevision,
-    PlanSemanticSnapshot,
+    PlanSemanticAttempt, PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef,
+    PlanSemanticRevision, PlanSemanticSnapshot,
 };
 
 /// Payload for the semantic plan root object.
@@ -40,6 +43,23 @@ struct PlanPayload {
     coordinator_cursor: Option<EntityId>,
     coordinator_claim: Option<CoordinatorClaim>,
     coordinator_generation: u64,
+}
+
+/// Minimal plan fields required by compact plan metadata reads.
+#[derive(Deserialize)]
+struct PlanViewPayload {
+    /// Semantic object encoding version.
+    schema_version: u16,
+    /// Plan-local optimistic concurrency revision.
+    mutation_revision: u64,
+    /// Durable plan objective.
+    goal: String,
+    /// Current plan lifecycle state.
+    status: PlanStatus,
+    /// Branch authorized to coordinate automatic advancement.
+    coordinator: Option<EntityId>,
+    /// Node currently selected by the coordinator.
+    coordinator_cursor: Option<EntityId>,
 }
 
 /// Payload for one semantic plan node object.
@@ -62,6 +82,17 @@ struct NodePayload {
     assignment: Option<ModelAssignment>,
     claim: Option<WorkerClaim>,
     claim_generation: u64,
+}
+
+/// Minimal node fields required by compact plan metadata reads.
+#[derive(Deserialize)]
+struct NodeStatusPayload {
+    /// Semantic object encoding version.
+    schema_version: u16,
+    /// Plan identity owning this node.
+    plan: EntityId,
+    /// Canonical direct node lifecycle state.
+    status: PlanNodeStatus,
 }
 
 /// Payload linking a node to its plan in stable order.
@@ -152,6 +183,29 @@ struct EvidencePayload {
     actor: Option<EntityId>,
 }
 
+/// Payload retaining one isolated worker attempt's latest known outcome.
+#[derive(Deserialize)]
+struct AttemptPayload {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    branch: EntityId,
+    claim_generation: u64,
+    claim: Option<EntityId>,
+    status: PlanNodeStatus,
+    result: Option<EntityId>,
+    failure: Option<PlanEvidenceReference>,
+}
+
+/// Stable key used to derive one plan-node execution generation identity.
+#[derive(serde::Serialize)]
+struct AttemptIdentity {
+    plan: EntityId,
+    node: EntityId,
+    branch: EntityId,
+    claim_generation: u64,
+}
+
 /// Queries relation-backed node positions without decoding Plan payload.
 ///
 /// - `snapshot`: Exact semantic plan object set.
@@ -167,6 +221,53 @@ pub(super) fn node_refs(
     snapshot: &PlanSemanticSnapshot,
 ) -> Result<Vec<PlanSemanticNodeRef>, PlanSemanticError> {
     node_refs::node_refs(snapshot)
+}
+
+/// Decodes independently revisioned worker attempts from one exact snapshot.
+///
+/// - `snapshot`: Exact semantic plan object set.
+///
+/// Attempts ordered by node, generation, and stable identity.
+/// # Returns
+/// The validated attempt records.
+/// # Errors
+/// Returns an error for malformed payloads or mismatched identities.
+pub(super) fn attempts(
+    snapshot: &PlanSemanticSnapshot,
+) -> Result<Vec<PlanSemanticAttempt>, PlanSemanticError> {
+    let mut attempts = Vec::new();
+    for object in &snapshot.objects {
+        if object.object_type.as_str() != ATTEMPT_TYPE {
+            continue;
+        }
+        validate_revision(object)?;
+        let payload: AttemptPayload = decode_payload(object)?;
+        let identity = AttemptIdentity {
+            plan: payload.plan,
+            node: payload.node,
+            branch: payload.branch,
+            claim_generation: payload.claim_generation,
+        };
+        if payload.schema_version != 1
+            || payload.plan != snapshot.plan
+            || relation_id(ATTEMPT_TYPE, &identity)? != object.entity
+        {
+            return Err(invalid("mismatched or unsupported plan attempt"));
+        }
+        attempts.push(PlanSemanticAttempt {
+            entity: object.entity,
+            revision: object.revision,
+            node: payload.node,
+            branch: payload.branch,
+            claim_generation: payload.claim_generation,
+            claim: payload.claim,
+            status: payload.status,
+            result: payload.result,
+            failure: payload.failure,
+        });
+    }
+    attempts.sort_by_key(|attempt| (attempt.node, attempt.claim_generation, attempt.entity));
+    Ok(attempts)
 }
 
 /// Decodes safe mutation metadata from a semantic plan object set.

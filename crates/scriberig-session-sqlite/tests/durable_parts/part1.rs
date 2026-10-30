@@ -232,99 +232,154 @@ fn plan_compare_and_swap_merges_new_worker_branch() {
     assert_eq!(stored.branches[1].parent, Some(root_id));
 }
 
-/// Verifies selection compare-and-swap preserves concurrent branch updates.
+/// Resolves exact historical plan membership without consulting stale payloads.
 #[test]
-fn execution_selection_compare_and_swap_is_atomic() {
-    let session_id = EntityId::from_bytes([11; 16]);
-    let root_id = EntityId::from_bytes([12; 16]);
-    let child_id = EntityId::from_bytes([13; 16]);
-    let store = Arc::new(SqliteSessionStore::open_in_memory().expect("open store"));
+fn plan_snapshot_reads_preserve_historical_membership() {
+    let session_id = EntityId::from_bytes([61; 16]);
+    let root_id = EntityId::from_bytes([62; 16]);
+    let plan_id = EntityId::from_bytes([63; 16]);
+    let node_id = EntityId::from_bytes([64; 16]);
+    let store = SqliteSessionStore::open_in_memory().expect("open store");
+    let plan = Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead { branch: root_id },
+        "snapshot membership",
+    )
+    .expect("plan");
     store
         .save(&Session {
             id: session_id,
             branches: vec![Branch::new(root_id, "root").expect("root")],
             goals: Vec::new(),
             tasks: Vec::new(),
-            plans: Vec::new(),
+            plans: vec![plan],
             execution: scriberig_session::SessionExecutionSelection::default(),
         })
-        .expect("save initial session");
-    let mut proposed = store
-        .load(session_id)
-        .expect("load selection snapshot")
-        .expect("session exists");
-    proposed
-        .execution
-        .replace(
-            0,
-            Some("provider-a".to_owned()),
-            Some("model-a".to_owned()),
-            Some("careful".to_owned()),
-        )
-        .expect("propose selection");
-    proposed
-        .execution
-        .history
-        .push(scriberig_session::SessionExecutionChange {
-            revision: proposed.execution.revision,
-            kind: scriberig_session::AgentActivityKind::ModelSelectionChanged,
-            summary: "Model selected: model-a".to_owned(),
-            provider_id: proposed.execution.provider_id.clone(),
-            model_id: proposed.execution.model_id.clone(),
-            thinking_level: proposed.execution.thinking_level.clone(),
-        });
-    let mut branch_update = store
-        .load(session_id)
-        .expect("load branch snapshot")
-        .expect("session exists");
-    branch_update
-        .branches
-        .push(Branch::new(child_id, "new branch").expect("child"));
-    store.save(&branch_update).expect("save concurrent branch");
-    branch_update
-        .execution
-        .replace(
-            0,
-            Some("provider-b".to_owned()),
-            Some("model-b".to_owned()),
-            Some("steady".to_owned()),
-        )
-        .expect("propose competing selection");
+        .expect("save initial plan");
 
-    let first_store = Arc::clone(&store);
-    let first =
-        std::thread::spawn(move || first_store.compare_and_swap_execution_selection(&proposed, 0));
-    let second_store = Arc::clone(&store);
-    let second = std::thread::spawn(move || {
-        second_store.compare_and_swap_execution_selection(&branch_update, 0)
-    });
-    let outcomes = [
-        first.join().expect("first mutation"),
-        second.join().expect("second mutation"),
-    ];
-    assert_eq!(outcomes.iter().filter(|value| value.is_ok()).count(), 1);
+    let mut proposal = store
+        .load(session_id)
+        .expect("load session")
+        .expect("stored session");
+    let source_snapshot = proposal.plans[0]
+        .source_snapshot
+        .expect("loaded plan snapshot");
+    proposal.plans[0]
+        .add_node(PlanNode {
+            id: node_id,
+            parent: Some(scriberig_session::PlanNodeParent::Branch(root_id)),
+            title: "new work".to_owned(),
+            purpose: "verify exact membership".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            status: PlanNodeStatus::Planned,
+            branch: None,
+            result: None,
+            superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
+            assignment: None,
+            claim: None,
+            claim_generation: 0,
+        })
+        .expect("add node");
+    store
+        .compare_and_swap_plan(&proposal, plan_id, 0)
+        .expect("promote plan mutation");
+
+    let historical = store
+        .load_plan_at_snapshot(session_id, plan_id, source_snapshot)
+        .expect("read historical snapshot")
+        .expect("snapshot belongs to plan history");
+    let current = store
+        .load(session_id)
+        .expect("reload session")
+        .expect("stored session");
+
+    assert_eq!(historical.nodes, Vec::new());
+    assert_eq!(historical.source_snapshot, Some(source_snapshot));
+    assert_eq!(current.plans[0].nodes.len(), 1);
+    assert_eq!(current.plans[0].nodes[0].id, node_id);
     assert_eq!(
-        outcomes
-            .iter()
-            .filter(|value| matches!(value, Err(SelectionStoreError::RevisionConflict { .. })))
-            .count(),
-        1
+        store
+            .load_plan_at_snapshot(
+                session_id,
+                plan_id,
+                scriberig_core::SnapshotId::new([255; 32]),
+            )
+            .expect("foreign snapshot lookup"),
+        None
+    );
+}
+
+/// Rolls back branch persistence when semantic plan promotion fails.
+#[test]
+fn plan_cas_rolls_back_session_projection_on_semantic_conflict() {
+    let path =
+        std::env::temp_dir().join(format!("scriberig-plan-atomic-{}.sqlite", EntityId::new()));
+    let session_id = EntityId::from_bytes([65; 16]);
+    let root_id = EntityId::from_bytes([66; 16]);
+    let worker_id = EntityId::from_bytes([67; 16]);
+    let plan_id = EntityId::from_bytes([68; 16]);
+    let store = SqliteSessionStore::open(&path).expect("open store");
+    let plan = Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead { branch: root_id },
+        "atomic plan mutation",
+    )
+    .expect("plan");
+    store
+        .save(&Session {
+            id: session_id,
+            branches: vec![Branch::new(root_id, "root").expect("root")],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        })
+        .expect("save session");
+    let mut proposal = store
+        .load(session_id)
+        .expect("load session")
+        .expect("stored session");
+    proposal.plans[0]
+        .transition(scriberig_session::PlanStatus::Planned)
+        .expect("plan plan");
+    let expected = 0;
+    proposal
+        .branches
+        .push(Branch::new_child(worker_id, root_id, "worker", "perform work").expect("worker"));
+    proposal.branches[0].children.push(worker_id);
+    let connection = rusqlite::Connection::open(&path).expect("open trigger connection");
+    connection
+        .execute_batch(
+            "CREATE TRIGGER reject_plan_root_update
+             BEFORE UPDATE ON roots
+             BEGIN SELECT RAISE(ABORT, 'injected promotion failure'); END;",
+        )
+        .expect("install root promotion failure");
+    drop(connection);
+
+    assert!(
+        store
+            .compare_and_swap_plan(&proposal, plan_id, expected)
+            .is_err()
     );
     let stored = store
         .load(session_id)
         .expect("reload session")
-        .expect("session exists");
-    assert_eq!(stored.branches.len(), 2);
-    assert!(matches!(
-        stored.execution.model_id.as_deref(),
-        Some("model-a" | "model-b")
-    ));
-    assert_eq!(stored.execution.history.len(), 1);
-    assert_eq!(
-        stored.execution.history[0].provider_id.as_deref(),
-        stored.execution.provider_id.as_deref()
-    );
+        .expect("stored session");
+
+    assert_eq!(stored.branches.len(), 1);
+    assert_eq!(stored.plans[0].status, scriberig_session::PlanStatus::Draft);
+    drop(store);
+    let _ = std::fs::remove_file(path);
 }
+
+#[path = "part1/selection_cas.rs"]
+mod selection_cas;
 
 #[path = "coordinator_claims.rs"]
 mod coordinator_claims;

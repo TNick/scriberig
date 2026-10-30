@@ -154,6 +154,45 @@ fn failed_plan_recovers_to_paused_for_explicit_repair() {
     assert_eq!(plan.history.last().unwrap().status, PlanStatus::Paused);
 }
 
+/// Repairs a failed plan through the explicit pause and validated replan path.
+#[test]
+fn failed_plan_recovery_allows_validated_replan() {
+    let mut plan = plan_fixture();
+    plan.status = PlanStatus::Failed;
+    plan.recover_failed_plan().expect("recover failed plan");
+    let original_revision = plan.revision;
+    let addition = plan_node(35, plan.root_branch, "repair work");
+
+    plan.replan(
+        vec![addition.clone()],
+        Vec::new(),
+        &[],
+        &[],
+        &[],
+        &[],
+        "repair failed plan",
+    )
+    .expect("validated replan");
+
+    assert_eq!(plan.status, PlanStatus::Paused);
+    assert_eq!(plan.revision, original_revision + 1);
+    assert!(plan.nodes.iter().any(|node| node.id == addition.id));
+}
+
+/// Keeps completed and cancelled plans terminal for ordinary node mutation.
+#[test]
+fn completed_and_cancelled_plans_reject_ordinary_mutations() {
+    for status in [PlanStatus::Completed, PlanStatus::Cancelled] {
+        let mut plan = plan_fixture();
+        plan.status = status;
+
+        assert_eq!(
+            plan.add_node(plan_node(36, plan.root_branch, "late work")),
+            Err(PlanError::TerminalPlan)
+        );
+    }
+}
+
 /// Verifies stale plan claim recovery is deterministic and blocks dependents.
 #[test]
 fn stale_plan_claim_recovery_is_deterministic_and_blocks_dependents() {

@@ -1,6 +1,8 @@
 //! Verifies retry history survives semantic plan persistence.
 
 use super::*;
+use scriberig_core::RootName;
+use scriberig_store::{RevisionStore, RootStore, SnapshotStore};
 
 #[test]
 #[expect(
@@ -9,6 +11,10 @@ use super::*;
 )]
 /// Retains a failed attempt separately from its later successful retry.
 fn semantic_retry_keeps_attempt_outcomes_across_reload() {
+    let path = std::env::temp_dir().join(format!(
+        "scriberig-semantic-attempt-{}.sqlite",
+        EntityId::new()
+    ));
     let session_id = EntityId::from_bytes([71; 16]);
     let root_id = EntityId::from_bytes([72; 16]);
     let plan_id = EntityId::from_bytes([73; 16]);
@@ -19,7 +25,7 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
     let second_branch = EntityId::from_bytes([78; 16]);
     let second_claim = EntityId::from_bytes([79; 16]);
     let success_id = EntityId::from_bytes([80; 16]);
-    let store = SqliteSessionStore::open_in_memory().expect("open store");
+    let store = SqliteSessionStore::open(&path).expect("open store");
     let mut plan = Plan::new(
         plan_id,
         session_id,
@@ -181,4 +187,49 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
     assert_eq!(attempts[1].status, PlanNodeStatus::Completed);
     assert_eq!(attempts[1].result, Some(success_id));
     assert_eq!(attempts[1].failure, None);
+
+    let semantic_store =
+        scriberig_store_sqlite::SqliteStore::open(&path).expect("open semantic store");
+    let root = RootName::new(format!("scriberig-plan-{session_id}-{plan_id}")).expect("plan root");
+    let snapshot = semantic_store.read_root(&root).expect("current plan root");
+    let objects = semantic_store
+        .iter(snapshot)
+        .expect("read current semantic plan")
+        .into_iter()
+        .map(|(entity, revision_id)| {
+            let revision = semantic_store
+                .get(revision_id)
+                .expect("read semantic revision")
+                .expect("semantic revision exists");
+            scriberig_session::PlanSemanticRevision {
+                entity,
+                object_type: revision.object_type().clone(),
+                revision: revision.id(),
+                payload: revision.payload().to_vec(),
+            }
+        })
+        .collect();
+    let semantic_snapshot = scriberig_session::PlanSemanticSnapshot {
+        plan: plan_id,
+        snapshot: Some(snapshot),
+        objects,
+    };
+    let semantic_attempts = semantic_snapshot.attempts().expect("semantic attempts");
+
+    assert_eq!(semantic_attempts.len(), 2);
+    assert_eq!(semantic_attempts[0].branch, first_branch);
+    assert_eq!(semantic_attempts[0].status, PlanNodeStatus::Failed);
+    assert_eq!(
+        semantic_attempts[0]
+            .failure
+            .as_ref()
+            .map(|reference| reference.reference.entity),
+        Some(failure_id)
+    );
+    assert_eq!(semantic_attempts[1].branch, second_branch);
+    assert_eq!(semantic_attempts[1].status, PlanNodeStatus::Completed);
+    assert_eq!(semantic_attempts[1].result, Some(success_id));
+    drop(semantic_store);
+    drop(store);
+    let _ = std::fs::remove_file(path);
 }

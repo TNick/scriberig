@@ -8,6 +8,9 @@ fn replan_preserves_completed_results_and_fulfills_new_edges() {
     let mut plan = plan_fixture();
     let completed = plan.nodes[0].id;
     let old_unfinished = plan.nodes[1].id;
+    plan.add_dependency(old_unfinished, completed)
+        .expect("add historical dependency");
+    let dependency_revision = plan.revision;
     let result_id = EntityId::from_bytes([110; 16]);
     plan.nodes[0].status = PlanNodeStatus::Completed;
     plan.nodes[0].result = Some(result_id);
@@ -40,6 +43,20 @@ fn replan_preserves_completed_results_and_fulfills_new_edges() {
             .unwrap()
             .superseded_by,
         Some(replacement_id)
+    );
+    assert!(
+        plan.history
+            .iter()
+            .find(|revision| revision.revision == dependency_revision)
+            .is_some_and(|revision| revision.dependencies.iter().any(|edge| {
+                edge.prerequisite == old_unfinished && edge.dependent == completed
+            }))
+    );
+    assert!(
+        !plan
+            .dependencies
+            .iter()
+            .any(|edge| edge.prerequisite == old_unfinished && edge.dependent == completed)
     );
     let before_cycle = plan.clone();
     assert_eq!(

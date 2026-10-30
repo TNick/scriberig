@@ -28,6 +28,7 @@ pub enum SessionEntityType {
     PlanEvidence,
     PlanSummary,
     PlanSummaryLink,
+    PlanAttempt,
 }
 impl SessionEntityType {
     #[must_use]
@@ -59,6 +60,7 @@ impl SessionEntityType {
             Self::PlanEvidence => "scriberig.session.plan-evidence",
             Self::PlanSummary => "scriberig.session.plan-summary",
             Self::PlanSummaryLink => "scriberig.session.plan-summary-link",
+            Self::PlanAttempt => "scriberig.session.plan-attempt",
         }
     }
 }
