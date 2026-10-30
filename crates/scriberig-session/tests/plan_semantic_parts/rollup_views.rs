@@ -75,6 +75,40 @@ fn incremental_rollup_rejects_a_stale_base_snapshot() {
     assert_eq!(index.source_snapshot(), expected);
 }
 
+/// Leaves the cache and snapshot untouched when a staged reparent forms a cycle.
+#[test]
+fn incremental_rollup_cycle_failure_is_transactional() {
+    let branch = EntityId::from_bytes([2; 16]);
+    let parent_id = EntityId::from_bytes([10; 16]);
+    let child_id = EntityId::from_bytes([11; 16]);
+    let mut plan = Plan::new(
+        EntityId::from_bytes([3; 16]),
+        EntityId::from_bytes([1; 16]),
+        ContinuationAnchor::BranchHead { branch },
+        "transactional rollup update",
+    )
+    .expect("plan");
+    plan.add_node(node(10, branch, "parent")).expect("parent");
+    let mut child = node(11, branch, "child");
+    child.parent = Some(PlanNodeParent::Node(parent_id));
+    plan.add_node(child).expect("child");
+    let snapshot = scriberig_core::SnapshotId::new([70; 32]);
+    let mut index = PlanNodeRollupIndex::rebuild(&plan, snapshot).expect("index");
+    let original = index.clone();
+    plan.nodes[0].parent = Some(PlanNodeParent::Node(child_id));
+
+    assert_eq!(
+        index.apply_change(
+            &plan,
+            snapshot,
+            scriberig_core::SnapshotId::new([71; 32]),
+            &[parent_id]
+        ),
+        Err(scriberig_session::PlanError::StructuralCycle)
+    );
+    assert_eq!(index, original);
+}
+
 /// Keeps derived descendant changes out of an ancestor's canonical revision.
 #[test]
 fn descendant_rollup_changes_do_not_revise_ancestor_content() {
