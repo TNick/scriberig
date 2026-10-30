@@ -7673,8 +7673,9 @@ tests and full web typecheck pass.</p>
 <p>Remaining implementation gaps: server session projections consume
 snapshot-validated SQLite rollup rows through the shared application read
 boundary, with canonical plan evaluation as fallback for missing, stale, or
-invalid cache data. Each plan CAS still rebuilds all rollup rows from the
-reference evaluator; single-leaf updates still clone the in-memory cache.
+invalid cache data. Each plan CAS still rebuilds all SQLite rollup rows from
+the reference evaluator; in-memory single-leaf updates now stage only affected
+rollups, adjacency rows, and ancestors.
 Migration coverage for stale runtime claims and some coordinator fields is
 incomplete; and web product surfaces do not yet present or invoke every plan
 operation. Task 148's upstream TUI
@@ -7732,9 +7733,9 @@ the focused migration regression passes.</p>
 scans all Plan nodes to confirm unchanged membership or resolve an existing
 parent. It uses the indexed parent map and node-count invariant; propagation
 still recomputes changed nodes and their ancestor paths only. The session
-rollup tests, Clippy, and repository lint pass. The single-leaf cost criterion
-remains unchecked because the transactional index clone still copies the full
-in-memory rollup map; eliminating that copy needs a sparse transactional update.</p>
+rollup tests, Clippy, and repository lint pass. Sparse staged updates no longer
+clone the full in-memory rollup, parent, or child maps. A cycle regression
+proves a rejected update leaves the index and snapshot unchanged.</p>
 <p>Implementation update (2026-10-30): SQLite now persists effective status,
 ignored/abandoned flags, direct-child status counts, unsatisfied completion
 gate count, evaluator version, and source snapshot in a separate session-owned
@@ -7772,8 +7773,15 @@ labels do not provide a process-liveness identity for safe validation.</p>
 the cache against reference evaluation across all direct statuses, failed and
 running siblings, ignored and other abandoned descendants, completion-gate
 blocking, and explicit waiver. Existing deep-tree and reparenting regressions
-cover those structural cases. The <code>plan_semantic</code> test target passes; the
-single-leaf update cost criterion remains open.</p>
+cover those structural cases. The <code>plan_semantic</code> test target passes.</p>
+<p>Implementation update (2026-10-30): plan lifecycle, assignment, replan,
+retry, next-step, decomposition, summary, evidence, gate, and waiver mutations
+are exposed by shared application operations and mapped by the protocol server
+to those same operations. Rust client methods preserve the typed request and
+plan response. The reconnect regression mutates a gate through the client,
+creates a fresh client over the same dispatcher, then verifies an authoritative
+session read returns the gate and updated node view without event replay.
+Focused app, server, and client operation coverage passes.</p>
 <p>Implementation update (2026-10-30): <code>SessionStore</code> now exposes an exact-
 snapshot, per-node paged attempt-history read. SQLite filters the snapshot by
 semantic type and loads PlanAttempt records without decoding node evidence,
@@ -8324,7 +8332,7 @@ from plan, node, branch, and claim generation.</p>
 <a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>stop at unchanged ancestor/root
 </code></pre></div>
 <ul>
-<li>[ ] Single-leaf update does not walk unrelated subtrees.</li>
+<li>[x] Single-leaf update does not walk unrelated subtrees.</li>
 <li>[x] Reparent updates old and new ancestor chains.</li>
 <li>[x] Deep-tree test proves result equivalence with full reference recomputation.</li>
 </ul>
@@ -8355,8 +8363,9 @@ the only specification of rollup semantics. SQLite stores its results as
 rebuildable, snapshot- and evaluator-version-bound rows in the session crate's
 architectural owner. Triggers would duplicate Rust gate/rollup semantics in
 SQL and complicate cache invalidation. The current implementation recomputes
-the reference values and replaces the rows transactionally; sparse SQLite
-updates and avoiding a full in-memory rollup-map clone remain follow-up work.</p>
+the reference values and replaces the rows transactionally. Sparse SQLite row
+updates remain a follow-up; in-memory incremental updates stage only affected
+rollup and adjacency rows.</p>
 <hr />
 <h1 id="13-phase-8-scheduler-worker-settlement-and-coordinator-integration">13. Phase 8 — Scheduler, Worker Settlement, and Coordinator Integration<a class="headerlink" href="#13-phase-8-scheduler-worker-settlement-and-coordinator-integration" title="Permanent link">&para;</a></h1>
 <h2 id="task-81-refactor-readiness">Task 8.1 — Refactor readiness<a class="headerlink" href="#task-81-refactor-readiness" title="Permanent link">&para;</a></h2>
@@ -8470,7 +8479,7 @@ updates and avoiding a full in-memory rollup-map clone remain follow-up work.</p
 <a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>plan/node inspect
 </code></pre></div>
 <ul>
-<li>[ ] Every mutation routes through <code>scriberig-app</code> or an existing lower shared semantic operation boundary.</li>
+<li>[x] Every mutation routes through <code>scriberig-app</code> or an existing lower shared semantic operation boundary.</li>
 </ul>
 <h2 id="task-102-protocol-views">Task 10.2 — Protocol views<a class="headerlink" href="#task-102-protocol-views" title="Permanent link">&para;</a></h2>
 <p>Extend transport DTOs as needed for:</p>
@@ -8487,9 +8496,9 @@ updates and avoiding a full in-memory rollup-map clone remain follow-up work.</p
 </ul>
 <h2 id="task-103-serverclient-parity">Task 10.3 — Server/client parity<a class="headerlink" href="#task-103-serverclient-parity" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Embedded app and server expose the same semantic operations.</li>
-<li>[ ] Rust client maps them without semantic loss.</li>
-<li>[ ] Reconnect reloads authoritative semantic plan state.</li>
+<li>[x] Embedded app and server expose the same semantic operations.</li>
+<li>[x] Rust client maps them without semantic loss.</li>
+<li>[x] Reconnect reloads authoritative semantic plan state.</li>
 </ul>
 <h2 id="task-104-web-modelclient-parity">Task 10.4 — Web model/client parity<a class="headerlink" href="#task-104-web-modelclient-parity" title="Permanent link">&para;</a></h2>
 <ul>

@@ -22,7 +22,7 @@
     &amp;self,
     provider_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     model_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;ModelPropertyDescriptor&gt;, HostConfigurationError&gt;</h4></section></summary><div class="docblock"><p>Reads upstream descriptors for a persisted provider model.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;ModelPropertyDescriptor&gt;, <a class="enum" href="../../scriberig_agent_runtime/host_configuration/enum.HostConfigurationError.html" title="enum scriberig_agent_runtime::host_configuration::HostConfigurationError">HostConfigurationError</a>&gt;</h4></section></summary><div class="docblock"><p>Reads upstream descriptors for a persisted provider model.</p>
 <h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
 <ul>
 <li><code>provider_id</code>: Exact upstream provider identity.</li>
@@ -38,7 +38,7 @@
     model_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     key: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     value: <a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, HostConfigurationError&gt;</h4></section></summary><div class="docblock"><p>Validates, persists, and publishes one upstream model property edit.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="enum" href="../../scriberig_agent_runtime/host_configuration/enum.HostConfigurationError.html" title="enum scriberig_agent_runtime::host_configuration::HostConfigurationError">HostConfigurationError</a>&gt;</h4></section></summary><div class="docblock"><p>Validates, persists, and publishes one upstream model property edit.</p>
 <h5 id="parameters-1"><a class="doc-anchor" href="#parameters-1">§</a>Parameters</h5>
 <ul>
 <li><code>provider_id</code>: Exact upstream provider identity.</li>
@@ -52,7 +52,7 @@
 <p><code>Ok(())</code> after the validated property is persisted.</p>
 </div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-NativeTuiAgentRunner-1" class="impl"><a class="src rightside" href="../../src/srig/native_tui_agent.rs.html#99-219">Source</a><a href="#impl-NativeTuiAgentRunner-1" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.NativeTuiAgentRunner.html" title="struct srig::native_tui_agent::NativeTuiAgentRunner">NativeTuiAgentRunner</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.from_environment" class="method"><a class="src rightside" href="../../src/srig/native_tui_agent.rs.html#112-162">Source</a><h4 class="code-header">pub(crate) fn <a href="#method.from_environment" class="fn">from_environment</a>(
     project_store: <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;SqliteStore&gt;,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, HostConfigurationError&gt;</h4></section></summary><div class="docblock"><p>Builds the TUI agent runtime from trusted process configuration.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a class="enum" href="../../scriberig_agent_runtime/host_configuration/enum.HostConfigurationError.html" title="enum scriberig_agent_runtime::host_configuration::HostConfigurationError">HostConfigurationError</a>&gt;</h4></section></summary><div class="docblock"><p>Builds the TUI agent runtime from trusted process configuration.</p>
 <ul>
 <li><code>project_store</code>: Shared durable project and semantic store.</li>
 <li><code>super</code>: Parent module containing the native runtime composition.</li>
@@ -70,7 +70,7 @@
     &amp;self,
     model: &amp;Model,
     connection: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;(<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;dyn Provider&gt;, Model, <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;RequestSecret&gt;)&gt;, HostConfigurationError&gt;</h4></section></summary><div class="docblock"><p>Creates an upstream provider bound to one exact selected model.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;(<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;dyn Provider&gt;, Model, <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;RequestSecret&gt;)&gt;, <a class="enum" href="../../scriberig_agent_runtime/host_configuration/enum.HostConfigurationError.html" title="enum scriberig_agent_runtime::host_configuration::HostConfigurationError">HostConfigurationError</a>&gt;</h4></section></summary><div class="docblock"><p>Creates an upstream provider bound to one exact selected model.</p>
 <h5 id="parameters-2"><a class="doc-anchor" href="#parameters-2">§</a>Parameters</h5>
 <ul>
 <li><code>model</code>: Exact model retained from the resolved catalog snapshot.</li>
