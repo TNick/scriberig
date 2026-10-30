@@ -1,6 +1,12 @@
 /** @file Presents durable plan state and shared plan operations. */
 
-import type { SessionId, SessionPlan } from "@scriberig/protocol";
+import type {
+  SessionId,
+  SessionPlan,
+  SessionPlanAttempt,
+  SessionPlanEvidenceAssociation,
+  SessionPlanGate,
+} from "@scriberig/protocol";
 import { useScriberig } from "@scriberig/react";
 import { useEffect, useState, type ReactElement } from "react";
 
@@ -23,9 +29,9 @@ export function PlanPanel({
   const { client } = useScriberig();
   const [selected, setSelected] = useState<{ plan: string; node: string }>();
   const [details, setDetails] = useState<{
-    gates: readonly unknown[];
-    evidence: readonly unknown[];
-    attempts: readonly unknown[];
+    gates: readonly SessionPlanGate[];
+    evidence: readonly SessionPlanEvidenceAssociation[];
+    attempts: readonly SessionPlanAttempt[];
   }>();
   const [reason, setReason] = useState("");
   const [evidenceEntity, setEvidenceEntity] = useState("");
@@ -128,8 +134,7 @@ export function PlanPanel({
             <input value={reason} onChange={(event) => setReason(event.target.value)} />
           </label>
           <ul>
-            {(details?.gates ?? []).map((value) => {
-              const gate = value as { id: string; phase: string; waiver?: { reason: string } };
+            {(details?.gates ?? []).map((gate) => {
               return (
                 <li key={gate.id}>
                   {gate.phase} gate {gate.id}
@@ -188,13 +193,7 @@ export function PlanPanel({
             Attach evidence
           </button>
           <ul>
-            {(details?.evidence ?? []).map((value) => {
-              const item = value as {
-                id: string;
-                role: string;
-                note?: string;
-                evidence: { kind: unknown; reference: { entity: string } };
-              };
+            {(details?.evidence ?? []).map((item) => {
               return (
                 <li key={item.id}>
                   {String(item.evidence.kind)}: {item.evidence.reference.entity} ({item.role}){" "}
@@ -205,8 +204,7 @@ export function PlanPanel({
           </ul>
           <h4>Attempts</h4>
           <ul>
-            {(details?.attempts ?? []).map((value) => {
-              const attempt = value as { id: string; status: string; branch: string };
+            {(details?.attempts ?? []).map((attempt) => {
               return (
                 <li key={attempt.id}>
                   {attempt.status} on {attempt.branch}
