@@ -7,8 +7,8 @@ use scriberig_core::EntityId;
 mod worker;
 
 use scriberig_session::{
-    BranchResult, BranchStatus, ModelAssignment, Plan, PlanNode, PlanNodeParent, PlanNodeStatus,
-    PlanStatus, WorkerClaim,
+    BranchResult, BranchStatus, ModelAssignment, Plan, PlanGate, PlanGatePhase,
+    PlanGateRequirement, PlanNode, PlanNodeParent, PlanNodeStatus, PlanStatus, WorkerClaim,
 };
 
 /// Builds the upstream catalog used by scheduler assignment tests.
@@ -217,6 +217,29 @@ fn failed_candidate_integration_retains_structured_conflict_code() {
             .map(|reference| reference.reference.entity),
         Some(failure.id)
     );
+}
+
+/// Rechecks canonical entry gates before dispatching a node with stale Ready status.
+#[test]
+fn pending_entry_gate_blocks_dispatch_even_when_node_status_is_stale_ready() {
+    let (mut plan, _, ready, _) = scheduler_plan();
+    plan.add_gate(PlanGate {
+        id: EntityId::from_bytes([230; 16]),
+        owner: ready,
+        phase: PlanGatePhase::Entry,
+        requirement: PlanGateRequirement::ValidationPassed {
+            profile: Some("fresh-validation".to_owned()),
+        },
+        waiver: None,
+    })
+    .expect("add canonical entry gate");
+    let node = plan.nodes.iter_mut().find(|node| node.id == ready).unwrap();
+    node.status = PlanNodeStatus::Ready;
+
+    let tick = PlanScheduler::tick(&plan, &[], 4, |_| true);
+
+    assert_eq!(tick.dispatch, Vec::<EntityId>::new());
+    assert!(tick.blocked.contains(&ready));
 }
 
 /// Synchronizes fake workers so the test proves overlapping execution.

@@ -75,6 +75,103 @@ fn pending_completion_gate_blocks_plan_completion_until_waived() {
     assert_eq!(plan.status, PlanStatus::Completed);
 }
 
+/// Ensures a required decomposition adds a completion obligation to its parent.
+#[test]
+fn required_decomposition_blocks_parent_completion_until_child_result_exists() {
+    let session = EntityId::from_bytes([11; 16]);
+    let branch = EntityId::from_bytes([12; 16]);
+    let plan_id = EntityId::from_bytes([13; 16]);
+    let parent_id = EntityId::from_bytes([14; 16]);
+    let child_id = EntityId::from_bytes([15; 16]);
+    let mut plan = Plan::new(
+        plan_id,
+        session,
+        ContinuationAnchor::BranchHead { branch },
+        "complete required decomposition",
+    )
+    .expect("plan");
+    plan.add_node(PlanNode {
+        id: parent_id,
+        parent: Some(PlanNodeParent::Branch(branch)),
+        title: "parent work".to_owned(),
+        purpose: "complete parent work".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("parent node");
+    plan.transition(PlanStatus::Planned).expect("planned");
+    plan.transition(PlanStatus::Running).expect("running");
+    plan.decompose(
+        parent_id,
+        vec![PlanNode {
+            id: child_id,
+            parent: None,
+            title: "required child".to_owned(),
+            purpose: "complete required work".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            status: PlanNodeStatus::Planned,
+            branch: None,
+            result: None,
+            superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
+            assignment: None,
+            claim: None,
+            claim_generation: 0,
+        }],
+        true,
+    )
+    .expect("required decomposition");
+    let parent_result = result(16, branch);
+    let parent = plan
+        .nodes
+        .iter_mut()
+        .find(|node| node.id == parent_id)
+        .unwrap();
+    parent.status = PlanNodeStatus::Completed;
+    parent.branch = Some(branch);
+    parent.result = Some(parent_result.id);
+
+    assert_eq!(plan.gates.len(), 1);
+    assert_eq!(
+        plan.evaluate_gate(plan.gates[0].id)
+            .expect("required child gate")
+            .status,
+        PlanGateStatus::Pending
+    );
+    assert!(
+        !plan
+            .complete_if_satisfied(std::slice::from_ref(&parent_result))
+            .expect("pending child blocks completion")
+    );
+    assert_eq!(plan.status, PlanStatus::Running);
+
+    let child_result = result(17, branch);
+    let child = plan
+        .nodes
+        .iter_mut()
+        .find(|node| node.id == child_id)
+        .unwrap();
+    child.status = PlanNodeStatus::Completed;
+    child.branch = Some(branch);
+    child.result = Some(child_result.id);
+    assert!(
+        plan.complete_if_satisfied(&[parent_result, child_result])
+            .expect("completed required child permits completion")
+    );
+    assert_eq!(plan.status, PlanStatus::Completed);
+}
+
 /// Creates a completed node with an exact result branch.
 ///
 /// # Parameters
