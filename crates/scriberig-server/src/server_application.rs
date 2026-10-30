@@ -103,6 +103,24 @@ where
         session_response(value)
     }
 
+    /// Reads paged plan attempt history through the shared session boundary.
+    ///
+    /// - `context`: Trusted request context.
+    /// - `request`: Exact session, plan, node, snapshot, and page range.
+    ///
+    /// Semantic worker-attempt records.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns invalid-identity, authorization, or persistence failures.
+    fn read_plan_attempt_history(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanAttemptHistoryRequest,
+    ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
+        scriberig_app::SessionBackend::read_plan_attempt_history(self, context, request)
+    }
+
     /// Reads a previously captured model request from an authorized session.
     ///
     /// - `context`: Trusted request context.

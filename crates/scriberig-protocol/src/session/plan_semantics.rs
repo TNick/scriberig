@@ -96,6 +96,38 @@ pub struct SessionPlanEvidenceReference {
     pub attributes: BTreeMap<String, String>,
 }
 
+/// One immutable worker-attempt revision projected for a client.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionPlanAttempt {
+    /// Stable semantic attempt identity.
+    pub id: String,
+    /// Exact immutable attempt revision.
+    pub exact_revision: String,
+    /// Stable plan-node identity.
+    pub node: String,
+    /// Isolated session branch for the attempt.
+    pub branch: String,
+    /// Monotonic attempt generation for the node.
+    pub claim_generation: u64,
+    /// Worker claim identity retained for provenance.
+    pub claim: Option<String>,
+    /// Latest durable outcome.
+    pub status: super::plan::SessionPlanNodeStatus,
+    /// Accepted successful result identity, when completed.
+    pub result: Option<String>,
+    /// Exact failure evidence, when failed.
+    pub failure: Option<SessionPlanEvidenceReference>,
+}
+
+/// Returns one bounded page of node attempts from an exact snapshot.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionPlanAttemptHistoryPage {
+    /// Offset used to select this page.
+    pub offset: usize,
+    /// Attempts ordered by claim generation.
+    pub attempts: Vec<SessionPlanAttempt>,
+}
+
 /// Identifies whether evidence supports, contradicts, or informs an owner.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub enum SessionPlanEvidenceRole {

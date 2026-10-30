@@ -5,10 +5,11 @@ use crate::{
     AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesSetRequest,
     AgentStartRequest, CancelOperationRequest, CommandRequest, Event, FindRequest, ListRequest,
     ModelLibraryRequest, ModelRequestDetailRequest, ProjectRequest, QueryRequest,
-    SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanDecomposeRequest, SessionPlanLifecycleRequest, SessionPlanNextStepRequest,
-    SessionPlanReplanRequest, SessionPlanRetryRequest, SessionPlanSemanticMutationRequest,
-    SessionReadRequest, SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
+    SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanAttemptHistoryRequest,
+    SessionPlanCreateRequest, SessionPlanDecomposeRequest, SessionPlanLifecycleRequest,
+    SessionPlanNextStepRequest, SessionPlanReplanRequest, SessionPlanRetryRequest,
+    SessionPlanSemanticMutationRequest, SessionReadRequest, SessionThinkingSelectionRequest,
+    SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -59,6 +60,8 @@ pub enum Request {
     PlanReplan(SessionPlanReplanRequest),
     /// Retry one failed plan node.
     PlanRetry(SessionPlanRetryRequest),
+    /// Read one bounded page of a node's attempt history.
+    PlanAttemptHistory(SessionPlanAttemptHistoryRequest),
     /// Add ordinary work to a running plan.
     PlanNextStep(SessionPlanNextStepRequest),
     /// Decompose one plan node into structural children.
@@ -110,6 +113,8 @@ pub enum Response {
     Session(crate::SessionReadResponse),
     /// Current durable plan projection.
     Plan(crate::SessionPlan),
+    /// Bounded per-node worker attempt history.
+    PlanAttemptHistory(crate::SessionPlanAttemptHistoryPage),
     /// Safe normalized request captured for one model invocation.
     ModelRequestDetail(crate::ModelRequestDetailResponse),
     /// Bounded safe detail for one tool result.

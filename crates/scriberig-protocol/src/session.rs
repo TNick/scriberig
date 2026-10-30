@@ -23,7 +23,8 @@ mod plan_semantics;
 pub use plan::{
     SessionContinuationAnchor, SessionCoordinatorClaim, SessionExpectedResult,
     SessionModelAssignment, SessionPlan, SessionPlanAbandonReason, SessionPlanAction,
-    SessionPlanAssignmentRequest, SessionPlanCreateRequest, SessionPlanDependency,
+    SessionPlanAssignmentRequest, SessionPlanAttempt, SessionPlanAttemptHistoryPage,
+    SessionPlanAttemptHistoryRequest, SessionPlanCreateRequest, SessionPlanDependency,
     SessionPlanEvidenceAssociation, SessionPlanEvidenceKind, SessionPlanEvidenceOwner,
     SessionPlanEvidenceReference, SessionPlanEvidenceRole, SessionPlanGate, SessionPlanGateCounts,
     SessionPlanGatePhase, SessionPlanGateRequirement, SessionPlanGateWaiver,

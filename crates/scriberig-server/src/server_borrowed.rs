@@ -73,6 +73,24 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).read_session(context, session)
     }
 
+    /// Delegates paged plan attempt history to the borrowed service.
+    ///
+    /// - `context`: Trusted request context.
+    /// - `request`: Exact session, plan, node, snapshot, and page range.
+    ///
+    /// Semantic worker-attempt records.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns the wrapped service's structured failure.
+    fn read_plan_attempt_history(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanAttemptHistoryRequest,
+    ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
+        (**self).read_plan_attempt_history(context, request)
+    }
+
     /// Delegates model request detail reads to the borrowed service.
     ///
     /// - `context`: Trusted request context.

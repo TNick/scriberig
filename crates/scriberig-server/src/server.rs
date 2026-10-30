@@ -82,8 +82,6 @@ pub trait ApplicationService {
     /// - `_session`: Stable session identity.
     ///
     /// Provider-neutral session and branch activity summaries.
-    ///
-    /// Returns a structured application error when the session is unavailable.
     /// # Returns
     /// The operation result.
     /// # Errors
@@ -95,6 +93,22 @@ pub trait ApplicationService {
     ) -> Result<scriberig_protocol::SessionReadResponse, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "session read".to_owned(),
+        })
+    }
+
+    /// Reads a bounded plan-node attempt page at an exact snapshot.
+    /// - `_context`: Trusted request context.
+    /// - `_request`: Authorized session, node, snapshot, and page range.
+    /// # Returns Exact semantic attempt records.
+    /// # Errors
+    /// Returns authorization, history, or persistence failures.
+    fn read_plan_attempt_history(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_app::PlanAttemptHistoryRequest,
+    ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan attempt history read".to_owned(),
         })
     }
 

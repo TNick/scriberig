@@ -62,6 +62,43 @@ fn empty_plan() -> scriberig_protocol::SessionPlan {
     }
 }
 
+/// Sends bounded plan attempt-history requests and returns the typed page.
+#[test]
+fn plan_attempt_history_method_preserves_snapshot_and_page_fields() {
+    let observed = Arc::new(Mutex::new(None));
+    let client = Client::new(FixtureTransport {
+        response: Response::PlanAttemptHistory(scriberig_protocol::SessionPlanAttemptHistoryPage {
+            offset: 4,
+            attempts: Vec::new(),
+        }),
+        request: Arc::clone(&observed),
+    });
+
+    let page = client
+        .plan_attempt_history(scriberig_protocol::SessionPlanAttemptHistoryRequest {
+            session: scriberig_protocol::SessionReference {
+                id: "session-1".to_owned(),
+            },
+            plan: "plan-1".to_owned(),
+            node: "node-1".to_owned(),
+            snapshot: "snapshot-1".to_owned(),
+            offset: 4,
+            limit: 12,
+        })
+        .expect("attempt page");
+
+    assert_eq!(page.offset, 4);
+    assert_eq!(
+        page.attempts,
+        [] as [scriberig_protocol::SessionPlanAttempt; 0]
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanAttemptHistory(request))
+            if request.snapshot == "snapshot-1" && request.offset == 4 && request.limit == 12
+    ));
+}
+
 /// Verifies semantic selection calls use revision-bearing protocol requests.
 #[test]
 fn selection_methods_preserve_mutation_revisions() {

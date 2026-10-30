@@ -324,6 +324,28 @@ fn session_plan_contracts_round_trip() {
         node: "node-a".to_owned(),
         expected_revision: 7,
     });
+    round_trip(&SessionPlanAttemptHistoryRequest {
+        session: session.clone(),
+        plan: "plan-1".to_owned(),
+        node: "node-a".to_owned(),
+        snapshot: "snapshot-1".to_owned(),
+        offset: 10,
+        limit: 20,
+    });
+    round_trip(&SessionPlanAttemptHistoryPage {
+        offset: 10,
+        attempts: vec![SessionPlanAttempt {
+            id: "attempt-1".to_owned(),
+            exact_revision: "revision-1".to_owned(),
+            node: "node-a".to_owned(),
+            branch: "branch-a".to_owned(),
+            claim_generation: 2,
+            claim: Some("claim-2".to_owned()),
+            status: SessionPlanNodeStatus::Failed,
+            result: None,
+            failure: None,
+        }],
+    });
     round_trip(&SessionPlanNextStepRequest {
         session: session.clone(),
         plan: "plan-1".to_owned(),

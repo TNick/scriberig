@@ -6,11 +6,11 @@ use scriberig_protocol::{
     AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesResponse,
     AgentPresentationPreferencesSetRequest, BranchReference, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
-    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanDecomposeRequest, SessionPlanLifecycleRequest, SessionPlanNextStepRequest,
-    SessionPlanReplanRequest, SessionPlanRetryRequest, SessionPlanSemanticMutationRequest,
-    SessionReadRequest, SessionReadResponse, SessionReference, ToolResultDetailRequest,
-    ToolResultDetailResponse,
+    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanAttemptHistoryPage,
+    SessionPlanAttemptHistoryRequest, SessionPlanCreateRequest, SessionPlanDecomposeRequest,
+    SessionPlanLifecycleRequest, SessionPlanNextStepRequest, SessionPlanReplanRequest,
+    SessionPlanRetryRequest, SessionPlanSemanticMutationRequest, SessionReadRequest,
+    SessionReadResponse, SessionReference, ToolResultDetailRequest, ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
@@ -116,6 +116,26 @@ impl<T: ProtocolTransport> Client<T> {
     ) -> Result<SessionPlan, ClientError> {
         match self.send(Request::PlanRetry(request))?.response {
             Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads one bounded page of a node's exact-snapshot attempt history.
+    ///
+    /// - `request`: Session, plan, node, snapshot, and page range.
+    ///
+    /// Attempt outcomes ordered by claim generation.
+    /// # Returns
+    /// The requested page.
+    /// # Errors
+    /// Returns a structured server, transport, or response-mismatch error.
+    pub fn plan_attempt_history(
+        &self,
+        request: SessionPlanAttemptHistoryRequest,
+    ) -> Result<SessionPlanAttemptHistoryPage, ClientError> {
+        match self.send(Request::PlanAttemptHistory(request))?.response {
+            Response::PlanAttemptHistory(page) => Ok(page),
             Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }

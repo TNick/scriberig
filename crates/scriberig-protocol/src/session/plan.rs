@@ -291,6 +291,23 @@ pub struct SessionPlanRetryRequest {
     pub expected_revision: u64,
 }
 
+/// Reads one bounded page of worker attempts at an exact plan snapshot.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionPlanAttemptHistoryRequest {
+    /// Owning session identity.
+    pub session: SessionReference,
+    /// Stable plan identity.
+    pub plan: String,
+    /// Stable plan-node identity.
+    pub node: String,
+    /// Exact semantic snapshot identity.
+    pub snapshot: String,
+    /// Number of matching attempts to skip in stable order.
+    pub offset: usize,
+    /// Maximum number of attempts to return.
+    pub limit: usize,
+}
+
 /// Changes one unstarted node's safe model assignment.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct SessionPlanAssignmentRequest {
