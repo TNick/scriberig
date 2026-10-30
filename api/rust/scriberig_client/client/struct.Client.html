@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Reusable semantic client that hides protocol envelope details."><title>Client in scriberig_client::client - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_client" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc struct"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Client</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../scriberig_client/index.html">scriberig_<wbr>client</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Client</a></h2><h3><a href="#implementations">Associated Functions</a></h3><ul class="block method"><li><a href="#method.new" title="new">new</a></li></ul><h3><a href="#implementations">Methods</a></h3><ul class="block method"><li><a href="#method.add_plan_next_step" title="add_plan_next_step">add_plan_next_step</a></li><li><a href="#method.agent_presentation_preferences" title="agent_presentation_preferences">agent_presentation_preferences</a></li><li><a href="#method.cancel_operation" title="cancel_operation">cancel_operation</a></li><li><a href="#method.capabilities" title="capabilities">capabilities</a></li><li><a href="#method.command" title="command">command</a></li><li><a href="#method.continue_agent" title="continue_agent">continue_agent</a></li><li><a href="#method.continue_agent_at" title="continue_agent_at">continue_agent_at</a></li><li><a href="#method.continue_agent_with_handles" title="continue_agent_with_handles">continue_agent_with_handles</a></li><li><a href="#method.create_plan" title="create_plan">create_plan</a></li><li><a href="#method.decompose_plan_node" title="decompose_plan_node">decompose_plan_node</a></li><li><a href="#method.domain_operation" title="domain_operation">domain_operation</a></li><li><a href="#method.event_subscription" title="event_subscription">event_subscription</a></li><li><a href="#method.find" title="find">find</a></li><li><a href="#method.inspect" title="inspect">inspect</a></li><li><a href="#method.list" title="list">list</a></li><li><a href="#method.model_library" title="model_library">model_library</a></li><li><a href="#method.model_request_detail" title="model_request_detail">model_request_detail</a></li><li><a href="#method.model_request_detail_page" title="model_request_detail_page">model_request_detail_page</a></li><li><a href="#method.mutate_plan_semantics" title="mutate_plan_semantics">mutate_plan_semantics</a></li><li><a href="#method.operation_status" title="operation_status">operation_status</a></li><li><a href="#method.plan_lifecycle" title="plan_lifecycle">plan_lifecycle</a></li><li><a href="#method.project" title="project">project</a></li><li><a href="#method.query" title="query">query</a></li><li><a href="#method.read_session" title="read_session">read_session</a></li><li><a href="#method.read_session_branch" title="read_session_branch">read_session_branch</a></li><li><a href="#method.replan" title="replan">replan</a></li><li><a href="#method.retry_plan_node" title="retry_plan_node">retry_plan_node</a></li><li><a href="#method.set_agent_presentation_preferences" title="set_agent_presentation_preferences">set_agent_presentation_preferences</a></li><li><a href="#method.set_plan_assignment" title="set_plan_assignment">set_plan_assignment</a></li><li><a href="#method.set_session_model" title="set_session_model">set_session_model</a></li><li><a href="#method.set_session_thinking_level" title="set_session_thinking_level">set_session_thinking_level</a></li><li><a href="#method.start_agent" title="start_agent">start_agent</a></li><li><a href="#method.start_agent_with_handles" title="start_agent_with_handles">start_agent_with_handles</a></li><li><a href="#method.start_new_session_agent" title="start_new_session_agent">start_new_session_agent</a></li><li><a href="#method.submit_agent_command" title="submit_agent_command">submit_agent_command</a></li><li><a href="#method.subscribe" title="subscribe">subscribe</a></li><li><a href="#method.subscribe_after" title="subscribe_after">subscribe_after</a></li><li><a href="#method.tool_result_detail" title="tool_result_detail">tool_result_detail</a></li></ul><h3><a href="#synthetic-implementations">Auto Trait Implementations</a></h3><ul class="block synthetic-implementation"><li><a href="#impl-Freeze-for-Client%3CT%3E" title="!Freeze">!Freeze</a></li><li><a href="#impl-RefUnwindSafe-for-Client%3CT%3E" title="RefUnwindSafe">RefUnwindSafe</a></li><li><a href="#impl-Send-for-Client%3CT%3E" title="Send">Send</a></li><li><a href="#impl-Sync-for-Client%3CT%3E" title="Sync">Sync</a></li><li><a href="#impl-Unpin-for-Client%3CT%3E" title="Unpin">Unpin</a></li><li><a href="#impl-UnsafeUnpin-for-Client%3CT%3E" title="UnsafeUnpin">UnsafeUnpin</a></li><li><a href="#impl-UnwindSafe-for-Client%3CT%3E" title="UnwindSafe">UnwindSafe</a></li></ul><h3><a href="#blanket-implementations">Blanket Implementations</a></h3><ul class="block blanket-implementation"><li><a href="#impl-Any-for-T" title="Any">Any</a></li><li><a href="#impl-Borrow%3CT%3E-for-T" title="Borrow&#60;T&#62;">Borrow&#60;T&#62;</a></li><li><a href="#impl-BorrowMut%3CT%3E-for-T" title="BorrowMut&#60;T&#62;">BorrowMut&#60;T&#62;</a></li><li><a href="#impl-From%3CT%3E-for-T" title="From&#60;T&#62;">From&#60;T&#62;</a></li><li><a href="#impl-Into%3CU%3E-for-T" title="Into&#60;U&#62;">Into&#60;U&#62;</a></li><li><a href="#impl-TryFrom%3CU%3E-for-T" title="TryFrom&#60;U&#62;">TryFrom&#60;U&#62;</a></li><li><a href="#impl-TryInto%3CU%3E-for-T" title="TryInto&#60;U&#62;">TryInto&#60;U&#62;</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In scriberig_<wbr>client::<wbr>client</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">scriberig_client</a>::<wbr><a href="index.html">client</a></div><h1>Struct <span class="struct">Client</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/scriberig_client/client.rs.html#25-28">Source</a> </span></div><pre class="rust item-decl"><code>pub struct Client&lt;T&gt; { <span class="comment">/* private fields */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Reusable semantic client that hides protocol envelope details.</p>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Reusable semantic client that hides protocol envelope details."><title>Client in scriberig_client::client - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_client" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc struct"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Client</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../scriberig_client/index.html">scriberig_<wbr>client</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Client</a></h2><h3><a href="#implementations">Associated Functions</a></h3><ul class="block method"><li><a href="#method.new" title="new">new</a></li></ul><h3><a href="#implementations">Methods</a></h3><ul class="block method"><li><a href="#method.add_plan_next_step" title="add_plan_next_step">add_plan_next_step</a></li><li><a href="#method.agent_presentation_preferences" title="agent_presentation_preferences">agent_presentation_preferences</a></li><li><a href="#method.cancel_operation" title="cancel_operation">cancel_operation</a></li><li><a href="#method.capabilities" title="capabilities">capabilities</a></li><li><a href="#method.command" title="command">command</a></li><li><a href="#method.continue_agent" title="continue_agent">continue_agent</a></li><li><a href="#method.continue_agent_at" title="continue_agent_at">continue_agent_at</a></li><li><a href="#method.continue_agent_with_handles" title="continue_agent_with_handles">continue_agent_with_handles</a></li><li><a href="#method.create_plan" title="create_plan">create_plan</a></li><li><a href="#method.decompose_plan_node" title="decompose_plan_node">decompose_plan_node</a></li><li><a href="#method.domain_operation" title="domain_operation">domain_operation</a></li><li><a href="#method.event_subscription" title="event_subscription">event_subscription</a></li><li><a href="#method.find" title="find">find</a></li><li><a href="#method.inspect" title="inspect">inspect</a></li><li><a href="#method.list" title="list">list</a></li><li><a href="#method.model_library" title="model_library">model_library</a></li><li><a href="#method.model_request_detail" title="model_request_detail">model_request_detail</a></li><li><a href="#method.model_request_detail_page" title="model_request_detail_page">model_request_detail_page</a></li><li><a href="#method.mutate_plan_semantics" title="mutate_plan_semantics">mutate_plan_semantics</a></li><li><a href="#method.operation_status" title="operation_status">operation_status</a></li><li><a href="#method.plan_attempt_history" title="plan_attempt_history">plan_attempt_history</a></li><li><a href="#method.plan_lifecycle" title="plan_lifecycle">plan_lifecycle</a></li><li><a href="#method.plan_node_details" title="plan_node_details">plan_node_details</a></li><li><a href="#method.project" title="project">project</a></li><li><a href="#method.query" title="query">query</a></li><li><a href="#method.read_session" title="read_session">read_session</a></li><li><a href="#method.read_session_branch" title="read_session_branch">read_session_branch</a></li><li><a href="#method.replan" title="replan">replan</a></li><li><a href="#method.retry_plan_node" title="retry_plan_node">retry_plan_node</a></li><li><a href="#method.set_agent_presentation_preferences" title="set_agent_presentation_preferences">set_agent_presentation_preferences</a></li><li><a href="#method.set_plan_assignment" title="set_plan_assignment">set_plan_assignment</a></li><li><a href="#method.set_session_model" title="set_session_model">set_session_model</a></li><li><a href="#method.set_session_thinking_level" title="set_session_thinking_level">set_session_thinking_level</a></li><li><a href="#method.start_agent" title="start_agent">start_agent</a></li><li><a href="#method.start_agent_with_handles" title="start_agent_with_handles">start_agent_with_handles</a></li><li><a href="#method.start_new_session_agent" title="start_new_session_agent">start_new_session_agent</a></li><li><a href="#method.submit_agent_command" title="submit_agent_command">submit_agent_command</a></li><li><a href="#method.subscribe" title="subscribe">subscribe</a></li><li><a href="#method.subscribe_after" title="subscribe_after">subscribe_after</a></li><li><a href="#method.tool_result_detail" title="tool_result_detail">tool_result_detail</a></li></ul><h3><a href="#synthetic-implementations">Auto Trait Implementations</a></h3><ul class="block synthetic-implementation"><li><a href="#impl-Freeze-for-Client%3CT%3E" title="!Freeze">!Freeze</a></li><li><a href="#impl-RefUnwindSafe-for-Client%3CT%3E" title="RefUnwindSafe">RefUnwindSafe</a></li><li><a href="#impl-Send-for-Client%3CT%3E" title="Send">Send</a></li><li><a href="#impl-Sync-for-Client%3CT%3E" title="Sync">Sync</a></li><li><a href="#impl-Unpin-for-Client%3CT%3E" title="Unpin">Unpin</a></li><li><a href="#impl-UnsafeUnpin-for-Client%3CT%3E" title="UnsafeUnpin">UnsafeUnpin</a></li><li><a href="#impl-UnwindSafe-for-Client%3CT%3E" title="UnwindSafe">UnwindSafe</a></li></ul><h3><a href="#blanket-implementations">Blanket Implementations</a></h3><ul class="block blanket-implementation"><li><a href="#impl-Any-for-T" title="Any">Any</a></li><li><a href="#impl-Borrow%3CT%3E-for-T" title="Borrow&#60;T&#62;">Borrow&#60;T&#62;</a></li><li><a href="#impl-BorrowMut%3CT%3E-for-T" title="BorrowMut&#60;T&#62;">BorrowMut&#60;T&#62;</a></li><li><a href="#impl-From%3CT%3E-for-T" title="From&#60;T&#62;">From&#60;T&#62;</a></li><li><a href="#impl-Into%3CU%3E-for-T" title="Into&#60;U&#62;">Into&#60;U&#62;</a></li><li><a href="#impl-TryFrom%3CU%3E-for-T" title="TryFrom&#60;U&#62;">TryFrom&#60;U&#62;</a></li><li><a href="#impl-TryInto%3CU%3E-for-T" title="TryInto&#60;U&#62;">TryInto&#60;U&#62;</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In scriberig_<wbr>client::<wbr>client</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">scriberig_client</a>::<wbr><a href="index.html">client</a></div><h1>Struct <span class="struct">Client</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/scriberig_client/client.rs.html#27-30">Source</a> </span></div><pre class="rust item-decl"><code>pub struct Client&lt;T&gt; { <span class="comment">/* private fields */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Reusable semantic client that hides protocol envelope details.</p>
 </div></details><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E" class="impl"><a class="src rightside" href="../../src/scriberig_client/client_agent.rs.html#12-311">Source</a><a href="#impl-Client%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.model_library" class="method"><a class="src rightside" href="../../src/scriberig_client/client_agent.rs.html#22-31">Source</a><h4 class="code-header">pub fn <a href="#method.model_library" class="fn">model_library</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ModelLibraryResponse.html" title="struct scriberig_protocol::model::ModelLibraryResponse">ModelLibraryResponse</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Retrieves safe model profiles and model-specific thinking capabilities.</p>
 <p>The configured provider-neutral model library.</p>
 <p>Returns a structured server error or response mismatch.</p>
@@ -157,7 +157,19 @@
 <p>The operation result.</p>
 <h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-1" class="impl"><a class="src rightside" href="../../src/scriberig_client/client_project.rs.html#7-37">Source</a><a href="#impl-Client%3CT%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.project" class="method"><a class="src rightside" href="../../src/scriberig_client/client_project.rs.html#20-36">Source</a><h4 class="code-header">pub fn <a href="#method.project" class="fn">project</a>(
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-1" class="impl"><a class="src rightside" href="../../src/scriberig_client/client_plan_node_details.rs.html#9-30">Source</a><a href="#impl-Client%3CT%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.plan_node_details" class="method"><a class="src rightside" href="../../src/scriberig_client/client_plan_node_details.rs.html#20-29">Source</a><h4 class="code-header">pub fn <a href="#method.plan_node_details" class="fn">plan_node_details</a>(
+    &amp;self,
+    request: <a class="struct" href="../../scriberig_protocol/session/plan/struct.SessionPlanNodeDetailsRequest.html" title="struct scriberig_protocol::session::plan::SessionPlanNodeDetailsRequest">SessionPlanNodeDetailsRequest</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan_semantics/struct.SessionPlanNodeDetailsPage.html" title="struct scriberig_protocol::session::plan_semantics::SessionPlanNodeDetailsPage">SessionPlanNodeDetailsPage</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Reads one bounded page of a node’s gates and evidence.</p>
+<h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
+<ul>
+<li><code>request</code>: Session, plan, node, snapshot, and page range.</li>
+</ul>
+<h5 id="returns-10"><a class="doc-anchor" href="#returns-10">§</a>Returns</h5>
+<p>Gate definitions and associated evidence for the requested page.</p>
+<h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
+<p>Returns a structured server, transport, or response-mismatch error.</p>
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-2" class="impl"><a class="src rightside" href="../../src/scriberig_client/client_project.rs.html#7-37">Source</a><a href="#impl-Client%3CT%3E-2" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.project" class="method"><a class="src rightside" href="../../src/scriberig_client/client_project.rs.html#20-36">Source</a><h4 class="code-header">pub fn <a href="#method.project" class="fn">project</a>(
     &amp;self,
     operation: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     payload: <a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
@@ -168,11 +180,11 @@
 </ul>
 <p>The presentation-neutral project operation result.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-10"><a class="doc-anchor" href="#returns-10">§</a>Returns</h5>
+<h5 id="returns-11"><a class="doc-anchor" href="#returns-11">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
+<h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-2" class="impl"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#16-384">Source</a><a href="#impl-Client%3CT%3E-2" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.create_plan" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#28-37">Source</a><h4 class="code-header">pub fn <a href="#method.create_plan" class="fn">create_plan</a>(
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-3" class="impl"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#16-404">Source</a><a href="#impl-Client%3CT%3E-3" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.create_plan" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#28-37">Source</a><h4 class="code-header">pub fn <a href="#method.create_plan" class="fn">create_plan</a>(
     &amp;self,
     request: <a class="struct" href="../../scriberig_protocol/session/plan/struct.SessionPlanCreateRequest.html" title="struct scriberig_protocol::session::plan::SessionPlanCreateRequest">SessionPlanCreateRequest</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan_semantics/struct.SessionPlan.html" title="struct scriberig_protocol::session::plan_semantics::SessionPlan">SessionPlan</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Creates a durable plan from a structured, provider-neutral proposal.</p>
@@ -181,9 +193,9 @@
 </ul>
 <p>The authoritative created plan.</p>
 <p>Returns a structured server or transport error.</p>
-<h5 id="returns-11"><a class="doc-anchor" href="#returns-11">§</a>Returns</h5>
+<h5 id="returns-12"><a class="doc-anchor" href="#returns-12">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
+<h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#50-59">Source</a><h4 class="code-header">pub fn <a href="#method.plan_lifecycle" class="fn">plan_lifecycle</a>(
     &amp;self,
@@ -194,9 +206,9 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns a structured server or transport error.</p>
-<h5 id="returns-12"><a class="doc-anchor" href="#returns-12">§</a>Returns</h5>
+<h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
+<h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.set_plan_assignment" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#72-81">Source</a><h4 class="code-header">pub fn <a href="#method.set_plan_assignment" class="fn">set_plan_assignment</a>(
     &amp;self,
@@ -207,9 +219,9 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns a structured server or transport error.</p>
-<h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
+<h5 id="returns-14"><a class="doc-anchor" href="#returns-14">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
+<h5 id="errors-14"><a class="doc-anchor" href="#errors-14">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.replan" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#94-100">Source</a><h4 class="code-header">pub fn <a href="#method.replan" class="fn">replan</a>(
     &amp;self,
@@ -220,9 +232,9 @@
 </ul>
 <p>The latest authoritative plan projection.</p>
 <p>Returns a structured server or transport error.</p>
-<h5 id="returns-14"><a class="doc-anchor" href="#returns-14">§</a>Returns</h5>
+<h5 id="returns-15"><a class="doc-anchor" href="#returns-15">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-14"><a class="doc-anchor" href="#errors-14">§</a>Errors</h5>
+<h5 id="errors-15"><a class="doc-anchor" href="#errors-15">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.retry_plan_node" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#113-122">Source</a><h4 class="code-header">pub fn <a href="#method.retry_plan_node" class="fn">retry_plan_node</a>(
     &amp;self,
@@ -233,11 +245,23 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns a structured server or transport error.</p>
-<h5 id="returns-15"><a class="doc-anchor" href="#returns-15">§</a>Returns</h5>
+<h5 id="returns-16"><a class="doc-anchor" href="#returns-16">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-15"><a class="doc-anchor" href="#errors-15">§</a>Errors</h5>
+<h5 id="errors-16"><a class="doc-anchor" href="#errors-16">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.add_plan_next_step" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#135-144">Source</a><h4 class="code-header">pub fn <a href="#method.add_plan_next_step" class="fn">add_plan_next_step</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_attempt_history" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#133-142">Source</a><h4 class="code-header">pub fn <a href="#method.plan_attempt_history" class="fn">plan_attempt_history</a>(
+    &amp;self,
+    request: <a class="struct" href="../../scriberig_protocol/session/plan/struct.SessionPlanAttemptHistoryRequest.html" title="struct scriberig_protocol::session::plan::SessionPlanAttemptHistoryRequest">SessionPlanAttemptHistoryRequest</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan_semantics/struct.SessionPlanAttemptHistoryPage.html" title="struct scriberig_protocol::session::plan_semantics::SessionPlanAttemptHistoryPage">SessionPlanAttemptHistoryPage</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Reads one bounded page of a node’s exact-snapshot attempt history.</p>
+<ul>
+<li><code>request</code>: Session, plan, node, snapshot, and page range.</li>
+</ul>
+<p>Attempt outcomes ordered by claim generation.</p>
+<h5 id="returns-17"><a class="doc-anchor" href="#returns-17">§</a>Returns</h5>
+<p>The requested page.</p>
+<h5 id="errors-17"><a class="doc-anchor" href="#errors-17">§</a>Errors</h5>
+<p>Returns a structured server, transport, or response-mismatch error.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.add_plan_next_step" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#155-164">Source</a><h4 class="code-header">pub fn <a href="#method.add_plan_next_step" class="fn">add_plan_next_step</a>(
     &amp;self,
     request: <a class="struct" href="../../scriberig_protocol/session/plan_operations/struct.SessionPlanNextStepRequest.html" title="struct scriberig_protocol::session::plan_operations::SessionPlanNextStepRequest">SessionPlanNextStepRequest</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan_semantics/struct.SessionPlan.html" title="struct scriberig_protocol::session::plan_semantics::SessionPlan">SessionPlan</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Adds ordinary work to a running plan at its observed revision.</p>
@@ -246,11 +270,11 @@
 </ul>
 <p>The authoritative updated plan projection.</p>
 <p>Returns a structured server or transport error.</p>
-<h5 id="returns-16"><a class="doc-anchor" href="#returns-16">§</a>Returns</h5>
+<h5 id="returns-18"><a class="doc-anchor" href="#returns-18">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-16"><a class="doc-anchor" href="#errors-16">§</a>Errors</h5>
+<h5 id="errors-18"><a class="doc-anchor" href="#errors-18">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.decompose_plan_node" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#157-166">Source</a><h4 class="code-header">pub fn <a href="#method.decompose_plan_node" class="fn">decompose_plan_node</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.decompose_plan_node" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#177-186">Source</a><h4 class="code-header">pub fn <a href="#method.decompose_plan_node" class="fn">decompose_plan_node</a>(
     &amp;self,
     request: <a class="struct" href="../../scriberig_protocol/session/plan_operations/struct.SessionPlanDecomposeRequest.html" title="struct scriberig_protocol::session::plan_operations::SessionPlanDecomposeRequest">SessionPlanDecomposeRequest</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan_semantics/struct.SessionPlan.html" title="struct scriberig_protocol::session::plan_semantics::SessionPlan">SessionPlan</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Decomposes one plan node into structural child work.</p>
@@ -259,11 +283,11 @@
 </ul>
 <p>The authoritative updated plan projection.</p>
 <p>Returns a structured server or transport error.</p>
-<h5 id="returns-17"><a class="doc-anchor" href="#returns-17">§</a>Returns</h5>
+<h5 id="returns-19"><a class="doc-anchor" href="#returns-19">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-17"><a class="doc-anchor" href="#errors-17">§</a>Errors</h5>
+<h5 id="errors-19"><a class="doc-anchor" href="#errors-19">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.mutate_plan_semantics" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#177-186">Source</a><h4 class="code-header">pub fn <a href="#method.mutate_plan_semantics" class="fn">mutate_plan_semantics</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.mutate_plan_semantics" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#197-206">Source</a><h4 class="code-header">pub fn <a href="#method.mutate_plan_semantics" class="fn">mutate_plan_semantics</a>(
     &amp;self,
     request: <a class="struct" href="../../scriberig_protocol/session/plan_operations/struct.SessionPlanSemanticMutationRequest.html" title="struct scriberig_protocol::session::plan_operations::SessionPlanSemanticMutationRequest">SessionPlanSemanticMutationRequest</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan_semantics/struct.SessionPlan.html" title="struct scriberig_protocol::session::plan_semantics::SessionPlan">SessionPlan</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Applies one typed summary, evidence, gate, or waiver mutation.</p>
@@ -271,11 +295,11 @@
 <li><code>request</code>: Exact plan revision and semantic mutation.</li>
 </ul>
 <p>The authoritative updated plan projection.</p>
-<h5 id="returns-18"><a class="doc-anchor" href="#returns-18">§</a>Returns</h5>
+<h5 id="returns-20"><a class="doc-anchor" href="#returns-20">§</a>Returns</h5>
 <p>The updated plan.</p>
-<h5 id="errors-18"><a class="doc-anchor" href="#errors-18">§</a>Errors</h5>
+<h5 id="errors-20"><a class="doc-anchor" href="#errors-20">§</a>Errors</h5>
 <p>Returns a structured server or transport error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#199-212">Source</a><h4 class="code-header">pub fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#219-232">Source</a><h4 class="code-header">pub fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
     &amp;self,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Reads shared presentation preferences for the authenticated principal.</p>
 <ul>
@@ -283,11 +307,11 @@
 </ul>
 <p>Revisioned shared presentation defaults.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-19"><a class="doc-anchor" href="#returns-19">§</a>Returns</h5>
+<h5 id="returns-21"><a class="doc-anchor" href="#returns-21">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-19"><a class="doc-anchor" href="#errors-19">§</a>Errors</h5>
+<h5 id="errors-21"><a class="doc-anchor" href="#errors-21">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#227-245">Source</a><h4 class="code-header">pub fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#247-265">Source</a><h4 class="code-header">pub fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
     &amp;self,
     expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
     preferences: <a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferences.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferences">PublicAgentPresentationPreferences</a>,
@@ -299,11 +323,11 @@
 </ul>
 <p>Updated revisioned shared presentation defaults.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-20"><a class="doc-anchor" href="#returns-20">§</a>Returns</h5>
+<h5 id="returns-22"><a class="doc-anchor" href="#returns-22">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-20"><a class="doc-anchor" href="#errors-20">§</a>Errors</h5>
+<h5 id="errors-22"><a class="doc-anchor" href="#errors-22">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.read_session_branch" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#260-276">Source</a><h4 class="code-header">pub fn <a href="#method.read_session_branch" class="fn">read_session_branch</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.read_session_branch" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#280-296">Source</a><h4 class="code-header">pub fn <a href="#method.read_session_branch" class="fn">read_session_branch</a>(
     &amp;self,
     session: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     branch: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
@@ -315,11 +339,11 @@
 </ul>
 <p>The selected branch subtree without unrelated branch histories.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-21"><a class="doc-anchor" href="#returns-21">§</a>Returns</h5>
+<h5 id="returns-23"><a class="doc-anchor" href="#returns-23">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-21"><a class="doc-anchor" href="#errors-21">§</a>Errors</h5>
+<h5 id="errors-23"><a class="doc-anchor" href="#errors-23">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#292-312">Source</a><h4 class="code-header">pub fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#312-332">Source</a><h4 class="code-header">pub fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
     &amp;self,
     session: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     branch: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
@@ -333,11 +357,11 @@
 </ul>
 <p>Bounded provider-neutral request detail retained by the session.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-22"><a class="doc-anchor" href="#returns-22">§</a>Returns</h5>
+<h5 id="returns-24"><a class="doc-anchor" href="#returns-24">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-22"><a class="doc-anchor" href="#errors-22">§</a>Errors</h5>
+<h5 id="errors-24"><a class="doc-anchor" href="#errors-24">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail_page" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#327-349">Source</a><h4 class="code-header">pub fn <a href="#method.model_request_detail_page" class="fn">model_request_detail_page</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail_page" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#347-369">Source</a><h4 class="code-header">pub fn <a href="#method.model_request_detail_page" class="fn">model_request_detail_page</a>(
     &amp;self,
     session: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     branch: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
@@ -353,11 +377,11 @@
 <li><code>max_chars</code>: Requested character bound, capped by the server.</li>
 </ul>
 <p>Request metadata and one text page.</p>
-<h5 id="returns-23"><a class="doc-anchor" href="#returns-23">§</a>Returns</h5>
+<h5 id="returns-25"><a class="doc-anchor" href="#returns-25">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-23"><a class="doc-anchor" href="#errors-23">§</a>Errors</h5>
+<h5 id="errors-25"><a class="doc-anchor" href="#errors-25">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#365-383">Source</a><h4 class="code-header">pub fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail" class="method"><a class="src rightside" href="../../src/scriberig_client/client_session.rs.html#385-403">Source</a><h4 class="code-header">pub fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
     &amp;self,
     session: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     branch: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
@@ -371,18 +395,18 @@
 </ul>
 <p>Whitelisted safe result fields and a truncation indicator.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-24"><a class="doc-anchor" href="#returns-24">§</a>Returns</h5>
+<h5 id="returns-26"><a class="doc-anchor" href="#returns-26">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-24"><a class="doc-anchor" href="#errors-24">§</a>Errors</h5>
+<h5 id="errors-26"><a class="doc-anchor" href="#errors-26">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-3" class="impl"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#30-393">Source</a><a href="#impl-Client%3CT%3E-3" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.new" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#39-44">Source</a><h4 class="code-header">pub fn <a href="#method.new" class="fn">new</a>(transport: T) -&gt; Self</h4></section></summary><div class="docblock"><p>Creates a client over a protocol transport.</p>
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-4" class="impl"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#32-395">Source</a><a href="#impl-Client%3CT%3E-4" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.new" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#41-46">Source</a><h4 class="code-header">pub fn <a href="#method.new" class="fn">new</a>(transport: T) -&gt; Self</h4></section></summary><div class="docblock"><p>Creates a client over a protocol transport.</p>
 <ul>
 <li><code>transport</code>: Transport implementation used for requests.</li>
 </ul>
 <p>A semantic protocol client.</p>
-<h5 id="returns-25"><a class="doc-anchor" href="#returns-25">§</a>Returns</h5>
+<h5 id="returns-27"><a class="doc-anchor" href="#returns-27">§</a>Returns</h5>
 <p>The operation result.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.inspect" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#59-79">Source</a><h4 class="code-header">pub fn <a href="#method.inspect" class="fn">inspect</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.inspect" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#61-81">Source</a><h4 class="code-header">pub fn <a href="#method.inspect" class="fn">inspect</a>(
     &amp;self,
     entity: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     snapshot: <a class="enum" href="../../scriberig_protocol/request/enum.SnapshotSelector.html" title="enum scriberig_protocol::request::SnapshotSelector">SnapshotSelector</a>,
@@ -395,18 +419,18 @@
 </ul>
 <p>Snapshot-bound inspection response.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-26"><a class="doc-anchor" href="#returns-26">§</a>Returns</h5>
+<h5 id="returns-28"><a class="doc-anchor" href="#returns-28">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-25"><a class="doc-anchor" href="#errors-25">§</a>Errors</h5>
+<h5 id="errors-27"><a class="doc-anchor" href="#errors-27">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.capabilities" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#90-99">Source</a><h4 class="code-header">pub fn <a href="#method.capabilities" class="fn">capabilities</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/capability/struct.CapabilitiesResponse.html" title="struct scriberig_protocol::capability::CapabilitiesResponse">CapabilitiesResponse</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Retrieves runtime capability metadata.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.capabilities" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#92-101">Source</a><h4 class="code-header">pub fn <a href="#method.capabilities" class="fn">capabilities</a>(&amp;self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/capability/struct.CapabilitiesResponse.html" title="struct scriberig_protocol::capability::CapabilitiesResponse">CapabilitiesResponse</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Retrieves runtime capability metadata.</p>
 <p>Current capability response.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-27"><a class="doc-anchor" href="#returns-27">§</a>Returns</h5>
+<h5 id="returns-29"><a class="doc-anchor" href="#returns-29">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-26"><a class="doc-anchor" href="#errors-26">§</a>Errors</h5>
+<h5 id="errors-28"><a class="doc-anchor" href="#errors-28">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#112-128">Source</a><h4 class="code-header">pub fn <a href="#method.operation_status" class="fn">operation_status</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#114-130">Source</a><h4 class="code-header">pub fn <a href="#method.operation_status" class="fn">operation_status</a>(
     &amp;self,
     operation: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/response/struct.OperationStatusResponse.html" title="struct scriberig_protocol::response::OperationStatusResponse">OperationStatusResponse</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Retrieves one long-running operation status.</p>
@@ -415,11 +439,11 @@
 </ul>
 <p>Current operation status response.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-28"><a class="doc-anchor" href="#returns-28">§</a>Returns</h5>
+<h5 id="returns-30"><a class="doc-anchor" href="#returns-30">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-27"><a class="doc-anchor" href="#errors-27">§</a>Errors</h5>
+<h5 id="errors-29"><a class="doc-anchor" href="#errors-29">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.read_session" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#141-156">Source</a><h4 class="code-header">pub fn <a href="#method.read_session" class="fn">read_session</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.read_session" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#143-158">Source</a><h4 class="code-header">pub fn <a href="#method.read_session" class="fn">read_session</a>(
     &amp;self,
     session: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionReadResponse.html" title="struct scriberig_protocol::session::execution::SessionReadResponse">SessionReadResponse</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Reads one compact durable session tree.</p>
@@ -428,11 +452,11 @@
 </ul>
 <p>Provider-neutral session and branch activity summaries.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-29"><a class="doc-anchor" href="#returns-29">§</a>Returns</h5>
+<h5 id="returns-31"><a class="doc-anchor" href="#returns-31">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-28"><a class="doc-anchor" href="#errors-28">§</a>Errors</h5>
+<h5 id="errors-30"><a class="doc-anchor" href="#errors-30">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#169-185">Source</a><h4 class="code-header">pub fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#171-187">Source</a><h4 class="code-header">pub fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
     &amp;self,
     operation: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/response/struct.OperationStatusResponse.html" title="struct scriberig_protocol::response::OperationStatusResponse">OperationStatusResponse</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Requests cancellation of one tracked operation.</p>
@@ -441,11 +465,11 @@
 </ul>
 <p>The operation’s cancelled lifecycle state.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-30"><a class="doc-anchor" href="#returns-30">§</a>Returns</h5>
+<h5 id="returns-32"><a class="doc-anchor" href="#returns-32">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-29"><a class="doc-anchor" href="#errors-29">§</a>Errors</h5>
+<h5 id="errors-31"><a class="doc-anchor" href="#errors-31">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.subscribe" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#198-200">Source</a><h4 class="code-header">pub fn <a href="#method.subscribe" class="fn">subscribe</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.subscribe" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#200-202">Source</a><h4 class="code-header">pub fn <a href="#method.subscribe" class="fn">subscribe</a>(
     &amp;self,
     event_kinds: <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Reads currently available events matching a subscription.</p>
@@ -454,11 +478,11 @@
 </ul>
 <p>Stable event envelopes available at the time of the request.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-31"><a class="doc-anchor" href="#returns-31">§</a>Returns</h5>
+<h5 id="returns-33"><a class="doc-anchor" href="#returns-33">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-30"><a class="doc-anchor" href="#errors-30">§</a>Errors</h5>
+<h5 id="errors-32"><a class="doc-anchor" href="#errors-32">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.subscribe_after" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#214-227">Source</a><h4 class="code-header">pub fn <a href="#method.subscribe_after" class="fn">subscribe_after</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.subscribe_after" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#216-229">Source</a><h4 class="code-header">pub fn <a href="#method.subscribe_after" class="fn">subscribe_after</a>(
     &amp;self,
     event_kinds: <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     after: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>&gt;,
@@ -469,11 +493,11 @@
 </ul>
 <p>Stable event envelopes newer than the requested cursor.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-32"><a class="doc-anchor" href="#returns-32">§</a>Returns</h5>
+<h5 id="returns-34"><a class="doc-anchor" href="#returns-34">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-31"><a class="doc-anchor" href="#errors-31">§</a>Errors</h5>
+<h5 id="errors-33"><a class="doc-anchor" href="#errors-33">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.query" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#240-254">Source</a><h4 class="code-header">pub fn <a href="#method.query" class="fn">query</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.query" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#242-256">Source</a><h4 class="code-header">pub fn <a href="#method.query" class="fn">query</a>(
     &amp;self,
     specification: QuerySpec,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;QueryResult, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Evaluates one structured query through the remote application boundary.</p>
@@ -482,11 +506,11 @@
 </ul>
 <p>A typed query page retaining its exact scope.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-33"><a class="doc-anchor" href="#returns-33">§</a>Returns</h5>
+<h5 id="returns-35"><a class="doc-anchor" href="#returns-35">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-32"><a class="doc-anchor" href="#errors-32">§</a>Errors</h5>
+<h5 id="errors-34"><a class="doc-anchor" href="#errors-34">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.list" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#268-285">Source</a><h4 class="code-header">pub fn <a href="#method.list" class="fn">list</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.list" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#270-287">Source</a><h4 class="code-header">pub fn <a href="#method.list" class="fn">list</a>(
     &amp;self,
     specification: ListRequest,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ListResult, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Reads one bounded collection page through the remote application
@@ -496,11 +520,11 @@ boundary.</p>
 </ul>
 <p>The typed collection page.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-34"><a class="doc-anchor" href="#returns-34">§</a>Returns</h5>
+<h5 id="returns-36"><a class="doc-anchor" href="#returns-36">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-33"><a class="doc-anchor" href="#errors-33">§</a>Errors</h5>
+<h5 id="errors-35"><a class="doc-anchor" href="#errors-35">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.find" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#299-316">Source</a><h4 class="code-header">pub fn <a href="#method.find" class="fn">find</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.find" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#301-318">Source</a><h4 class="code-header">pub fn <a href="#method.find" class="fn">find</a>(
     &amp;self,
     specification: FindRequest,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;FindResult, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Executes bounded semantic discovery through the remote application
@@ -510,11 +534,11 @@ boundary.</p>
 </ul>
 <p>The typed discovery result.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-35"><a class="doc-anchor" href="#returns-35">§</a>Returns</h5>
+<h5 id="returns-37"><a class="doc-anchor" href="#returns-37">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-34"><a class="doc-anchor" href="#errors-34">§</a>Errors</h5>
+<h5 id="errors-36"><a class="doc-anchor" href="#errors-36">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.command" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#330-346">Source</a><h4 class="code-header">pub fn <a href="#method.command" class="fn">command</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.command" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#332-348">Source</a><h4 class="code-header">pub fn <a href="#method.command" class="fn">command</a>(
     &amp;self,
     kind: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     payload: <a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
@@ -525,11 +549,11 @@ boundary.</p>
 </ul>
 <p>The tracked operation accepted by the application boundary.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-36"><a class="doc-anchor" href="#returns-36">§</a>Returns</h5>
+<h5 id="returns-38"><a class="doc-anchor" href="#returns-38">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-35"><a class="doc-anchor" href="#errors-35">§</a>Errors</h5>
+<h5 id="errors-37"><a class="doc-anchor" href="#errors-37">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.domain_operation" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#359-368">Source</a><h4 class="code-header">pub fn <a href="#method.domain_operation" class="fn">domain_operation</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.domain_operation" class="method"><a class="src rightside" href="../../src/scriberig_client/client.rs.html#361-370">Source</a><h4 class="code-header">pub fn <a href="#method.domain_operation" class="fn">domain_operation</a>(
     &amp;self,
     request: <a class="struct" href="../../scriberig_protocol/request/struct.DomainOperationCommand.html" title="struct scriberig_protocol::request::DomainOperationCommand">DomainOperationCommand</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/response/struct.OperationStatusResponse.html" title="struct scriberig_protocol::response::OperationStatusResponse">OperationStatusResponse</a>, <a class="enum" href="../error/enum.ClientError.html" title="enum scriberig_client::error::ClientError">ClientError</a>&gt;</h4></section></summary><div class="docblock"><p>Executes a registered semantic operation through the shared command API.</p>
@@ -538,13 +562,13 @@ boundary.</p>
 </ul>
 <p>The tracked operation accepted by the application boundary.</p>
 <p>Returns a structured server error or response mismatch.</p>
-<h5 id="returns-37"><a class="doc-anchor" href="#returns-37">§</a>Returns</h5>
+<h5 id="returns-39"><a class="doc-anchor" href="#returns-39">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-36"><a class="doc-anchor" href="#errors-36">§</a>Errors</h5>
+<h5 id="errors-38"><a class="doc-anchor" href="#errors-38">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-4" class="impl"><a class="src rightside" href="../../src/scriberig_client/subscription.rs.html#78-88">Source</a><a href="#impl-Client%3CT%3E-4" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.event_subscription" class="method"><a class="src rightside" href="../../src/scriberig_client/subscription.rs.html#85-87">Source</a><h4 class="code-header">pub fn <a href="#method.event_subscription" class="fn">event_subscription</a>(&amp;self) -&gt; <a class="struct" href="../subscription/struct.EventSubscription.html" title="struct scriberig_client::subscription::EventSubscription">EventSubscription</a>&lt;'_, T&gt;</h4></section></summary><div class="docblock"><p>Creates an all-events subscription.</p>
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-Client%3CT%3E-5" class="impl"><a class="src rightside" href="../../src/scriberig_client/subscription.rs.html#78-88">Source</a><a href="#impl-Client%3CT%3E-5" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="../../scriberig_protocol/transport/trait.ProtocolTransport.html" title="trait scriberig_protocol::transport::ProtocolTransport">ProtocolTransport</a>&gt; <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.event_subscription" class="method"><a class="src rightside" href="../../src/scriberig_client/subscription.rs.html#85-87">Source</a><h4 class="code-header">pub fn <a href="#method.event_subscription" class="fn">event_subscription</a>(&amp;self) -&gt; <a class="struct" href="../subscription/struct.EventSubscription.html" title="struct scriberig_client::subscription::EventSubscription">EventSubscription</a>&lt;'_, T&gt;</h4></section></summary><div class="docblock"><p>Creates an all-events subscription.</p>
 <p>A subscription polling all available event kinds.</p>
-<h5 id="returns-38"><a class="doc-anchor" href="#returns-38">§</a>Returns</h5>
+<h5 id="returns-40"><a class="doc-anchor" href="#returns-40">§</a>Returns</h5>
 <p>The operation result.</p>
 </div></details></div></details></div><h2 id="synthetic-implementations" class="section-header">Auto Trait Implementations<a href="#synthetic-implementations" class="anchor">§</a></h2><div id="synthetic-implementations-list"><section id="impl-Freeze-for-Client%3CT%3E" class="impl"><a href="#impl-Freeze-for-Client%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; !<a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Freeze.html" title="trait core::marker::Freeze">Freeze</a> for <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;</h3></section><section id="impl-RefUnwindSafe-for-Client%3CT%3E" class="impl"><a href="#impl-RefUnwindSafe-for-Client%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/panic/unwind_safe/trait.RefUnwindSafe.html" title="trait core::panic::unwind_safe::RefUnwindSafe">RefUnwindSafe</a> for <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;<div class="where">where
     T: <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/panic/unwind_safe/trait.RefUnwindSafe.html" title="trait core::panic::unwind_safe::RefUnwindSafe">RefUnwindSafe</a>,</div></h3></section><section id="impl-Send-for-Client%3CT%3E" class="impl"><a href="#impl-Send-for-Client%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> for <a class="struct" href="struct.Client.html" title="struct scriberig_client::client::Client">Client</a>&lt;T&gt;<div class="where">where

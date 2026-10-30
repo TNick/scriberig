@@ -4,7 +4,7 @@
     session: EntityId,
     selection: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;AgentSelection&gt;,
     result: AgentResult,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentHandle, ApplicationError&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Persists the successful root-branch result and returns its TUI handle.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../../../scriberig_tui/service/agent_handle/struct.AgentHandle.html" title="struct scriberig_tui::service::agent_handle::AgentHandle">AgentHandle</a>, ApplicationError&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Persists the successful root-branch result and returns its TUI handle.</p>
 <ul>
 <li><code>service</code>: Application service owning durable agent activity.</li>
 <li><code>handle</code>: Accepted operation and root branch identity.</li>

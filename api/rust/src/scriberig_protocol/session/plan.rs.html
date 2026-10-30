@@ -291,59 +291,93 @@
 <a href=#291 id=291 data-nosnippet>291</a>    </span><span class="kw">pub </span>expected_revision: u64,
 <a href=#292 id=292 data-nosnippet>292</a>}
 <a href=#293 id=293 data-nosnippet>293</a>
-<a href=#294 id=294 data-nosnippet>294</a><span class="doccomment">/// Changes one unstarted node's safe model assignment.
+<a href=#294 id=294 data-nosnippet>294</a><span class="doccomment">/// Reads one bounded page of worker attempts at an exact plan snapshot.
 <a href=#295 id=295 data-nosnippet>295</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-<a href=#296 id=296 data-nosnippet>296</a></span><span class="kw">pub struct </span>SessionPlanAssignmentRequest {
+<a href=#296 id=296 data-nosnippet>296</a></span><span class="kw">pub struct </span>SessionPlanAttemptHistoryRequest {
 <a href=#297 id=297 data-nosnippet>297</a>    <span class="doccomment">/// Owning session identity.
 <a href=#298 id=298 data-nosnippet>298</a>    </span><span class="kw">pub </span>session: SessionReference,
 <a href=#299 id=299 data-nosnippet>299</a>    <span class="doccomment">/// Stable plan identity.
 <a href=#300 id=300 data-nosnippet>300</a>    </span><span class="kw">pub </span>plan: String,
-<a href=#301 id=301 data-nosnippet>301</a>    <span class="doccomment">/// Stable node identity.
+<a href=#301 id=301 data-nosnippet>301</a>    <span class="doccomment">/// Stable plan-node identity.
 <a href=#302 id=302 data-nosnippet>302</a>    </span><span class="kw">pub </span>node: String,
-<a href=#303 id=303 data-nosnippet>303</a>    <span class="doccomment">/// Plan revision observed by the client.
-<a href=#304 id=304 data-nosnippet>304</a>    </span><span class="kw">pub </span>expected_revision: u64,
-<a href=#305 id=305 data-nosnippet>305</a>    <span class="doccomment">/// New assignment or `None` to inherit defaults.
-<a href=#306 id=306 data-nosnippet>306</a>    </span><span class="attr">#[serde(default)]
-<a href=#307 id=307 data-nosnippet>307</a>    </span><span class="kw">pub </span>assignment: <span class="prelude-ty">Option</span>&lt;SessionModelAssignment&gt;,
-<a href=#308 id=308 data-nosnippet>308</a>}
-<a href=#309 id=309 data-nosnippet>309</a>
-<a href=#310 id=310 data-nosnippet>310</a><span class="doccomment">/// Identifies a current or proposed node in a replan.
-<a href=#311 id=311 data-nosnippet>311</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-<a href=#312 id=312 data-nosnippet>312</a></span><span class="kw">pub enum </span>SessionPlanNodeReference {
-<a href=#313 id=313 data-nosnippet>313</a>    <span class="doccomment">/// Existing durable node identity.
-<a href=#314 id=314 data-nosnippet>314</a>    </span>Existing {
-<a href=#315 id=315 data-nosnippet>315</a>        <span class="doccomment">/// Stable plan node identity.
-<a href=#316 id=316 data-nosnippet>316</a>        </span>id: String,
-<a href=#317 id=317 data-nosnippet>317</a>    },
-<a href=#318 id=318 data-nosnippet>318</a>    <span class="doccomment">/// Request-local key for a proposed node.
-<a href=#319 id=319 data-nosnippet>319</a>    </span>Proposed {
-<a href=#320 id=320 data-nosnippet>320</a>        <span class="doccomment">/// Stable key from the additions list.
-<a href=#321 id=321 data-nosnippet>321</a>        </span>key: String,
-<a href=#322 id=322 data-nosnippet>322</a>    },
-<a href=#323 id=323 data-nosnippet>323</a>}
-<a href=#324 id=324 data-nosnippet>324</a>
-<a href=#325 id=325 data-nosnippet>325</a><span class="doccomment">/// Applies one complete optimistic plan revision.
-<a href=#326 id=326 data-nosnippet>326</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-<a href=#327 id=327 data-nosnippet>327</a></span><span class="kw">pub struct </span>SessionPlanReplanRequest {
-<a href=#328 id=328 data-nosnippet>328</a>    <span class="doccomment">/// Owning session identity.
-<a href=#329 id=329 data-nosnippet>329</a>    </span><span class="kw">pub </span>session: SessionReference,
-<a href=#330 id=330 data-nosnippet>330</a>    <span class="doccomment">/// Stable plan identity.
-<a href=#331 id=331 data-nosnippet>331</a>    </span><span class="kw">pub </span>plan: String,
-<a href=#332 id=332 data-nosnippet>332</a>    <span class="doccomment">/// Plan revision observed by the client.
-<a href=#333 id=333 data-nosnippet>333</a>    </span><span class="kw">pub </span>expected_revision: u64,
-<a href=#334 id=334 data-nosnippet>334</a>    <span class="doccomment">/// New structured work nodes.
-<a href=#335 id=335 data-nosnippet>335</a>    </span><span class="kw">pub </span>additions: Vec&lt;SessionPlanNodeDraft&gt;,
-<a href=#336 id=336 data-nosnippet>336</a>    <span class="doccomment">/// New result dependency edges.
-<a href=#337 id=337 data-nosnippet>337</a>    </span><span class="kw">pub </span>dependencies: Vec&lt;(SessionPlanNodeReference, SessionPlanNodeReference)&gt;,
-<a href=#338 id=338 data-nosnippet>338</a>    <span class="doccomment">/// Existing dependency edges to remove.
-<a href=#339 id=339 data-nosnippet>339</a>    </span><span class="kw">pub </span>removed_dependencies: Vec&lt;(String, String)&gt;,
-<a href=#340 id=340 data-nosnippet>340</a>    <span class="doccomment">/// Existing nodes and proposed replacement keys.
-<a href=#341 id=341 data-nosnippet>341</a>    </span><span class="kw">pub </span>superseded: Vec&lt;(String, String)&gt;,
-<a href=#342 id=342 data-nosnippet>342</a>    <span class="doccomment">/// Safe assignment changes for existing unstarted nodes.
-<a href=#343 id=343 data-nosnippet>343</a>    </span><span class="kw">pub </span>assignment_changes: Vec&lt;(String, <span class="prelude-ty">Option</span>&lt;SessionModelAssignment&gt;)&gt;,
-<a href=#344 id=344 data-nosnippet>344</a>    <span class="doccomment">/// Completed terminal nodes explicitly preserved by the proposal.
-<a href=#345 id=345 data-nosnippet>345</a>    </span><span class="kw">pub </span>preserved_terminal_nodes: Vec&lt;String&gt;,
-<a href=#346 id=346 data-nosnippet>346</a>    <span class="doccomment">/// Safe reason recorded in plan history.
-<a href=#347 id=347 data-nosnippet>347</a>    </span><span class="kw">pub </span>reason: String,
-<a href=#348 id=348 data-nosnippet>348</a>}
+<a href=#303 id=303 data-nosnippet>303</a>    <span class="doccomment">/// Exact semantic snapshot identity.
+<a href=#304 id=304 data-nosnippet>304</a>    </span><span class="kw">pub </span>snapshot: String,
+<a href=#305 id=305 data-nosnippet>305</a>    <span class="doccomment">/// Number of matching attempts to skip in stable order.
+<a href=#306 id=306 data-nosnippet>306</a>    </span><span class="kw">pub </span>offset: usize,
+<a href=#307 id=307 data-nosnippet>307</a>    <span class="doccomment">/// Maximum number of attempts to return.
+<a href=#308 id=308 data-nosnippet>308</a>    </span><span class="kw">pub </span>limit: usize,
+<a href=#309 id=309 data-nosnippet>309</a>}
+<a href=#310 id=310 data-nosnippet>310</a>
+<a href=#311 id=311 data-nosnippet>311</a><span class="doccomment">/// Reads one bounded page of gates and evidence at an exact plan snapshot.
+<a href=#312 id=312 data-nosnippet>312</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+<a href=#313 id=313 data-nosnippet>313</a></span><span class="kw">pub struct </span>SessionPlanNodeDetailsRequest {
+<a href=#314 id=314 data-nosnippet>314</a>    <span class="doccomment">/// Owning session identity.
+<a href=#315 id=315 data-nosnippet>315</a>    </span><span class="kw">pub </span>session: SessionReference,
+<a href=#316 id=316 data-nosnippet>316</a>    <span class="doccomment">/// Stable plan identity.
+<a href=#317 id=317 data-nosnippet>317</a>    </span><span class="kw">pub </span>plan: String,
+<a href=#318 id=318 data-nosnippet>318</a>    <span class="doccomment">/// Stable plan-node identity.
+<a href=#319 id=319 data-nosnippet>319</a>    </span><span class="kw">pub </span>node: String,
+<a href=#320 id=320 data-nosnippet>320</a>    <span class="doccomment">/// Exact universal snapshot identity.
+<a href=#321 id=321 data-nosnippet>321</a>    </span><span class="kw">pub </span>snapshot: String,
+<a href=#322 id=322 data-nosnippet>322</a>    <span class="doccomment">/// Number of matching records to skip in each category.
+<a href=#323 id=323 data-nosnippet>323</a>    </span><span class="kw">pub </span>offset: usize,
+<a href=#324 id=324 data-nosnippet>324</a>    <span class="doccomment">/// Maximum records to return in each category.
+<a href=#325 id=325 data-nosnippet>325</a>    </span><span class="kw">pub </span>limit: usize,
+<a href=#326 id=326 data-nosnippet>326</a>}
+<a href=#327 id=327 data-nosnippet>327</a>
+<a href=#328 id=328 data-nosnippet>328</a><span class="doccomment">/// Changes one unstarted node's safe model assignment.
+<a href=#329 id=329 data-nosnippet>329</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+<a href=#330 id=330 data-nosnippet>330</a></span><span class="kw">pub struct </span>SessionPlanAssignmentRequest {
+<a href=#331 id=331 data-nosnippet>331</a>    <span class="doccomment">/// Owning session identity.
+<a href=#332 id=332 data-nosnippet>332</a>    </span><span class="kw">pub </span>session: SessionReference,
+<a href=#333 id=333 data-nosnippet>333</a>    <span class="doccomment">/// Stable plan identity.
+<a href=#334 id=334 data-nosnippet>334</a>    </span><span class="kw">pub </span>plan: String,
+<a href=#335 id=335 data-nosnippet>335</a>    <span class="doccomment">/// Stable node identity.
+<a href=#336 id=336 data-nosnippet>336</a>    </span><span class="kw">pub </span>node: String,
+<a href=#337 id=337 data-nosnippet>337</a>    <span class="doccomment">/// Plan revision observed by the client.
+<a href=#338 id=338 data-nosnippet>338</a>    </span><span class="kw">pub </span>expected_revision: u64,
+<a href=#339 id=339 data-nosnippet>339</a>    <span class="doccomment">/// New assignment or `None` to inherit defaults.
+<a href=#340 id=340 data-nosnippet>340</a>    </span><span class="attr">#[serde(default)]
+<a href=#341 id=341 data-nosnippet>341</a>    </span><span class="kw">pub </span>assignment: <span class="prelude-ty">Option</span>&lt;SessionModelAssignment&gt;,
+<a href=#342 id=342 data-nosnippet>342</a>}
+<a href=#343 id=343 data-nosnippet>343</a>
+<a href=#344 id=344 data-nosnippet>344</a><span class="doccomment">/// Identifies a current or proposed node in a replan.
+<a href=#345 id=345 data-nosnippet>345</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+<a href=#346 id=346 data-nosnippet>346</a></span><span class="kw">pub enum </span>SessionPlanNodeReference {
+<a href=#347 id=347 data-nosnippet>347</a>    <span class="doccomment">/// Existing durable node identity.
+<a href=#348 id=348 data-nosnippet>348</a>    </span>Existing {
+<a href=#349 id=349 data-nosnippet>349</a>        <span class="doccomment">/// Stable plan node identity.
+<a href=#350 id=350 data-nosnippet>350</a>        </span>id: String,
+<a href=#351 id=351 data-nosnippet>351</a>    },
+<a href=#352 id=352 data-nosnippet>352</a>    <span class="doccomment">/// Request-local key for a proposed node.
+<a href=#353 id=353 data-nosnippet>353</a>    </span>Proposed {
+<a href=#354 id=354 data-nosnippet>354</a>        <span class="doccomment">/// Stable key from the additions list.
+<a href=#355 id=355 data-nosnippet>355</a>        </span>key: String,
+<a href=#356 id=356 data-nosnippet>356</a>    },
+<a href=#357 id=357 data-nosnippet>357</a>}
+<a href=#358 id=358 data-nosnippet>358</a>
+<a href=#359 id=359 data-nosnippet>359</a><span class="doccomment">/// Applies one complete optimistic plan revision.
+<a href=#360 id=360 data-nosnippet>360</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+<a href=#361 id=361 data-nosnippet>361</a></span><span class="kw">pub struct </span>SessionPlanReplanRequest {
+<a href=#362 id=362 data-nosnippet>362</a>    <span class="doccomment">/// Owning session identity.
+<a href=#363 id=363 data-nosnippet>363</a>    </span><span class="kw">pub </span>session: SessionReference,
+<a href=#364 id=364 data-nosnippet>364</a>    <span class="doccomment">/// Stable plan identity.
+<a href=#365 id=365 data-nosnippet>365</a>    </span><span class="kw">pub </span>plan: String,
+<a href=#366 id=366 data-nosnippet>366</a>    <span class="doccomment">/// Plan revision observed by the client.
+<a href=#367 id=367 data-nosnippet>367</a>    </span><span class="kw">pub </span>expected_revision: u64,
+<a href=#368 id=368 data-nosnippet>368</a>    <span class="doccomment">/// New structured work nodes.
+<a href=#369 id=369 data-nosnippet>369</a>    </span><span class="kw">pub </span>additions: Vec&lt;SessionPlanNodeDraft&gt;,
+<a href=#370 id=370 data-nosnippet>370</a>    <span class="doccomment">/// New result dependency edges.
+<a href=#371 id=371 data-nosnippet>371</a>    </span><span class="kw">pub </span>dependencies: Vec&lt;(SessionPlanNodeReference, SessionPlanNodeReference)&gt;,
+<a href=#372 id=372 data-nosnippet>372</a>    <span class="doccomment">/// Existing dependency edges to remove.
+<a href=#373 id=373 data-nosnippet>373</a>    </span><span class="kw">pub </span>removed_dependencies: Vec&lt;(String, String)&gt;,
+<a href=#374 id=374 data-nosnippet>374</a>    <span class="doccomment">/// Existing nodes and proposed replacement keys.
+<a href=#375 id=375 data-nosnippet>375</a>    </span><span class="kw">pub </span>superseded: Vec&lt;(String, String)&gt;,
+<a href=#376 id=376 data-nosnippet>376</a>    <span class="doccomment">/// Safe assignment changes for existing unstarted nodes.
+<a href=#377 id=377 data-nosnippet>377</a>    </span><span class="kw">pub </span>assignment_changes: Vec&lt;(String, <span class="prelude-ty">Option</span>&lt;SessionModelAssignment&gt;)&gt;,
+<a href=#378 id=378 data-nosnippet>378</a>    <span class="doccomment">/// Completed terminal nodes explicitly preserved by the proposal.
+<a href=#379 id=379 data-nosnippet>379</a>    </span><span class="kw">pub </span>preserved_terminal_nodes: Vec&lt;String&gt;,
+<a href=#380 id=380 data-nosnippet>380</a>    <span class="doccomment">/// Safe reason recorded in plan history.
+<a href=#381 id=381 data-nosnippet>381</a>    </span><span class="kw">pub </span>reason: String,
+<a href=#382 id=382 data-nosnippet>382</a>}
 </code></pre></div></section></main></body></html>

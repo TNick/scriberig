@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["PlanSemanticError"],"struct":["PlanSemanticAttempt","PlanSemanticHistory","PlanSemanticNodeRef","PlanSemanticRevision","PlanSemanticSnapshot"]};
+window.SIDEBAR_ITEMS = {"enum":["PlanSemanticError"],"struct":["PlanSemanticAttempt","PlanSemanticHistory","PlanSemanticNodeDetails","PlanSemanticNodeRef","PlanSemanticRevision","PlanSemanticSnapshot"]};

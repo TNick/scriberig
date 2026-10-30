@@ -102,7 +102,7 @@
 <p>The operation result.</p>
 <h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-SessionBackend-for-GuardedQueryService%3CS%3E" class="impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#5-245">Source</a><a href="#impl-SessionBackend-for-GuardedQueryService%3CS%3E" class="anchor">§</a><h3 class="code-header">impl&lt;S: <a class="trait" href="../session/trait.SessionBackend.html" title="trait scriberig_app::session::SessionBackend">SessionBackend</a>&gt; <a class="trait" href="../session/trait.SessionBackend.html" title="trait scriberig_app::session::SessionBackend">SessionBackend</a> for <a class="struct" href="struct.GuardedQueryService.html" title="struct scriberig_app::guarded_query::GuardedQueryService">GuardedQueryService</a>&lt;S&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.continue_agent_at" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#18-24">Source</a><a href="#method.continue_agent_at" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.continue_agent_at" class="fn">continue_agent_at</a>(
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-SessionBackend-for-GuardedQueryService%3CS%3E" class="impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#5-281">Source</a><a href="#impl-SessionBackend-for-GuardedQueryService%3CS%3E" class="anchor">§</a><h3 class="code-header">impl&lt;S: <a class="trait" href="../session/trait.SessionBackend.html" title="trait scriberig_app::session::SessionBackend">SessionBackend</a>&gt; <a class="trait" href="../session/trait.SessionBackend.html" title="trait scriberig_app::session::SessionBackend">SessionBackend</a> for <a class="struct" href="struct.GuardedQueryService.html" title="struct scriberig_app::guarded_query::GuardedQueryService">GuardedQueryService</a>&lt;S&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.continue_agent_at" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#18-24">Source</a><a href="#method.continue_agent_at" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.continue_agent_at" class="fn">continue_agent_at</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: <a class="struct" href="../session/struct.AgentContinueAtRequest.html" title="struct scriberig_app::session::AgentContinueAtRequest">AgentContinueAtRequest</a>,
@@ -147,7 +147,35 @@
 <p>The operation result.</p>
 <h5 id="errors-8"><a class="doc-anchor" href="#errors-8">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.create_plan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#78-84">Source</a><a href="#method.create_plan" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.create_plan" class="fn">create_plan</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.read_plan_attempt_history" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#76-82">Source</a><a href="#method.read_plan_attempt_history" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.read_plan_attempt_history" class="fn">read_plan_attempt_history</a>(
+    &amp;self,
+    context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
+    request: &amp;<a class="struct" href="../session/struct.PlanAttemptHistoryRequest.html" title="struct scriberig_app::session::PlanAttemptHistoryRequest">PlanAttemptHistoryRequest</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;PlanSemanticAttempt&gt;, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates paged node attempt history through the wrapped session boundary.</p>
+<ul>
+<li><code>context</code>: Caller authorization and snapshot context.</li>
+<li><code>request</code>: Stable node identity, exact snapshot, and page range.</li>
+</ul>
+<p>The requested attempt page.</p>
+<h5 id="returns-9"><a class="doc-anchor" href="#returns-9">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
+<p>Returns the wrapped session backend error.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.read_plan_node_details" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#94-100">Source</a><a href="#method.read_plan_node_details" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.read_plan_node_details" class="fn">read_plan_node_details</a>(
+    &amp;self,
+    context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
+    request: &amp;<a class="struct" href="../session/struct.PlanNodeDetailsRequest.html" title="struct scriberig_app::session::PlanNodeDetailsRequest">PlanNodeDetailsRequest</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;PlanSemanticNodeDetails, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates bounded node details through the wrapped session boundary.</p>
+<ul>
+<li><code>context</code>: Caller authorization and snapshot context.</li>
+<li><code>request</code>: Stable node identity, exact snapshot, and page range.</li>
+</ul>
+<p>The requested gates and evidence.</p>
+<h5 id="returns-10"><a class="doc-anchor" href="#returns-10">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
+<p>Returns the wrapped session backend error.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.create_plan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#114-120">Source</a><a href="#method.create_plan" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.create_plan" class="fn">create_plan</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanCreateRequest.html" title="struct scriberig_app::session::PlanCreateRequest">PlanCreateRequest</a>,
@@ -158,11 +186,11 @@
 </ul>
 <p>The authoritative persisted plan.</p>
 <p>Returns the wrapped session backend error.</p>
-<h5 id="returns-9"><a class="doc-anchor" href="#returns-9">§</a>Returns</h5>
+<h5 id="returns-11"><a class="doc-anchor" href="#returns-11">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
+<h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.replan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#98-104">Source</a><a href="#method.replan" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.replan" class="fn">replan</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.replan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#134-140">Source</a><a href="#method.replan" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.replan" class="fn">replan</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanReplanRequest.html" title="struct scriberig_app::session::PlanReplanRequest">PlanReplanRequest</a>,
@@ -173,11 +201,11 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns the wrapped session backend error.</p>
-<h5 id="returns-10"><a class="doc-anchor" href="#returns-10">§</a>Returns</h5>
+<h5 id="returns-12"><a class="doc-anchor" href="#returns-12">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
+<h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#119-126">Source</a><a href="#method.plan_lifecycle" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.plan_lifecycle" class="fn">plan_lifecycle</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#155-162">Source</a><a href="#method.plan_lifecycle" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.plan_lifecycle" class="fn">plan_lifecycle</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanLifecycleRequest.html" title="struct scriberig_app::session::PlanLifecycleRequest">PlanLifecycleRequest</a>,
@@ -190,11 +218,11 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns the wrapped session backend error.</p>
-<h5 id="returns-11"><a class="doc-anchor" href="#returns-11">§</a>Returns</h5>
+<h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
+<h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.retry_plan_node" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#140-146">Source</a><a href="#method.retry_plan_node" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.retry_plan_node" class="fn">retry_plan_node</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.retry_plan_node" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#176-182">Source</a><a href="#method.retry_plan_node" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.retry_plan_node" class="fn">retry_plan_node</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanRetryRequest.html" title="struct scriberig_app::session::PlanRetryRequest">PlanRetryRequest</a>,
@@ -205,11 +233,11 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns the wrapped session backend error.</p>
-<h5 id="returns-12"><a class="doc-anchor" href="#returns-12">§</a>Returns</h5>
+<h5 id="returns-14"><a class="doc-anchor" href="#returns-14">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
+<h5 id="errors-14"><a class="doc-anchor" href="#errors-14">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.add_plan_next_step" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#160-166">Source</a><a href="#method.add_plan_next_step" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.add_plan_next_step" class="fn">add_plan_next_step</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.add_plan_next_step" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#196-202">Source</a><a href="#method.add_plan_next_step" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.add_plan_next_step" class="fn">add_plan_next_step</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanNextStepRequest.html" title="struct scriberig_app::session::PlanNextStepRequest">PlanNextStepRequest</a>,
@@ -220,11 +248,11 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns the wrapped session backend error.</p>
-<h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
+<h5 id="returns-15"><a class="doc-anchor" href="#returns-15">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
+<h5 id="errors-15"><a class="doc-anchor" href="#errors-15">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.decompose_plan_node" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#180-186">Source</a><a href="#method.decompose_plan_node" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.decompose_plan_node" class="fn">decompose_plan_node</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.decompose_plan_node" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#216-222">Source</a><a href="#method.decompose_plan_node" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.decompose_plan_node" class="fn">decompose_plan_node</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanDecomposeRequest.html" title="struct scriberig_app::session::PlanDecomposeRequest">PlanDecomposeRequest</a>,
@@ -235,11 +263,11 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns the wrapped session backend error.</p>
-<h5 id="returns-14"><a class="doc-anchor" href="#returns-14">§</a>Returns</h5>
+<h5 id="returns-16"><a class="doc-anchor" href="#returns-16">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-14"><a class="doc-anchor" href="#errors-14">§</a>Errors</h5>
+<h5 id="errors-16"><a class="doc-anchor" href="#errors-16">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.mutate_plan_semantics" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#198-204">Source</a><a href="#method.mutate_plan_semantics" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.mutate_plan_semantics" class="fn">mutate_plan_semantics</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.mutate_plan_semantics" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#234-240">Source</a><a href="#method.mutate_plan_semantics" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.mutate_plan_semantics" class="fn">mutate_plan_semantics</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanSemanticMutationRequest.html" title="struct scriberig_app::session::PlanSemanticMutationRequest">PlanSemanticMutationRequest</a>,
@@ -249,11 +277,11 @@
 <li><code>request</code>: Exact plan revision and mutation details.</li>
 </ul>
 <p>Updated plan.</p>
-<h5 id="returns-15"><a class="doc-anchor" href="#returns-15">§</a>Returns</h5>
+<h5 id="returns-17"><a class="doc-anchor" href="#returns-17">§</a>Returns</h5>
 <p>The updated plan.</p>
-<h5 id="errors-15"><a class="doc-anchor" href="#errors-15">§</a>Errors</h5>
+<h5 id="errors-17"><a class="doc-anchor" href="#errors-17">§</a>Errors</h5>
 <p>Returns the wrapped session backend error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_plan_node_assignment" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#218-224">Source</a><a href="#method.set_plan_node_assignment" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.set_plan_node_assignment" class="fn">set_plan_node_assignment</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_plan_node_assignment" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#254-260">Source</a><a href="#method.set_plan_node_assignment" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.set_plan_node_assignment" class="fn">set_plan_node_assignment</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanAssignmentRequest.html" title="struct scriberig_app::session::PlanAssignmentRequest">PlanAssignmentRequest</a>,
@@ -264,11 +292,11 @@
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns the wrapped session backend error.</p>
-<h5 id="returns-16"><a class="doc-anchor" href="#returns-16">§</a>Returns</h5>
+<h5 id="returns-18"><a class="doc-anchor" href="#returns-18">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-16"><a class="doc-anchor" href="#errors-16">§</a>Errors</h5>
+<h5 id="errors-18"><a class="doc-anchor" href="#errors-18">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.submit_agent_command" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#238-244">Source</a><a href="#method.submit_agent_command" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#tymethod.submit_agent_command" class="fn">submit_agent_command</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.submit_agent_command" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/guarded_query_session.rs.html#274-280">Source</a><a href="#method.submit_agent_command" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#tymethod.submit_agent_command" class="fn">submit_agent_command</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.AgentCommandRequest.html" title="struct scriberig_app::session::AgentCommandRequest">AgentCommandRequest</a>,
@@ -279,9 +307,9 @@
 </ul>
 <p>The accepted operation identity.</p>
 <p>Returns the wrapped session backend error.</p>
-<h5 id="returns-17"><a class="doc-anchor" href="#returns-17">§</a>Returns</h5>
+<h5 id="returns-19"><a class="doc-anchor" href="#returns-19">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-17"><a class="doc-anchor" href="#errors-17">§</a>Errors</h5>
+<h5 id="errors-19"><a class="doc-anchor" href="#errors-19">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.list_sessions" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/session/backend.rs.html#24-31">Source</a><a href="#method.list_sessions" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.list_sessions" class="fn">list_sessions</a>(
     &amp;self,
@@ -290,11 +318,11 @@
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     _session: EntityId,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class='docblock'>Removes one durable session after checking its exact identity. <a href="../session/trait.SessionBackend.html#method.remove_session">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.save_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/session/backend.rs.html#130-138">Source</a><a href="#method.save_session" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.save_session" class="fn">save_session</a>(
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class='docblock'>Removes one durable session after checking its exact identity. <a href="../session/trait.SessionBackend.html#method.remove_session">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.save_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/session/backend.rs.html#169-177">Source</a><a href="#method.save_session" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.save_session" class="fn">save_session</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     _session: &amp;Session,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class='docblock'>Persists a complete authorized session snapshot. <a href="../session/trait.SessionBackend.html#method.save_session">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.compare_and_swap_plan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/session/backend.rs.html#159-169">Source</a><a href="#method.compare_and_swap_plan" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.compare_and_swap_plan" class="fn">compare_and_swap_plan</a>(
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class='docblock'>Persists a complete authorized session snapshot. <a href="../session/trait.SessionBackend.html#method.save_session">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.compare_and_swap_plan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/session/backend.rs.html#198-208">Source</a><a href="#method.compare_and_swap_plan" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.compare_and_swap_plan" class="fn">compare_and_swap_plan</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     _session: &amp;Session,

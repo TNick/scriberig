@@ -192,122 +192,156 @@
 <a href=#192 id=192 data-nosnippet>192</a>    </span><span class="kw">pub </span>expected_revision: u64,
 <a href=#193 id=193 data-nosnippet>193</a>}
 <a href=#194 id=194 data-nosnippet>194</a>
-<a href=#195 id=195 data-nosnippet>195</a><span class="doccomment">/// Selects a durable lifecycle transition for a plan.
-<a href=#196 id=196 data-nosnippet>196</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-<a href=#197 id=197 data-nosnippet>197</a></span><span class="kw">pub enum </span>PlanLifecycleAction {
-<a href=#198 id=198 data-nosnippet>198</a>    <span class="doccomment">/// Enables auto-advancing coordination.
-<a href=#199 id=199 data-nosnippet>199</a>    </span>Start,
-<a href=#200 id=200 data-nosnippet>200</a>    <span class="doccomment">/// Pauses dispatch while preserving plan state.
-<a href=#201 id=201 data-nosnippet>201</a>    </span>Pause,
-<a href=#202 id=202 data-nosnippet>202</a>    <span class="doccomment">/// Resumes dispatch for a paused plan.
-<a href=#203 id=203 data-nosnippet>203</a>    </span>Resume,
-<a href=#204 id=204 data-nosnippet>204</a>    <span class="doccomment">/// Stops auto-advancement.
-<a href=#205 id=205 data-nosnippet>205</a>    </span>Stop,
-<a href=#206 id=206 data-nosnippet>206</a>    <span class="doccomment">/// Completes only after explicit durable node results are present.
-<a href=#207 id=207 data-nosnippet>207</a>    </span>Complete,
-<a href=#208 id=208 data-nosnippet>208</a>}
-<a href=#209 id=209 data-nosnippet>209</a>
-<a href=#210 id=210 data-nosnippet>210</a><span class="doccomment">/// Requests a safe model assignment change for one plan node.
-<a href=#211 id=211 data-nosnippet>211</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#212 id=212 data-nosnippet>212</a></span><span class="kw">pub struct </span>PlanAssignmentRequest {
-<a href=#213 id=213 data-nosnippet>213</a>    <span class="doccomment">/// Owning session identity.
-<a href=#214 id=214 data-nosnippet>214</a>    </span><span class="kw">pub </span>session: EntityId,
-<a href=#215 id=215 data-nosnippet>215</a>    <span class="doccomment">/// Stable plan identity.
-<a href=#216 id=216 data-nosnippet>216</a>    </span><span class="kw">pub </span>plan: EntityId,
-<a href=#217 id=217 data-nosnippet>217</a>    <span class="doccomment">/// Stable plan-node identity.
-<a href=#218 id=218 data-nosnippet>218</a>    </span><span class="kw">pub </span>node: EntityId,
-<a href=#219 id=219 data-nosnippet>219</a>    <span class="doccomment">/// Plan revision observed by the caller.
-<a href=#220 id=220 data-nosnippet>220</a>    </span><span class="kw">pub </span>expected_revision: u64,
-<a href=#221 id=221 data-nosnippet>221</a>    <span class="doccomment">/// New library-validated assignment, or `None` to inherit defaults.
-<a href=#222 id=222 data-nosnippet>222</a>    </span><span class="kw">pub </span>assignment: <span class="prelude-ty">Option</span>&lt;scriberig_session::ModelAssignment&gt;,
-<a href=#223 id=223 data-nosnippet>223</a>}
-<a href=#224 id=224 data-nosnippet>224</a>
-<a href=#225 id=225 data-nosnippet>225</a><span class="doccomment">/// Identifies an existing or newly proposed node in a replan request.
-<a href=#226 id=226 data-nosnippet>226</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#227 id=227 data-nosnippet>227</a></span><span class="kw">pub enum </span>PlanNodeReference {
-<a href=#228 id=228 data-nosnippet>228</a>    <span class="doccomment">/// Existing durable node identity.
-<a href=#229 id=229 data-nosnippet>229</a>    </span>Existing(EntityId),
-<a href=#230 id=230 data-nosnippet>230</a>    <span class="doccomment">/// Request-local key for a proposed node.
-<a href=#231 id=231 data-nosnippet>231</a>    </span>Proposed(String),
-<a href=#232 id=232 data-nosnippet>232</a>}
-<a href=#233 id=233 data-nosnippet>233</a>
-<a href=#234 id=234 data-nosnippet>234</a><span class="doccomment">/// Requests one optimistic durable plan revision.
-<a href=#235 id=235 data-nosnippet>235</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#236 id=236 data-nosnippet>236</a></span><span class="kw">pub struct </span>PlanReplanRequest {
-<a href=#237 id=237 data-nosnippet>237</a>    <span class="doccomment">/// Owning session identity.
-<a href=#238 id=238 data-nosnippet>238</a>    </span><span class="kw">pub </span>session: EntityId,
-<a href=#239 id=239 data-nosnippet>239</a>    <span class="doccomment">/// Stable plan identity.
-<a href=#240 id=240 data-nosnippet>240</a>    </span><span class="kw">pub </span>plan: EntityId,
-<a href=#241 id=241 data-nosnippet>241</a>    <span class="doccomment">/// Plan revision observed by the caller.
-<a href=#242 id=242 data-nosnippet>242</a>    </span><span class="kw">pub </span>expected_revision: u64,
-<a href=#243 id=243 data-nosnippet>243</a>    <span class="doccomment">/// New structured nodes to append.
-<a href=#244 id=244 data-nosnippet>244</a>    </span><span class="kw">pub </span>additions: Vec&lt;PlanNodeDraft&gt;,
-<a href=#245 id=245 data-nosnippet>245</a>    <span class="doccomment">/// Explicit dependency references `(prerequisite, dependent)`.
-<a href=#246 id=246 data-nosnippet>246</a>    </span><span class="kw">pub </span>dependencies: Vec&lt;(PlanNodeReference, PlanNodeReference)&gt;,
-<a href=#247 id=247 data-nosnippet>247</a>    <span class="doccomment">/// Existing dependency edges to remove explicitly.
-<a href=#248 id=248 data-nosnippet>248</a>    </span><span class="kw">pub </span>removed_dependencies: Vec&lt;(EntityId, EntityId)&gt;,
-<a href=#249 id=249 data-nosnippet>249</a>    <span class="doccomment">/// Existing node and proposed replacement key pairs.
-<a href=#250 id=250 data-nosnippet>250</a>    </span><span class="kw">pub </span>superseded: Vec&lt;(EntityId, String)&gt;,
-<a href=#251 id=251 data-nosnippet>251</a>    <span class="doccomment">/// Safe assignment changes for existing unstarted nodes.
-<a href=#252 id=252 data-nosnippet>252</a>    </span><span class="kw">pub </span>assignment_changes: Vec&lt;(EntityId, <span class="prelude-ty">Option</span>&lt;scriberig_session::ModelAssignment&gt;)&gt;,
-<a href=#253 id=253 data-nosnippet>253</a>    <span class="doccomment">/// Completed terminal node identities that the proposal preserves.
-<a href=#254 id=254 data-nosnippet>254</a>    </span><span class="kw">pub </span>preserved_terminal_nodes: Vec&lt;EntityId&gt;,
-<a href=#255 id=255 data-nosnippet>255</a>    <span class="doccomment">/// Safe explanation or trigger recorded in revision history.
-<a href=#256 id=256 data-nosnippet>256</a>    </span><span class="kw">pub </span>reason: String,
+<a href=#195 id=195 data-nosnippet>195</a><span class="doccomment">/// Requests a bounded page of worker attempts at an exact plan snapshot.
+<a href=#196 id=196 data-nosnippet>196</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#197 id=197 data-nosnippet>197</a></span><span class="kw">pub struct </span>PlanAttemptHistoryRequest {
+<a href=#198 id=198 data-nosnippet>198</a>    <span class="doccomment">/// Owning session identity.
+<a href=#199 id=199 data-nosnippet>199</a>    </span><span class="kw">pub </span>session: EntityId,
+<a href=#200 id=200 data-nosnippet>200</a>    <span class="doccomment">/// Stable plan identity.
+<a href=#201 id=201 data-nosnippet>201</a>    </span><span class="kw">pub </span>plan: EntityId,
+<a href=#202 id=202 data-nosnippet>202</a>    <span class="doccomment">/// Stable plan-node identity.
+<a href=#203 id=203 data-nosnippet>203</a>    </span><span class="kw">pub </span>node: EntityId,
+<a href=#204 id=204 data-nosnippet>204</a>    <span class="doccomment">/// Exact semantic snapshot to resolve.
+<a href=#205 id=205 data-nosnippet>205</a>    </span><span class="kw">pub </span>snapshot: SnapshotId,
+<a href=#206 id=206 data-nosnippet>206</a>    <span class="doccomment">/// Number of matching attempts to skip in stable order.
+<a href=#207 id=207 data-nosnippet>207</a>    </span><span class="kw">pub </span>offset: usize,
+<a href=#208 id=208 data-nosnippet>208</a>    <span class="doccomment">/// Maximum number of matching attempts to return.
+<a href=#209 id=209 data-nosnippet>209</a>    </span><span class="kw">pub </span>limit: usize,
+<a href=#210 id=210 data-nosnippet>210</a>}
+<a href=#211 id=211 data-nosnippet>211</a>
+<a href=#212 id=212 data-nosnippet>212</a><span class="doccomment">/// Requests a bounded page of gate and evidence details at an exact snapshot.
+<a href=#213 id=213 data-nosnippet>213</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#214 id=214 data-nosnippet>214</a></span><span class="kw">pub struct </span>PlanNodeDetailsRequest {
+<a href=#215 id=215 data-nosnippet>215</a>    <span class="doccomment">/// Owning session identity.
+<a href=#216 id=216 data-nosnippet>216</a>    </span><span class="kw">pub </span>session: EntityId,
+<a href=#217 id=217 data-nosnippet>217</a>    <span class="doccomment">/// Stable plan identity.
+<a href=#218 id=218 data-nosnippet>218</a>    </span><span class="kw">pub </span>plan: EntityId,
+<a href=#219 id=219 data-nosnippet>219</a>    <span class="doccomment">/// Stable plan-node identity.
+<a href=#220 id=220 data-nosnippet>220</a>    </span><span class="kw">pub </span>node: EntityId,
+<a href=#221 id=221 data-nosnippet>221</a>    <span class="doccomment">/// Exact semantic snapshot to resolve.
+<a href=#222 id=222 data-nosnippet>222</a>    </span><span class="kw">pub </span>snapshot: SnapshotId,
+<a href=#223 id=223 data-nosnippet>223</a>    <span class="doccomment">/// Number of matching records to skip in each category.
+<a href=#224 id=224 data-nosnippet>224</a>    </span><span class="kw">pub </span>offset: usize,
+<a href=#225 id=225 data-nosnippet>225</a>    <span class="doccomment">/// Maximum gates and evidence records returned in each category.
+<a href=#226 id=226 data-nosnippet>226</a>    </span><span class="kw">pub </span>limit: usize,
+<a href=#227 id=227 data-nosnippet>227</a>}
+<a href=#228 id=228 data-nosnippet>228</a>
+<a href=#229 id=229 data-nosnippet>229</a><span class="doccomment">/// Selects a durable lifecycle transition for a plan.
+<a href=#230 id=230 data-nosnippet>230</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+<a href=#231 id=231 data-nosnippet>231</a></span><span class="kw">pub enum </span>PlanLifecycleAction {
+<a href=#232 id=232 data-nosnippet>232</a>    <span class="doccomment">/// Enables auto-advancing coordination.
+<a href=#233 id=233 data-nosnippet>233</a>    </span>Start,
+<a href=#234 id=234 data-nosnippet>234</a>    <span class="doccomment">/// Pauses dispatch while preserving plan state.
+<a href=#235 id=235 data-nosnippet>235</a>    </span>Pause,
+<a href=#236 id=236 data-nosnippet>236</a>    <span class="doccomment">/// Resumes dispatch for a paused plan.
+<a href=#237 id=237 data-nosnippet>237</a>    </span>Resume,
+<a href=#238 id=238 data-nosnippet>238</a>    <span class="doccomment">/// Stops auto-advancement.
+<a href=#239 id=239 data-nosnippet>239</a>    </span>Stop,
+<a href=#240 id=240 data-nosnippet>240</a>    <span class="doccomment">/// Completes only after explicit durable node results are present.
+<a href=#241 id=241 data-nosnippet>241</a>    </span>Complete,
+<a href=#242 id=242 data-nosnippet>242</a>}
+<a href=#243 id=243 data-nosnippet>243</a>
+<a href=#244 id=244 data-nosnippet>244</a><span class="doccomment">/// Requests a safe model assignment change for one plan node.
+<a href=#245 id=245 data-nosnippet>245</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#246 id=246 data-nosnippet>246</a></span><span class="kw">pub struct </span>PlanAssignmentRequest {
+<a href=#247 id=247 data-nosnippet>247</a>    <span class="doccomment">/// Owning session identity.
+<a href=#248 id=248 data-nosnippet>248</a>    </span><span class="kw">pub </span>session: EntityId,
+<a href=#249 id=249 data-nosnippet>249</a>    <span class="doccomment">/// Stable plan identity.
+<a href=#250 id=250 data-nosnippet>250</a>    </span><span class="kw">pub </span>plan: EntityId,
+<a href=#251 id=251 data-nosnippet>251</a>    <span class="doccomment">/// Stable plan-node identity.
+<a href=#252 id=252 data-nosnippet>252</a>    </span><span class="kw">pub </span>node: EntityId,
+<a href=#253 id=253 data-nosnippet>253</a>    <span class="doccomment">/// Plan revision observed by the caller.
+<a href=#254 id=254 data-nosnippet>254</a>    </span><span class="kw">pub </span>expected_revision: u64,
+<a href=#255 id=255 data-nosnippet>255</a>    <span class="doccomment">/// New library-validated assignment, or `None` to inherit defaults.
+<a href=#256 id=256 data-nosnippet>256</a>    </span><span class="kw">pub </span>assignment: <span class="prelude-ty">Option</span>&lt;scriberig_session::ModelAssignment&gt;,
 <a href=#257 id=257 data-nosnippet>257</a>}
 <a href=#258 id=258 data-nosnippet>258</a>
-<a href=#259 id=259 data-nosnippet>259</a><span class="doccomment">/// Identifies the exact semantic scope supplied to an agent.
+<a href=#259 id=259 data-nosnippet>259</a><span class="doccomment">/// Identifies an existing or newly proposed node in a replan request.
 <a href=#260 id=260 data-nosnippet>260</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#261 id=261 data-nosnippet>261</a></span><span class="kw">pub struct </span>AgentSelection {
-<a href=#262 id=262 data-nosnippet>262</a>    <span class="doccomment">/// Semantic project containing the selected entity.
-<a href=#263 id=263 data-nosnippet>263</a>    </span><span class="kw">pub </span>project: <span class="prelude-ty">Option</span>&lt;scriberig_core::ProjectId&gt;,
-<a href=#264 id=264 data-nosnippet>264</a>    <span class="doccomment">/// Semantic project root at the exact snapshot.
-<a href=#265 id=265 data-nosnippet>265</a>    </span><span class="kw">pub </span>root: EntityId,
-<a href=#266 id=266 data-nosnippet>266</a>    <span class="doccomment">/// Selected semantic entity.
-<a href=#267 id=267 data-nosnippet>267</a>    </span><span class="kw">pub </span>entity: EntityId,
-<a href=#268 id=268 data-nosnippet>268</a>    <span class="doccomment">/// Snapshot containing the selected entity.
-<a href=#269 id=269 data-nosnippet>269</a>    </span><span class="kw">pub </span>snapshot: SnapshotId,
-<a href=#270 id=270 data-nosnippet>270</a>}
-<a href=#271 id=271 data-nosnippet>271</a>
-<a href=#272 id=272 data-nosnippet>272</a><span class="doccomment">/// Identifies a locally accepted agent operation before execution completes.
-<a href=#273 id=273 data-nosnippet>273</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#274 id=274 data-nosnippet>274</a></span><span class="kw">pub struct </span>LocalAgentHandle {
-<a href=#275 id=275 data-nosnippet>275</a>    <span class="doccomment">/// Shared operation identity.
-<a href=#276 id=276 data-nosnippet>276</a>    </span><span class="kw">pub </span>operation: OperationId,
-<a href=#277 id=277 data-nosnippet>277</a>    <span class="doccomment">/// Session receiving the execution.
-<a href=#278 id=278 data-nosnippet>278</a>    </span><span class="kw">pub </span>session: EntityId,
-<a href=#279 id=279 data-nosnippet>279</a>    <span class="doccomment">/// Root branch receiving the execution.
-<a href=#280 id=280 data-nosnippet>280</a>    </span><span class="kw">pub </span>root_branch: EntityId,
-<a href=#281 id=281 data-nosnippet>281</a>    <span class="doccomment">/// Human instruction recorded on the root turn.
-<a href=#282 id=282 data-nosnippet>282</a>    </span><span class="kw">pub </span>prompt: String,
-<a href=#283 id=283 data-nosnippet>283</a>    <span class="doccomment">/// Exact semantic scope selected when this operation was accepted.
-<a href=#284 id=284 data-nosnippet>284</a>    </span><span class="kw">pub </span>selection: <span class="prelude-ty">Option</span>&lt;AgentSelection&gt;,
-<a href=#285 id=285 data-nosnippet>285</a>}
-<a href=#286 id=286 data-nosnippet>286</a>
-<a href=#287 id=287 data-nosnippet>287</a><span class="doccomment">/// Identifies a locally accepted nested agent operation.
-<a href=#288 id=288 data-nosnippet>288</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#289 id=289 data-nosnippet>289</a></span><span class="kw">pub struct </span>LocalChildAgentHandle {
-<a href=#290 id=290 data-nosnippet>290</a>    <span class="doccomment">/// Shared operation identity.
-<a href=#291 id=291 data-nosnippet>291</a>    </span><span class="kw">pub </span>operation: OperationId,
-<a href=#292 id=292 data-nosnippet>292</a>    <span class="doccomment">/// Session receiving the child execution.
-<a href=#293 id=293 data-nosnippet>293</a>    </span><span class="kw">pub </span>session: EntityId,
-<a href=#294 id=294 data-nosnippet>294</a>    <span class="doccomment">/// Parent branch owning the delegation.
-<a href=#295 id=295 data-nosnippet>295</a>    </span><span class="kw">pub </span>parent_branch: EntityId,
-<a href=#296 id=296 data-nosnippet>296</a>    <span class="doccomment">/// Child branch receiving the execution.
-<a href=#297 id=297 data-nosnippet>297</a>    </span><span class="kw">pub </span>child_branch: EntityId,
-<a href=#298 id=298 data-nosnippet>298</a>    <span class="doccomment">/// Child purpose recorded in the session graph.
-<a href=#299 id=299 data-nosnippet>299</a>    </span><span class="kw">pub </span>purpose: String,
-<a href=#300 id=300 data-nosnippet>300</a>    <span class="doccomment">/// Human instruction recorded on the child turn.
-<a href=#301 id=301 data-nosnippet>301</a>    </span><span class="kw">pub </span>prompt: String,
-<a href=#302 id=302 data-nosnippet>302</a>}
-<a href=#303 id=303 data-nosnippet>303</a>
-<a href=#304 id=304 data-nosnippet>304</a><span class="attr">#[path = <span class="string">"session/backend.rs"</span>]
-<a href=#305 id=305 data-nosnippet>305</a></span><span class="kw">mod </span>backend;
-<a href=#306 id=306 data-nosnippet>306</a><span class="kw">pub use </span>backend::SessionBackend;
-<a href=#307 id=307 data-nosnippet>307</a><span class="attr">#[path = <span class="string">"session/agent_console.rs"</span>]
-<a href=#308 id=308 data-nosnippet>308</a></span><span class="kw">mod </span>agent_console;
-<a href=#309 id=309 data-nosnippet>309</a><span class="kw">pub use </span>agent_console::{
-<a href=#310 id=310 data-nosnippet>310</a>    AgentConsoleBackend, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
-<a href=#311 id=311 data-nosnippet>311</a>    ToolResultDetail,
-<a href=#312 id=312 data-nosnippet>312</a>};
+<a href=#261 id=261 data-nosnippet>261</a></span><span class="kw">pub enum </span>PlanNodeReference {
+<a href=#262 id=262 data-nosnippet>262</a>    <span class="doccomment">/// Existing durable node identity.
+<a href=#263 id=263 data-nosnippet>263</a>    </span>Existing(EntityId),
+<a href=#264 id=264 data-nosnippet>264</a>    <span class="doccomment">/// Request-local key for a proposed node.
+<a href=#265 id=265 data-nosnippet>265</a>    </span>Proposed(String),
+<a href=#266 id=266 data-nosnippet>266</a>}
+<a href=#267 id=267 data-nosnippet>267</a>
+<a href=#268 id=268 data-nosnippet>268</a><span class="doccomment">/// Requests one optimistic durable plan revision.
+<a href=#269 id=269 data-nosnippet>269</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#270 id=270 data-nosnippet>270</a></span><span class="kw">pub struct </span>PlanReplanRequest {
+<a href=#271 id=271 data-nosnippet>271</a>    <span class="doccomment">/// Owning session identity.
+<a href=#272 id=272 data-nosnippet>272</a>    </span><span class="kw">pub </span>session: EntityId,
+<a href=#273 id=273 data-nosnippet>273</a>    <span class="doccomment">/// Stable plan identity.
+<a href=#274 id=274 data-nosnippet>274</a>    </span><span class="kw">pub </span>plan: EntityId,
+<a href=#275 id=275 data-nosnippet>275</a>    <span class="doccomment">/// Plan revision observed by the caller.
+<a href=#276 id=276 data-nosnippet>276</a>    </span><span class="kw">pub </span>expected_revision: u64,
+<a href=#277 id=277 data-nosnippet>277</a>    <span class="doccomment">/// New structured nodes to append.
+<a href=#278 id=278 data-nosnippet>278</a>    </span><span class="kw">pub </span>additions: Vec&lt;PlanNodeDraft&gt;,
+<a href=#279 id=279 data-nosnippet>279</a>    <span class="doccomment">/// Explicit dependency references `(prerequisite, dependent)`.
+<a href=#280 id=280 data-nosnippet>280</a>    </span><span class="kw">pub </span>dependencies: Vec&lt;(PlanNodeReference, PlanNodeReference)&gt;,
+<a href=#281 id=281 data-nosnippet>281</a>    <span class="doccomment">/// Existing dependency edges to remove explicitly.
+<a href=#282 id=282 data-nosnippet>282</a>    </span><span class="kw">pub </span>removed_dependencies: Vec&lt;(EntityId, EntityId)&gt;,
+<a href=#283 id=283 data-nosnippet>283</a>    <span class="doccomment">/// Existing node and proposed replacement key pairs.
+<a href=#284 id=284 data-nosnippet>284</a>    </span><span class="kw">pub </span>superseded: Vec&lt;(EntityId, String)&gt;,
+<a href=#285 id=285 data-nosnippet>285</a>    <span class="doccomment">/// Safe assignment changes for existing unstarted nodes.
+<a href=#286 id=286 data-nosnippet>286</a>    </span><span class="kw">pub </span>assignment_changes: Vec&lt;(EntityId, <span class="prelude-ty">Option</span>&lt;scriberig_session::ModelAssignment&gt;)&gt;,
+<a href=#287 id=287 data-nosnippet>287</a>    <span class="doccomment">/// Completed terminal node identities that the proposal preserves.
+<a href=#288 id=288 data-nosnippet>288</a>    </span><span class="kw">pub </span>preserved_terminal_nodes: Vec&lt;EntityId&gt;,
+<a href=#289 id=289 data-nosnippet>289</a>    <span class="doccomment">/// Safe explanation or trigger recorded in revision history.
+<a href=#290 id=290 data-nosnippet>290</a>    </span><span class="kw">pub </span>reason: String,
+<a href=#291 id=291 data-nosnippet>291</a>}
+<a href=#292 id=292 data-nosnippet>292</a>
+<a href=#293 id=293 data-nosnippet>293</a><span class="doccomment">/// Identifies the exact semantic scope supplied to an agent.
+<a href=#294 id=294 data-nosnippet>294</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#295 id=295 data-nosnippet>295</a></span><span class="kw">pub struct </span>AgentSelection {
+<a href=#296 id=296 data-nosnippet>296</a>    <span class="doccomment">/// Semantic project containing the selected entity.
+<a href=#297 id=297 data-nosnippet>297</a>    </span><span class="kw">pub </span>project: <span class="prelude-ty">Option</span>&lt;scriberig_core::ProjectId&gt;,
+<a href=#298 id=298 data-nosnippet>298</a>    <span class="doccomment">/// Semantic project root at the exact snapshot.
+<a href=#299 id=299 data-nosnippet>299</a>    </span><span class="kw">pub </span>root: EntityId,
+<a href=#300 id=300 data-nosnippet>300</a>    <span class="doccomment">/// Selected semantic entity.
+<a href=#301 id=301 data-nosnippet>301</a>    </span><span class="kw">pub </span>entity: EntityId,
+<a href=#302 id=302 data-nosnippet>302</a>    <span class="doccomment">/// Snapshot containing the selected entity.
+<a href=#303 id=303 data-nosnippet>303</a>    </span><span class="kw">pub </span>snapshot: SnapshotId,
+<a href=#304 id=304 data-nosnippet>304</a>}
+<a href=#305 id=305 data-nosnippet>305</a>
+<a href=#306 id=306 data-nosnippet>306</a><span class="doccomment">/// Identifies a locally accepted agent operation before execution completes.
+<a href=#307 id=307 data-nosnippet>307</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#308 id=308 data-nosnippet>308</a></span><span class="kw">pub struct </span>LocalAgentHandle {
+<a href=#309 id=309 data-nosnippet>309</a>    <span class="doccomment">/// Shared operation identity.
+<a href=#310 id=310 data-nosnippet>310</a>    </span><span class="kw">pub </span>operation: OperationId,
+<a href=#311 id=311 data-nosnippet>311</a>    <span class="doccomment">/// Session receiving the execution.
+<a href=#312 id=312 data-nosnippet>312</a>    </span><span class="kw">pub </span>session: EntityId,
+<a href=#313 id=313 data-nosnippet>313</a>    <span class="doccomment">/// Root branch receiving the execution.
+<a href=#314 id=314 data-nosnippet>314</a>    </span><span class="kw">pub </span>root_branch: EntityId,
+<a href=#315 id=315 data-nosnippet>315</a>    <span class="doccomment">/// Human instruction recorded on the root turn.
+<a href=#316 id=316 data-nosnippet>316</a>    </span><span class="kw">pub </span>prompt: String,
+<a href=#317 id=317 data-nosnippet>317</a>    <span class="doccomment">/// Exact semantic scope selected when this operation was accepted.
+<a href=#318 id=318 data-nosnippet>318</a>    </span><span class="kw">pub </span>selection: <span class="prelude-ty">Option</span>&lt;AgentSelection&gt;,
+<a href=#319 id=319 data-nosnippet>319</a>}
+<a href=#320 id=320 data-nosnippet>320</a>
+<a href=#321 id=321 data-nosnippet>321</a><span class="doccomment">/// Identifies a locally accepted nested agent operation.
+<a href=#322 id=322 data-nosnippet>322</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#323 id=323 data-nosnippet>323</a></span><span class="kw">pub struct </span>LocalChildAgentHandle {
+<a href=#324 id=324 data-nosnippet>324</a>    <span class="doccomment">/// Shared operation identity.
+<a href=#325 id=325 data-nosnippet>325</a>    </span><span class="kw">pub </span>operation: OperationId,
+<a href=#326 id=326 data-nosnippet>326</a>    <span class="doccomment">/// Session receiving the child execution.
+<a href=#327 id=327 data-nosnippet>327</a>    </span><span class="kw">pub </span>session: EntityId,
+<a href=#328 id=328 data-nosnippet>328</a>    <span class="doccomment">/// Parent branch owning the delegation.
+<a href=#329 id=329 data-nosnippet>329</a>    </span><span class="kw">pub </span>parent_branch: EntityId,
+<a href=#330 id=330 data-nosnippet>330</a>    <span class="doccomment">/// Child branch receiving the execution.
+<a href=#331 id=331 data-nosnippet>331</a>    </span><span class="kw">pub </span>child_branch: EntityId,
+<a href=#332 id=332 data-nosnippet>332</a>    <span class="doccomment">/// Child purpose recorded in the session graph.
+<a href=#333 id=333 data-nosnippet>333</a>    </span><span class="kw">pub </span>purpose: String,
+<a href=#334 id=334 data-nosnippet>334</a>    <span class="doccomment">/// Human instruction recorded on the child turn.
+<a href=#335 id=335 data-nosnippet>335</a>    </span><span class="kw">pub </span>prompt: String,
+<a href=#336 id=336 data-nosnippet>336</a>}
+<a href=#337 id=337 data-nosnippet>337</a>
+<a href=#338 id=338 data-nosnippet>338</a><span class="attr">#[path = <span class="string">"session/backend.rs"</span>]
+<a href=#339 id=339 data-nosnippet>339</a></span><span class="kw">mod </span>backend;
+<a href=#340 id=340 data-nosnippet>340</a><span class="kw">pub use </span>backend::SessionBackend;
+<a href=#341 id=341 data-nosnippet>341</a><span class="attr">#[path = <span class="string">"session/agent_console.rs"</span>]
+<a href=#342 id=342 data-nosnippet>342</a></span><span class="kw">mod </span>agent_console;
+<a href=#343 id=343 data-nosnippet>343</a><span class="kw">pub use </span>agent_console::{
+<a href=#344 id=344 data-nosnippet>344</a>    AgentConsoleBackend, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
+<a href=#345 id=345 data-nosnippet>345</a>    ToolResultDetail,
+<a href=#346 id=346 data-nosnippet>346</a>};
 </code></pre></div></section></main></body></html>
