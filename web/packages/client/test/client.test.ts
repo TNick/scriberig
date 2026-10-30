@@ -1,7 +1,48 @@
 /** @file Verifies client operation mapping and event subscription wiring. */
 import { describe, expect, it, vi } from "vitest";
+import selectionNormalization from "../../../../tests/fixtures/agent-selection-normalization.json";
 import { HttpTransport, ScriberigClient } from "../src";
 describe("ScriberigClient", () => {
+  it("retains structured materialization receipts in HTTP apply errors", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              code: "filesystem_write_failed",
+              message: "candidate materialization failed",
+              details: {
+                candidate: "candidate-1",
+                materialization: "unknown",
+                pathCount: 1,
+                pathsOmitted: 0,
+                paths: [{ path: "report.docx", state: "failed", diagnostic: "disk full" }],
+              },
+            }),
+            { status: 500 },
+          ),
+      ),
+    );
+    try {
+      await expect(
+        new HttpTransport("https://scriberig.invalid").request("project", {
+          operation: "apply",
+          candidate: "candidate-1",
+        }),
+      ).rejects.toMatchObject({
+        error: {
+          details: {
+            materialization: "unknown",
+            paths: [{ path: "report.docx", state: "failed", diagnostic: "disk full" }],
+          },
+        },
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("maps operations through injected transport", async () => {
     const calls: string[] = [];
     const transport = {
@@ -136,6 +177,86 @@ describe("ScriberigClient", () => {
       ["session", { session: { id: "session-1" } }],
       ["cancel", { operation: { id: "op-1" } }],
     ]);
+  });
+
+  it("serializes exact project and workspace scope for agent starts and continuations", async () => {
+    const calls: Array<[string, unknown]> = [];
+    const transport = {
+      request: async <T>(operation: string, payload: unknown): Promise<T> => {
+        calls.push([operation, payload]);
+        return {
+          operationId: `${operation}-1`,
+          sessionId: "session-1",
+          branchId: "branch-1",
+        } as T;
+      },
+      subscribe: () => () => undefined,
+    };
+    const client = new ScriberigClient(transport);
+    const selection = {
+      projectId: "project-1",
+      rootId: "ent_workspace_root" as never,
+      entityId: "ent_cell" as never,
+      snapshotId: "snp_exact",
+      revisionId: "rev_exact",
+      location: "viewport-row-3",
+    };
+
+    await client.startAgent({ sessionId: "session-1" as never, prompt: "inspect", selection });
+    await client.continueAgent({
+      sessionId: "session-1" as never,
+      branchId: "branch-1" as never,
+      prompt: "continue",
+      selection,
+    });
+
+    const expectedSelection = {
+      project_id: "project-1",
+      root: { id: "ent_workspace_root" },
+      entity: { id: "ent_cell" },
+      snapshot: { id: "snp_exact" },
+    };
+    expect(calls).toEqual([
+      [
+        "agent_start",
+        { session: { id: "session-1" }, prompt: "inspect", selection: expectedSelection },
+      ],
+      [
+        "agent_continue",
+        {
+          session: { id: "session-1" },
+          branch: { id: "branch-1" },
+          prompt: "continue",
+          selection: expectedSelection,
+        },
+      ],
+    ]);
+  });
+
+  it("serializes shared spreadsheet and feature selection scopes without view anchors", async () => {
+    const calls: Array<[string, unknown]> = [];
+    const transport = {
+      request: async <T>(operation: string, payload: unknown): Promise<T> => {
+        calls.push([operation, payload]);
+        return { operationId: `${operation}-1`, sessionId: "session-1" } as T;
+      },
+      subscribe: () => () => undefined,
+    };
+    const client = new ScriberigClient(transport);
+
+    for (const item of selectionNormalization.cases) {
+      const selection = {
+        projectId: item.semantic.projectId,
+        rootId: item.semantic.rootId as never,
+        entityId: item.semantic.entityId as never,
+        snapshotId: item.semantic.snapshotId,
+      };
+      await client.startAgent({ sessionId: "session-1" as never, prompt: item.name, selection });
+    }
+
+    expect(calls.map(([, payload]) => (payload as { selection: unknown }).selection)).toEqual(
+      selectionNormalization.cases.map((item) => item.wire),
+    );
   });
 
   it("normalizes the Rust protocol operation envelope at the web boundary", async () => {

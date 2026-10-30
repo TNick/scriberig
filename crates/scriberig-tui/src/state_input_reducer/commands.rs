@@ -2,13 +2,37 @@
 
 use super::*;
 
+#[path = "commands/assignment_command.rs"]
+mod assignment_command;
+#[path = "commands/cad_command.rs"]
+mod cad_command;
+#[path = "commands/document_view.rs"]
+mod document_view;
+#[path = "commands/inspection_command.rs"]
+mod inspection_command;
+#[path = "commands/navigation_command.rs"]
+mod navigation_command;
+#[path = "commands/project_artifacts.rs"]
+mod project_artifacts;
 #[path = "commands/session_argument.rs"]
 mod session_argument;
+#[path = "commands/spreadsheet_views.rs"]
+mod spreadsheet_views;
 
+#[path = "commands/document_command.rs"]
+mod document_command;
+#[path = "commands/geo_command.rs"]
+mod geo_command;
 #[path = "commands/plan_command.rs"]
 mod plan_command;
+#[path = "commands/qgis_command.rs"]
+mod qgis_command;
 #[path = "commands/recovery.rs"]
 mod recovery;
+#[path = "commands/source_style_command.rs"]
+mod source_style_command;
+#[path = "commands/spreadsheet_command.rs"]
+mod spreadsheet_command;
 
 /// Routes supported console commands to shared picker and preference actions.
 ///
@@ -115,7 +139,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
             }
         }
         _ if descriptor.name == "/explorer" => {
-            let Some(selection) = state.selection else {
+            let Some(selection) = state.selection.as_ref() else {
                 state.conversation_composer.error =
                     Some("Select a semantic entity before opening Explorer.".to_owned());
                 return Some(vec![Effect::None]);
@@ -140,73 +164,222 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
             state,
             command.strip_prefix("/plan").unwrap_or_default().trim(),
         )),
-        _ if descriptor.name == "/assign" => {
-            let node = if state.primary_view == crate::selection::PrimaryView::Plan {
-                state.plan_cursor.and_then(|selection| selection.node)
-            } else {
-                match state.conversation_cursor {
-                    Some(crate::view::conversation::ConversationSource::PlanNode(node)) => {
-                        Some(node)
-                    }
-                    _ => None,
-                }
-            };
-            let Some(node) = node else {
-                state.conversation_composer.error =
-                    Some("Select a plan node before using /assign.".to_owned());
-                return Some(vec![Effect::None]);
-            };
-            let Some(plan) = state.session_snapshot.as_ref().and_then(|session| {
-                session
-                    .plans
-                    .iter()
-                    .find(|plan| plan.nodes.iter().any(|candidate| candidate.id == node))
-            }) else {
-                state.conversation_composer.error =
-                    Some("The selected plan node is no longer available.".to_owned());
-                return Some(vec![Effect::None]);
-            };
-            state.plan_assignment_target = Some(crate::state::PlanAssignmentTarget {
-                plan: plan.id,
-                node,
-                expected_revision: plan.revision,
-            });
-            if matches!(state.model_library, crate::inspector::LoadState::Ready(_)) {
-                return Some(vec![Effect::None]);
-            }
-            if matches!(
-                state.model_library,
-                crate::inspector::LoadState::Loading { .. }
-            ) {
-                return Some(vec![Effect::None]);
-            }
-            let request_id = state.next_request_id;
-            state.next_request_id = state.next_request_id.saturating_add(1);
-            state.model_library = crate::inspector::LoadState::Loading { request_id };
-            Some(vec![Effect::ReadModelLibrary { request_id }])
-        }
+        _ if descriptor.name == "/assign" => Some(assignment_command::assign(state)),
         _ if descriptor.name == "/operations" => Some(super::reduce(
             state,
             Action::ViewSelected(crate::selection::PrimaryView::Operations),
         )),
-        _ if descriptor.name == "/project" => {
-            state.shell_message = state.project.as_ref().map_or_else(
-                || "No active project is selected.".to_owned(),
-                |name| format!("Active project: {name}"),
-            );
-            Some(vec![Effect::None])
+        _ if descriptor.name == "/project" => Some(project_artifacts::active_project(state)),
+        _ if descriptor.name == "/artifacts" => Some(project_artifacts::artifacts(state, command)),
+        _ if descriptor.name == "/artifact-members" => {
+            Some(project_artifacts::members(state, command))
         }
-        _ if descriptor.name == "/history" => {
-            let Some(snapshot) = state.selection.and_then(|selection| selection.snapshot) else {
+        _ if descriptor.name == "/cad" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim();
+            match cad_command::read_action(state, args) {
+                Ok(action) => Some(super::reduce(state, action)),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/cad-select" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim();
+            match cad_command::select_entity(args) {
+                Ok(action) => Some(super::reduce(state, action)),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/cad-layer" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim();
+            match cad_command::layer_change(state, args) {
+                Ok(request) => Some(super::reduce(
+                    state,
+                    Action::CadLayerChangeRequested(request),
+                )),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/geo" => {
+            let (project, snapshot) = match geo_command::scope(state) {
+                Ok(scope) => scope,
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    return Some(vec![Effect::None]);
+                }
+            };
+            let (path, offset) = match geo_command::catalog_arguments(
+                command.strip_prefix(name).unwrap_or_default().trim(),
+            ) {
+                Ok(value) => value,
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    return Some(vec![Effect::None]);
+                }
+            };
+            Some(super::reduce(
+                state,
+                Action::GeoCatalogRequested {
+                    project,
+                    path,
+                    snapshot,
+                    offset,
+                },
+            ))
+        }
+        _ if descriptor.name == "/qgis" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim();
+            match qgis_command::project_request(state, args) {
+                Ok(action) => Some(super::reduce(state, action)),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/qgis-layer" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim();
+            match qgis_command::layer_request(state, args) {
+                Ok(action) => Some(super::reduce(state, action)),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/qgis-rename" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim();
+            match qgis_command::rename_request(state, args) {
+                Ok(action) => Some(super::reduce(state, action)),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/qgis-order" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim();
+            match qgis_command::reorder_request(state, args) {
+                Ok(action) => Some(super::reduce(state, action)),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/geo-features" => {
+            let (layer, offset) = match geo_command::feature_arguments(
+                command.strip_prefix(name).unwrap_or_default().trim(),
+            ) {
+                Ok(value) => value,
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    return Some(vec![Effect::None]);
+                }
+            };
+            Some(super::reduce(
+                state,
+                Action::GeoFeaturesRequested { layer, offset },
+            ))
+        }
+        _ if descriptor.name == "/geo-query" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim_start();
+            match geo_command::query_request(state, args) {
+                Ok(request) => Some(super::reduce(
+                    state,
+                    Action::GeoFeatureQueryRequested(request),
+                )),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message);
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/geo-set" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim_start();
+            let edit = match geo_command::attribute_edit(state, args) {
+                Ok(edit) => edit,
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    return Some(vec![Effect::None]);
+                }
+            };
+            Some(super::reduce(
+                state,
+                Action::GeoAttributeEditRequested(edit),
+            ))
+        }
+        _ if descriptor.name == "/geo-select" => {
+            let entity = command
+                .strip_prefix(name)
+                .unwrap_or_default()
+                .trim()
+                .parse::<scriberig_core::EntityId>();
+            if let Ok(feature) = entity {
+                Some(super::reduce(state, Action::GeoFeatureSelected { feature }))
+            } else {
                 state.conversation_composer.error =
-                    Some("Select an exact snapshot before opening history.".to_owned());
+                    Some("Usage: /geo-select <feature-id>.".to_owned());
+                Some(vec![Effect::None])
+            }
+        }
+        _ if matches!(
+            descriptor.name,
+            "/spreadsheet" | "/spreadsheet-cell" | "/spreadsheet-set" | "/spreadsheet-formula"
+        ) =>
+        {
+            spreadsheet_views::dispatch(state, command, name, descriptor.name)
+        }
+        _ if descriptor.name == "/geo-geometry" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim_start();
+            match geo_command::geometry_edit(state, args) {
+                Ok(request) => Some(super::reduce(
+                    state,
+                    Action::GeoGeometryEditRequested(request),
+                )),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+
+        _ if descriptor.name == "/document" => Some(document_view::outline(state, command)),
+        _ if descriptor.name == "/document-select" => {
+            let argument = command.strip_prefix(name).unwrap_or_default().trim();
+            let Ok(entity) = argument.parse::<scriberig_core::EntityId>() else {
+                state.conversation_composer.error = Some(
+                    "Usage: /document-select <semantic paragraph or table-cell id>.".to_owned(),
+                );
                 return Some(vec![Effect::None]);
             };
-            Some(super::reduce(state, Action::HistoryRequested { snapshot }))
+            Some(super::reduce(
+                state,
+                Action::DocumentPartSelected { entity },
+            ))
         }
+        _ if descriptor.name == "/document-replace" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim_start();
+            Some(document_command::replace_paragraph(state, args))
+        }
+        _ if descriptor.name == "/document-cell-replace" => {
+            let args = command.strip_prefix(name).unwrap_or_default().trim_start();
+            Some(document_command::replace_table_cell(state, args))
+        }
+        _ if descriptor.name == "/history" => Some(navigation_command::history(state)),
         _ if descriptor.name == "/diff" => Some(super::reduce(state, Action::DiffChooserOpened)),
         _ if descriptor.name == "/projection" => {
             Some(super::reduce(state, Action::ProjectionOpened))
+        }
+        _ if descriptor.name == "/source-style" => {
+            Some(navigation_command::source_style(state, command, name))
         }
         _ if descriptor.name == "/changes" => {
             Some(super::super::state_actions::refresh_candidate_review(state))
@@ -215,71 +388,8 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
             state,
             Action::FindRequested(command[name.len()..].trim().to_owned()),
         )),
-        _ if descriptor.name == "/inspect" => {
-            let mut arguments = command.split_whitespace().skip(1);
-            let entity_argument = arguments.next();
-            let entity = match entity_argument {
-                Some(value) => {
-                    if let Ok(entity) = value.parse() {
-                        Some(entity)
-                    } else {
-                        state.conversation_composer.error =
-                            Some("The entity identity is invalid.".to_owned());
-                        return Some(vec![Effect::None]);
-                    }
-                }
-                None => state.selection.map(|selection| selection.entity),
-            };
-            let Some(entity) = entity else {
-                state.conversation_composer.error =
-                    Some("Select an entity or provide its identifier.".to_owned());
-                return Some(vec![Effect::None]);
-            };
-            let snapshot = match arguments.next() {
-                None => None,
-                Some("--snapshot") => {
-                    if let Some(snapshot) = arguments.next().and_then(|value| value.parse().ok()) {
-                        Some(snapshot)
-                    } else {
-                        state.conversation_composer.error =
-                            Some("Use /inspect <entity> --snapshot <snapshot-id>.".to_owned());
-                        return Some(vec![Effect::None]);
-                    }
-                }
-                Some(_) => {
-                    state.conversation_composer.error =
-                        Some("Use /inspect <entity> [--snapshot <snapshot-id>].".to_owned());
-                    return Some(vec![Effect::None]);
-                }
-            };
-            if arguments.next().is_some() {
-                state.conversation_composer.error =
-                    Some("Use /inspect <entity> [--snapshot <snapshot-id>].".to_owned());
-                return Some(vec![Effect::None]);
-            }
-            let request_id = state.next_request_id;
-            state.next_request_id = state.next_request_id.saturating_add(1);
-            Some(super::reduce(
-                state,
-                Action::InspectRequested {
-                    request_id,
-                    entity,
-                    snapshot,
-                    switch_view: true,
-                },
-            ))
-        }
-        _ if descriptor.name == "/status" => {
-            state.conversation_composer.error = Some(format!(
-                "Connection: {:?} · session: {}",
-                state.connection,
-                state
-                    .session_snapshot
-                    .as_ref()
-                    .map_or("none".to_owned(), |session| session.id.to_string())
-            ));
-            Some(vec![Effect::None])
-        }
+        _ if descriptor.name == "/inspect" => Some(inspection_command::inspect(state, command)),
+        _ if descriptor.name == "/status" => Some(navigation_command::status(state)),
         _ => {
             state.conversation_composer.error = Some(format!(
                 "{} is recognized but requires an active shared view or plan target.",

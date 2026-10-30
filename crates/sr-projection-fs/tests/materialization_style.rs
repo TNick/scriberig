@@ -7,13 +7,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use scriberig_core::{EntityId, SnapshotId};
 use sr_projection::{
     ProjectionAdapter, ProjectionCapabilities, ProjectionKind, ProjectionRef, ProjectionResult,
-    ProjectionSpecRef, ProjectionStatus, RenderRequest, RenderedProjection, RendererVersion,
-    ResolvedStyle, SemanticScopeRef, SemanticStateRef, StyleRef, StyleValue,
+    ProjectionStatus, RenderRequest, RenderedProjection, ResolvedStyle, SemanticStateRef,
+    StyleValue,
 };
 use sr_projection_fs::{
     FileSystem, LocalFileSystem, MemorySyncStore, ProjectionLocation, ProjectionOwnership,
-    SyncCoordinator, SyncState, digest_bytes,
+    SyncCoordinator, SyncState,
 };
+
+mod common;
 
 /// Counter naming isolated temporary roots for these tests.
 static NEXT_ROOT: AtomicU64 = AtomicU64::new(1);
@@ -84,24 +86,14 @@ impl ProjectionAdapter for StyleEchoAdapter {
 /// The coordinator with its synchronization state.
 fn coordinator(path: &std::path::Path) -> SyncCoordinator<LocalFileSystem> {
     let mut states = MemorySyncStore::default();
-    states.put(SyncState {
-        projection: projection(),
-        specification: ProjectionSpecRef(EntityId::from_bytes([4; 16])),
-        scope: SemanticScopeRef {
-            entity: EntityId::from_bytes([5; 16]),
-            revision: None,
-        },
-        kind: ProjectionKind::new("rust-source").expect("kind"),
-        location: ProjectionLocation::new(path),
-        ownership: ProjectionOwnership::ManagedEditable,
-        base: SemanticStateRef(SnapshotId::new([2; 32])),
-        current: SemanticStateRef(SnapshotId::new([3; 32])),
-        style: StyleRef::Value(StyleValue::new(b"80".to_vec())),
-        renderer: RendererVersion::new("test"),
-        rendered: digest_bytes(b"seed"),
-        observed: None,
-        status: ProjectionStatus::Synchronized,
-    });
+    states.put(SyncState::new(
+        projection(),
+        common::baseline("rust-source", SnapshotId::new([2; 32]), b"80", b"seed"),
+        ProjectionLocation::new(path),
+        ProjectionOwnership::ManagedEditable,
+        SemanticStateRef(SnapshotId::new([3; 32])),
+        ProjectionStatus::Synchronized,
+    ));
     SyncCoordinator::new(LocalFileSystem, states)
 }
 
@@ -160,11 +152,11 @@ fn each_materialization_style_writes_its_own_bytes() {
         .find_projection(projection())
         .expect("state");
     assert_eq!(
-        state.style,
-        StyleRef::Value(StyleValue::new(b"100".to_vec())),
+        state.baseline.rendered.style.value().as_bytes(),
+        b"100",
         "reconciliation identity must track the style that produced the bytes"
     );
-    assert_eq!(state.rendered, digest_bytes(&written));
+    assert_eq!(state.baseline.rendered.bytes, written);
     assert_eq!(adapter.calls.get(), 2);
     let _ = fs::remove_dir_all(path.parent().expect("parent"));
 }

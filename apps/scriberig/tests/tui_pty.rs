@@ -22,6 +22,8 @@ mod tui_pty_observability;
 mod tui_pty_plan_relations;
 #[path = "tui_pty/plan_view.rs"]
 mod tui_pty_plan_view;
+#[path = "tui_pty/rich_project.rs"]
+mod tui_pty_rich_project;
 mod tui_pty_support;
 #[path = "tui_pty/tree_identity.rs"]
 mod tui_pty_tree_identity;
@@ -149,21 +151,13 @@ fn tui_golden_03_edits_reviews_applies_and_restarts() {
     let confirmation = tui.screen();
     assert!(confirmation.contains("Base snapshot:"), "{confirmation}");
     assert!(confirmation.contains("Result snapshot:"), "{confirmation}");
-    tui.send(b"\x10");
-    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
-    tui.send_slow(b"Confirm");
+    tui_pty_support::candidate_review::open_apply_confirmation(&mut tui);
+    tui_pty_support::candidate_review::confirm_candidate_apply(&mut tui);
     assert!(
-        tui.read_until("Confirm reviewed change"),
+        tui.read_until_not("Confirm reviewed change"),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\r");
-    assert!(
-        tui.read_until("Action: commit change"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\r");
     let deadline = Instant::now() + Duration::from_secs(20);
     while !tui.source().contains("left.saturating_add(right)") {
         assert!(

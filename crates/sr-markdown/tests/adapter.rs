@@ -1,32 +1,48 @@
 //! Verifies the generic Markdown projection adapter lifecycle.
 
-use std::collections::BTreeMap;
-
 use scriberig_core::{EntityId, SnapshotId};
 use sr_markdown::{
     CanonicalNode, MARKDOWN_KIND, MarkdownAdapter, MarkdownBlock, MarkdownDocument, MarkdownStyle,
     ProjectionAdapter,
 };
 use sr_projection::{
-    ProjectionKind, ProjectionSpecRef, ReconciliationContext, ReconciliationOutcome,
-    SemanticScopeRef, SemanticStateRef,
+    FidelityAssessment, ProjectionAdapterIdentity, ProjectionKind, ProjectionSpecRef,
+    ReconciliationBaseline, ReconciliationContext, ReconciliationOutcome, RenderRequest,
+    RenderedProjection, RendererVersion, RenderingContext, ResolvedStyle, SemanticScopeRef,
+    SemanticStateRef, StyleValue,
 };
 
 /// Creates the exact reconciliation context used by adapter tests.
 /// - `current`: Argument named `current`.
+/// - `baseline_bytes`: Exact rendered bytes used as the reconciliation baseline.
 ///
 /// # Returns
 /// The operation result.
-fn context(current: SnapshotId) -> ReconciliationContext {
+fn context(current: SnapshotId, baseline_bytes: &[u8]) -> ReconciliationContext {
+    let base = SemanticStateRef(SnapshotId::new([1; 32]));
+    let scope = SemanticScopeRef {
+        entity: EntityId::from_bytes([2; 16]),
+        revision: None,
+    };
+    let specification = ProjectionSpecRef(EntityId::from_bytes([3; 16]));
+    let request = RenderRequest {
+        specification,
+        scope,
+        base_state: base,
+        kind: ProjectionKind::new("markdown").expect("kind"),
+        style: ResolvedStyle::inline(StyleValue::new(Vec::new())),
+        renderer: RendererVersion::new("markdown-test"),
+        context: RenderingContext::default(),
+    };
+    let rendered = RenderedProjection::from_bytes(baseline_bytes.to_vec(), &request, None);
     ReconciliationContext {
-        base: SemanticStateRef(SnapshotId::new([1; 32])),
+        baseline: ReconciliationBaseline::new(
+            rendered,
+            ProjectionAdapterIdentity::new("markdown-test", "1").expect("adapter identity"),
+            FidelityAssessment::lossless(),
+        )
+        .expect("valid baseline"),
         current: SemanticStateRef(current),
-        scope: SemanticScopeRef {
-            entity: EntityId::from_bytes([2; 16]),
-            revision: None,
-        },
-        specification: ProjectionSpecRef(EntityId::from_bytes([3; 16])),
-        metadata: BTreeMap::default(),
     }
 }
 
@@ -49,7 +65,7 @@ fn editable_reconciliation_preserves_identity() {
     let kind = ProjectionKind::new(MARKDOWN_KIND).expect("kind");
     let candidate = adapter.parse(&kind, b"after\n").expect("candidate");
     let ReconciliationOutcome::MigrationProposal(proposal) =
-        adapter.reconcile(candidate, &context(SnapshotId::new([1; 32])))
+        adapter.reconcile(candidate, &context(SnapshotId::new([1; 32]), b"before\n"))
     else {
         panic!("expected identity-preserving migration proposal");
     };
@@ -69,11 +85,14 @@ fn stale_or_missing_identity_context_is_rejected() {
     let kind = ProjectionKind::new(MARKDOWN_KIND).expect("kind");
     let candidate = adapter.parse(&kind, b"after\n").expect("candidate");
     assert!(matches!(
-        adapter.reconcile(candidate.clone(), &context(SnapshotId::new([1; 32]))),
+        adapter.reconcile(
+            candidate.clone(),
+            &context(SnapshotId::new([1; 32]), b"before\n")
+        ),
         ReconciliationOutcome::InvalidExternalState(_)
     ));
     assert!(matches!(
-        adapter.reconcile(candidate, &context(SnapshotId::new([4; 32]))),
+        adapter.reconcile(candidate, &context(SnapshotId::new([4; 32]), b"before\n")),
         ReconciliationOutcome::InvalidExternalState(_)
     ));
 }
@@ -90,10 +109,9 @@ fn concurrent_disjoint_edits_produce_one_migration() {
         block: base_document.blocks[0].clone(),
         position: 0,
     };
-    let adapter = MarkdownAdapter::with_canonical_nodes_and_base(
+    let adapter = MarkdownAdapter::with_canonical_nodes(
         current_document,
         vec![node.clone()],
-        base_document,
         MarkdownStyle::default(),
     )
     .expect("valid style");
@@ -102,7 +120,7 @@ fn concurrent_disjoint_edits_produce_one_migration() {
         .parse(&kind, b"base\n\nexternal\n")
         .expect("candidate");
 
-    let outcome = adapter.reconcile(candidate, &context(SnapshotId::new([4; 32])));
+    let outcome = adapter.reconcile(candidate, &context(SnapshotId::new([4; 32]), b"base\n"));
     let ReconciliationOutcome::MigrationProposal(proposal) = outcome else {
         panic!("expected merged migration proposal");
     };
@@ -130,17 +148,16 @@ fn concurrent_competing_edits_produce_structured_conflict() {
         block: base_document.blocks[0].clone(),
         position: 0,
     };
-    let adapter = MarkdownAdapter::with_canonical_nodes_and_base(
+    let adapter = MarkdownAdapter::with_canonical_nodes(
         current_document,
         vec![node],
-        base_document,
         MarkdownStyle::default(),
     )
     .expect("valid style");
     let kind = ProjectionKind::new(MARKDOWN_KIND).expect("kind");
     let candidate = adapter.parse(&kind, b"external\n").expect("candidate");
 
-    let outcome = adapter.reconcile(candidate, &context(SnapshotId::new([5; 32])));
+    let outcome = adapter.reconcile(candidate, &context(SnapshotId::new([5; 32]), b"base\n"));
     assert!(matches!(
         outcome,
         ReconciliationOutcome::Conflict(conflicts) if !conflicts.is_empty()

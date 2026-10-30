@@ -17,7 +17,7 @@ use sr_projection::{
     ProjectionAdapter, ProjectionPurpose, ProjectionRef, ResolvedStyle, StyleSource,
 };
 use sr_projection_fs::{
-    FileDigest, FileSystem, IoError, ProjectionLocation, RenderError, SyncCoordinator,
+    FileDigest, FileSystem, IoError, ProjectionLocation, RenderError, SyncCoordinator, digest_bytes,
 };
 
 use crate::projection_style::{ProjectionStyleBackend, StyleResolutionRequest};
@@ -116,7 +116,7 @@ impl<B> ApplicationService<B> {
         let effective = self.projection_style_effective(
             context,
             &StyleResolutionRequest::new(
-                state.kind,
+                state.baseline.rendered.kind,
                 request.project_id.clone(),
                 request.workspace_id.clone(),
                 ProjectionPurpose::SharedMaterialization,
@@ -134,7 +134,7 @@ impl<B> ApplicationService<B> {
             location: written.location.clone(),
             resolved: effective.resolved,
             applied: effective.applied,
-            rendered: written.rendered,
+            rendered: digest_bytes(&written.baseline.rendered.bytes),
         })
     }
 }
@@ -169,12 +169,6 @@ fn materialization_error(projection: ProjectionRef, error: RenderError) -> Appli
         },
         RenderError::Io(error) => ApplicationError::Internal {
             message: format!("materializing projection {} failed: {error}", projection.0),
-        },
-        RenderError::Style(error) => ApplicationError::Internal {
-            message: format!(
-                "materialization style for projection {} is unusable: {error}",
-                projection.0
-            ),
         },
         RenderError::Diagnostic(diagnostic) => crate::projection_style::resolver::style_error(
             "projection materialize render",

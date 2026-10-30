@@ -1,5 +1,6 @@
 //! Carries adapter-determined editability for one exact resolved projection.
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// States how much canonical semantics one resolved representation preserves.
@@ -9,7 +10,7 @@ use std::fmt;
 /// losslessly under one style and be unsafe to edit under another, so callers
 /// must ask for fidelity after resolution instead of reading a permanent flag
 /// off a specification.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ProjectionFidelity {
     /// Every canonical category the kind supports is present and editable.
     LosslessEditable,
@@ -79,7 +80,7 @@ impl fmt::Display for ProjectionFidelity {
 ///
 /// # Private members
 /// - None.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct FidelityAssessment {
     /// Editability classification for the exact resolved style.
     pub fidelity: ProjectionFidelity,

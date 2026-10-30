@@ -9,6 +9,7 @@ pub mod fidelity;
 pub mod model;
 pub mod purpose;
 pub mod reconcile;
+pub mod reconciliation_baseline;
 pub mod render;
 pub mod state;
 pub mod style;
@@ -33,6 +34,9 @@ pub use model::{
 };
 pub use purpose::ProjectionPurpose;
 pub use reconcile::ReconciliationOutcome;
+pub use reconciliation_baseline::{
+    ProjectionAdapterIdentity, ProjectionEvidence, ReconciliationBaseline,
+};
 pub use render::{
     OutputHash, RenderCacheKey, RenderRequest, RenderedFragment, RenderedProjection,
     RenderingContext,

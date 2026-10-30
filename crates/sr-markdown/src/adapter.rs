@@ -28,8 +28,6 @@ pub struct MarkdownAdapter {
     pub style: MarkdownStyle,
     /// Canonical projected nodes used to preserve identity during import.
     pub canonical_nodes: Vec<CanonicalNode>,
-    /// Last synchronized semantic document used as the three-way base.
-    pub synchronization_base: Option<MarkdownDocument>,
 }
 
 impl MarkdownAdapter {
@@ -50,7 +48,6 @@ impl MarkdownAdapter {
             document,
             style: style.validate()?,
             canonical_nodes: Vec::new(),
-            synchronization_base: None,
         })
     }
 
@@ -67,7 +64,6 @@ impl MarkdownAdapter {
             document,
             style: MarkdownStyle::default(),
             canonical_nodes: Vec::new(),
-            synchronization_base: None,
         }
     }
 
@@ -92,35 +88,6 @@ impl MarkdownAdapter {
         Ok(Self {
             document,
             canonical_nodes,
-            style: style.validate()?,
-            synchronization_base: None,
-        })
-    }
-
-    /// Creates an editable adapter with an explicit three-way base document.
-    ///
-    /// - `document`: Current canonical Markdown document.
-    /// - `canonical_nodes`: Stable identities from the synchronization base.
-    /// - `synchronization_base`: Markdown document last synchronized to the file.
-    /// - `style`: Exact rendering style.
-    ///
-    /// A configured editable Markdown adapter.
-    ///
-    /// Returns the style validation message when the style is unsupported.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn with_canonical_nodes_and_base(
-        document: MarkdownDocument,
-        canonical_nodes: Vec<CanonicalNode>,
-        synchronization_base: MarkdownDocument,
-        style: MarkdownStyle,
-    ) -> Result<Self, String> {
-        Ok(Self {
-            document,
-            canonical_nodes,
-            synchronization_base: Some(synchronization_base),
             style: style.validate()?,
         })
     }
@@ -233,15 +200,25 @@ impl ProjectionAdapter for MarkdownAdapter {
                 "editable Markdown reconciliation requires canonical node identities",
             )));
         }
-        if context.current != context.base {
-            let Some(base_document) = self.synchronization_base.as_ref() else {
+        let base = context.baseline.rendered.base_state;
+        if context.current != base {
+            let Ok(base_text) = std::str::from_utf8(&context.baseline.rendered.bytes) else {
                 return ReconciliationOutcome::InvalidExternalState(Box::new(diagnostic(
                     DiagnosticStage::Reconcile,
                     DiagnosticKind::ReconciliationConflict,
                     "missing-synchronization-base-document",
-                    "concurrent Markdown reconciliation requires the last synchronized document",
+                    "the exact Markdown synchronization baseline is not valid UTF-8",
                 )));
             };
+            let Ok(base_candidate) = parse(base_text) else {
+                return ReconciliationOutcome::InvalidExternalState(Box::new(diagnostic(
+                    DiagnosticStage::Reconcile,
+                    DiagnosticKind::ReconciliationConflict,
+                    "invalid-synchronization-base-document",
+                    "the exact Markdown synchronization baseline cannot be parsed",
+                )));
+            };
+            let base_document = &base_candidate.document;
             return match three_way_merge(Some(base_document), &self.document, &candidate.document) {
                 ThreeWayOutcome::Conflict { conflicts } => {
                     ReconciliationOutcome::Conflict(conflicts)
@@ -258,12 +235,7 @@ impl ProjectionAdapter for MarkdownAdapter {
                 | ThreeWayOutcome::Merged { document }
                 | ThreeWayOutcome::Converged { document } => {
                     let merged = CandidateDocument::new(document, candidate.source_length);
-                    match reconcile(
-                        context.base.0,
-                        &self.canonical_nodes,
-                        &merged,
-                        MARKDOWN_KIND,
-                    ) {
+                    match reconcile(base.0, &self.canonical_nodes, &merged, MARKDOWN_KIND) {
                         MarkdownReconciliation::NoSemanticChange => {
                             ReconciliationOutcome::NoSemanticChange
                         }
@@ -279,12 +251,7 @@ impl ProjectionAdapter for MarkdownAdapter {
                 }
             };
         }
-        match reconcile(
-            context.base.0,
-            &self.canonical_nodes,
-            &candidate,
-            MARKDOWN_KIND,
-        ) {
+        match reconcile(base.0, &self.canonical_nodes, &candidate, MARKDOWN_KIND) {
             MarkdownReconciliation::NoSemanticChange => ReconciliationOutcome::NoSemanticChange,
             MarkdownReconciliation::MigrationProposal(proposal) => {
                 ReconciliationOutcome::MigrationProposal(proposal)

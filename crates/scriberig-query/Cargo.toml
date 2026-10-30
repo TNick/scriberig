@@ -11,8 +11,6 @@ repository.workspace = true
 scriberig-core = { path = "../scriberig-core" }
 scriberig-graph = { path = "../scriberig-graph" }
 serde = { version = "1.0", features = ["derive"] }
-
-[dev-dependencies]
 serde_json = "1.0"
 
 [lints]

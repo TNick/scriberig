@@ -37,6 +37,7 @@ pub(crate) fn file_from_row(row: &Row<'_>) -> rusqlite::Result<ProjectFileRecord
         bytes: row.get(4)?,
         adapter: row.get(5)?,
         status: row.get(6)?,
+        grouping_key: row.get(7)?,
     })
 }
 

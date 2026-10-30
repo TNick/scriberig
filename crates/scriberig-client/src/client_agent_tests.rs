@@ -123,6 +123,11 @@ fn domain_operation_uses_exact_protocol_command_payload() {
         },
         revision: None,
         branch: None,
+        projection_anchor: Some(scriberig_protocol::ProjectionAnchor::SpreadsheetCell {
+            worksheet_id: "worksheet-exact".to_owned(),
+            row: 4,
+            column: 2,
+        }),
         arguments: [("name".to_owned(), serde_json::json!("greet"))]
             .into_iter()
             .collect(),
@@ -134,6 +139,10 @@ fn domain_operation_uses_exact_protocol_command_payload() {
     assert_eq!(request.kind, "domain_operation");
     assert_eq!(request.payload["entity"]["id"], "entity-exact");
     assert_eq!(request.payload["snapshot"]["id"], "snapshot-exact");
+    assert_eq!(
+        request.payload["projection_anchor"]["worksheetId"],
+        "worksheet-exact"
+    );
 }
 
 /// Sends application allocated new-session requests without local identities.
@@ -154,6 +163,39 @@ fn new_session_request_uses_explicit_protocol_variant() {
         observed.lock().expect("request").as_ref(),
         Some(Request::AgentNewSession(request)) if request.prompt == "start"
     ));
+}
+
+/// Keeps spreadsheet and CRS-aware feature selections identical across client requests.
+#[test]
+fn agent_selection_normalization_matches_shared_cross_surface_fixture() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/agent-selection-normalization.json"
+    ))
+    .expect("shared selection normalization fixture");
+    for case in fixture["cases"].as_array().expect("selection cases") {
+        let selection: scriberig_protocol::AgentSelection =
+            serde_json::from_value(case["wire"].clone()).expect("valid protocol selection");
+        let observed = Arc::new(Mutex::new(None));
+        let client = Client::new(FixtureTransport {
+            response: Response::Error(scriberig_protocol::ProtocolError {
+                code: scriberig_protocol::ProtocolErrorCode::UnsupportedOperation,
+                message: "fixture response".to_owned(),
+                details: None,
+                correlation_id: None,
+            }),
+            request: Arc::clone(&observed),
+        });
+        let _ = client.start_new_session_agent("inspect selection", Some(selection.clone()));
+
+        assert!(matches!(
+            observed.lock().expect("recorded request").as_ref(),
+            Some(Request::AgentNewSession(request)) if request.selection.as_ref() == Some(&selection)
+        ));
+        assert_eq!(
+            serde_json::to_value(selection).expect("serialized protocol selection"),
+            case["wire"]
+        );
+    }
 }
 
 /// Sends exact anchor identity in a dedicated remote continuation request.

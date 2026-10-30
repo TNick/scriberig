@@ -1,5 +1,6 @@
 //! Defines session-level entities and cross-domain handles.
 use crate::branch::Branch;
+pub use crate::branch_result::BranchResult;
 use crate::execution::SessionExecutionSelection;
 use scriberig_core::{EntityId, Provenance};
 
@@ -321,27 +322,6 @@ pub struct Decision {
     pub text: String,
     pub provenance: Provenance,
 }
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-/// Session-domain structured value.
-pub struct BranchResult {
-    pub id: EntityId,
-    pub branch: EntityId,
-    pub status: crate::branch::BranchStatus,
-    pub summary: Option<String>,
-    pub result_kind: Option<String>,
-    /// Exact project/candidate snapshots associated with this result.
-    #[serde(default)]
-    pub candidate_context: Option<BranchCandidateContext>,
-    pub references: Vec<EntityId>,
-    /// Stable non-entity handles produced by the branch.
-    #[serde(default)]
-    pub result_handles: Vec<String>,
-    pub touched: Vec<EntityId>,
-    pub produced_changes: Vec<EntityId>,
-    pub validations: Vec<EntityId>,
-    pub unresolved_questions: Vec<EntityId>,
-}
-
 /// Identifies the exact candidate context produced by semantic branch work.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct BranchCandidateContext {

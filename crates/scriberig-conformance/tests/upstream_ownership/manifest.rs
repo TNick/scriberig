@@ -22,6 +22,8 @@ pub(crate) type WorkspaceDependencies = BTreeMap<String, Value>;
 
 /// Dependency tables Cargo reads in one manifest.
 const DEPENDENCY_TABLES: [&str; 3] = ["dependencies", "dev-dependencies", "build-dependencies"];
+/// Dependency tables that participate in the built runtime rather than tests.
+const RUNTIME_DEPENDENCY_TABLES: [&str; 2] = ["dependencies", "build-dependencies"];
 
 /// One dependency declaration after `package` renaming and `workspace = true`
 /// inheritance are resolved.
@@ -229,7 +231,41 @@ pub(crate) fn member_declarations(
     manifest: &Value,
     workspace_deps: &WorkspaceDependencies,
 ) -> Vec<Declaration> {
-    dependency_entries(manifest)
+    declarations_for_entries(
+        dependency_entries(manifest, &DEPENDENCY_TABLES),
+        workspace_deps,
+    )
+}
+
+/// Resolves production dependency declarations, excluding test-only dependencies.
+///
+/// - `manifest`: Parsed member manifest document.
+/// - `workspace_deps`: Workspace dependency declarations.
+///
+/// # Returns
+/// Resolved production and build dependency declarations across target tables.
+pub(crate) fn member_runtime_declarations(
+    manifest: &Value,
+    workspace_deps: &WorkspaceDependencies,
+) -> Vec<Declaration> {
+    declarations_for_entries(
+        dependency_entries(manifest, &RUNTIME_DEPENDENCY_TABLES),
+        workspace_deps,
+    )
+}
+
+/// Resolves dependency entries against workspace declarations.
+///
+/// - `entries`: Manifest dependency keys and values.
+/// - `workspace_deps`: Workspace dependency declarations.
+///
+/// # Returns
+/// Resolved declarations retaining aliases and inheritance state.
+fn declarations_for_entries(
+    entries: Vec<(String, Value)>,
+    workspace_deps: &WorkspaceDependencies,
+) -> Vec<Declaration> {
+    entries
         .into_iter()
         .map(|(key, entry)| Declaration::resolve(&key, &entry, workspace_deps))
         .collect()
@@ -253,18 +289,19 @@ pub(crate) fn workspace_declarations(workspace_deps: &WorkspaceDependencies) -> 
 /// Collects the `(key, declaration)` pairs of every dependency table.
 ///
 /// # Parameters
-/// - `document`: parsed Cargo manifest document.
+/// - `document`: Parsed Cargo manifest document.
+/// - `table_names`: Dependency table names to collect from the manifest and targets.
 ///
 /// # Returns
 /// Every dependency key with its declaration, including target-specific tables.
-fn dependency_entries(document: &Value) -> Vec<(String, Value)> {
+fn dependency_entries(document: &Value, table_names: &[&str]) -> Vec<(String, Value)> {
     let targets = document.get("target").and_then(Value::as_table);
     let containers: Vec<&Value> = std::iter::once(document)
         .chain(targets.into_iter().flat_map(|tables| tables.values()))
         .collect();
     let mut entries: Vec<(String, Value)> = Vec::new();
     for container in containers {
-        for table_name in DEPENDENCY_TABLES {
+        for table_name in table_names {
             let Some(table) = container.get(table_name).and_then(Value::as_table) else {
                 continue;
             };
@@ -320,4 +357,41 @@ pub(crate) fn upstream_pin(root: &Path) -> (String, String) {
         return (git.to_owned(), rev.to_owned());
     }
     panic!("no rpi-* git dependency is pinned")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{member_runtime_declarations, parse_workspace_dependencies};
+
+    /// Confirms storage ownership ignores dependencies used only by test targets.
+    #[test]
+    fn runtime_declarations_exclude_test_only_storage_dependencies() {
+        let manifest: toml::Value = r#"
+            [dependencies]
+            serde = "1"
+
+            [dev-dependencies]
+            rusqlite = "0.40"
+        "#
+        .parse()
+        .expect("test manifest");
+        let declarations = member_runtime_declarations(
+            &manifest,
+            &parse_workspace_dependencies(
+                &r#"[workspace.dependencies]
+                serde = "1"
+                rusqlite = "0.40"
+                "#
+                .parse()
+                .expect("workspace manifest"),
+            ),
+        );
+
+        assert!(
+            declarations
+                .iter()
+                .all(|item| !item.resolves_to("rusqlite"))
+        );
+        assert!(declarations.iter().any(|item| item.resolves_to("serde")));
+    }
 }

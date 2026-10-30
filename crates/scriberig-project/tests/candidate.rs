@@ -49,7 +49,7 @@ fn source_candidate_is_snapshot_bound_and_conflict_safe() {
         .entity;
     let edited = base.replace("left + right", "left.saturating_add(right)");
     let candidate = service
-        .propose_candidate(scan.project.id, entity, edited)
+        .propose_candidate(scan.project.id, entity, edited.clone())
         .expect("candidate");
     let sibling_candidate = service
         .propose_candidate(
@@ -91,5 +91,15 @@ fn source_candidate_is_snapshot_bound_and_conflict_safe() {
         fs::read_to_string(root.join("src/lib.rs"))
             .expect("source")
             .contains("external edit")
+    );
+    fs::write(root.join("src/lib.rs"), base).expect("restore exact candidate base");
+    assert!(candidate.validation_digest.is_some());
+    let applied = service
+        .apply_candidate(&candidate)
+        .expect("apply directly validated source candidate");
+    assert_ne!(applied.successor_snapshot, imported.snapshot);
+    assert_eq!(
+        fs::read_to_string(root.join("src/lib.rs")).expect("materialized source"),
+        edited
     );
 }

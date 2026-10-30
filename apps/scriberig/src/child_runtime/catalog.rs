@@ -162,6 +162,61 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             "domain_operation",
         ),
         (
+            "cad.update_line_geometry",
+            "Propose exact start and end coordinates for one selected CAD line.",
+            "cad.update_line_geometry",
+        ),
+        (
+            "cad.change_entity_layer",
+            "Propose moving one selected CAD entity to an existing drawing layer.",
+            "cad.change_entity_layer",
+        ),
+        (
+            "spreadsheet.set_cell_value",
+            "Propose one typed cell value or formula change against an exact workbook snapshot.",
+            "spreadsheet.set_cell_value",
+        ),
+        (
+            "document.replace_paragraph",
+            "Propose replacement text for one semantic document paragraph.",
+            "document.replace_paragraph",
+        ),
+        (
+            "document.update_table_cell",
+            "Propose replacement text for one semantic document table cell.",
+            "document.update_table_cell",
+        ),
+        (
+            "spreadsheet.read_range",
+            "Read a bounded sparse cell range from an exact workbook snapshot.",
+            "spreadsheet.read_range",
+        ),
+        (
+            "spreadsheet.rename_sheet",
+            "Propose a worksheet rename with supported dependent references updated.",
+            "spreadsheet.rename_sheet",
+        ),
+        (
+            "artifact.inspect",
+            "Read a bounded page of artifact member and fidelity summaries without source bytes.",
+            "artifact.inspect",
+        ),
+        (
+            "geo.set_attribute",
+            "Propose one typed feature attribute change against an exact geospatial snapshot.",
+            "geo.set_attribute",
+        ),
+        (
+            "geo.replace_geometry",
+            "Propose one typed feature geometry change against an exact geospatial snapshot.",
+            "geo.replace_geometry",
+        ),
+        (
+            "qgis.rename_layer_reference",
+            "Propose a display-name change for one exact QGIS layer reference.",
+            "qgis.rename_layer_reference",
+        ),
+        (
             "project_rescan",
             "Rescan a project after a source repair.",
             "project_rescan",
@@ -221,6 +276,15 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                     | "project_validate_candidate"
                     | "project_resolve_dependencies"
                     | "domain_operation"
+                    | "cad.update_line_geometry"
+                    | "cad.change_entity_layer"
+                    | "spreadsheet.set_cell_value"
+                    | "document.replace_paragraph"
+                    | "document.update_table_cell"
+                    | "spreadsheet.rename_sheet"
+                    | "geo.set_attribute"
+                    | "geo.replace_geometry"
+                    | "qgis.rename_layer_reference"
             ),
             execution_mode: ToolExecutionMode::Atomic,
             required_capability: Some(required_capability.to_owned()),
@@ -236,7 +300,17 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
 /// The operation result.
 fn tool_category(name: &str) -> ToolCategory {
     match name {
-        "domain_operation" | "project_merge_candidates" => ToolCategory::SemanticMutation,
+        "domain_operation"
+        | "cad.update_line_geometry"
+        | "cad.change_entity_layer"
+        | "spreadsheet.set_cell_value"
+        | "document.replace_paragraph"
+        | "document.update_table_cell"
+        | "spreadsheet.rename_sheet"
+        | "geo.set_attribute"
+        | "geo.replace_geometry"
+        | "qgis.rename_layer_reference"
+        | "project_merge_candidates" => ToolCategory::SemanticMutation,
         "project_propose" | "project_repair_file" => ToolCategory::OpaqueFallback,
         "project_validate_candidate" | "project_resolve_dependencies" => {
             ToolCategory::ValidationProcess

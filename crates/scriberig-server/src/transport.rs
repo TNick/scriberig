@@ -12,6 +12,18 @@ pub struct InProcessTransport<S> {
 }
 
 impl<S> InProcessTransport<S> {
+    /// Adds grants resolved by the trusted embedding host.
+    ///
+    /// - `capabilities`: Scoped grants established outside protocol input.
+    ///
+    /// # Returns
+    /// Transport whose dispatcher evaluates requests with these grants.
+    #[must_use]
+    pub fn with_capabilities(mut self, capabilities: scriberig_app::CapabilityContext) -> Self {
+        self.dispatcher = self.dispatcher.with_capabilities(capabilities);
+        self
+    }
+
     /// Creates an in-process transport around an application service.
     ///
     /// - `service`: Application implementation receiving semantic requests.

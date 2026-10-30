@@ -92,6 +92,128 @@ pub(in crate::service) fn attach_provider_readiness(
 }
 
 impl<S: QueryService> TuiService for S {
+    /// Runs a geospatial query through the shared application query service.
+    ///
+    /// # Parameters
+    /// - `context`: Caller capability context.
+    /// - `request`: Exact query scope, predicate, and result bounds.
+    ///
+    /// # Returns
+    /// Typed matches and query provenance normalized for terminal display.
+    ///
+    /// # Errors
+    /// Returns the shared service's authorization or query error.
+    fn query_geospatial_features(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::GeoFeatureQuery,
+    ) -> Result<scriberig_protocol::GeoFeatureQueryResponse, ApplicationError> {
+        QueryService::query_geospatial_features(self, context, request)
+            .map(crate::view::geo::query_from_application)
+    }
+
+    /// Reads a QGIS project through the shared exact-snapshot query contract.
+    ///
+    /// # Parameters
+    /// - `context`: Caller capability context.
+    /// - `request`: Exact project, path, and snapshot scope.
+    ///
+    /// # Returns
+    /// Provider-neutral QGIS structure with linked semantic layer identities.
+    ///
+    /// # Errors
+    /// Returns the shared service's authorization or source error.
+    fn inspect_qgis_project(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::QgisProjectQuery,
+    ) -> Result<scriberig_protocol::QgisProjectResponse, ApplicationError> {
+        let result = QueryService::inspect_qgis_project(self, context, request)?;
+        let model = result.qgis.project;
+        Ok(scriberig_protocol::QgisProjectResponse {
+            project: result.owner.to_string(),
+            path: request.path.clone(),
+            snapshot: result.qgis.snapshot.to_string(),
+            revision: result.qgis.revision.to_string(),
+            id: model.id.to_string(),
+            title: model.title,
+            crs: model.crs.map(|crs| scriberig_protocol::GeoCrsView {
+                authority: crs.authority,
+                code: crs.code,
+                definition: crs.definition,
+            }),
+            layers: model
+                .layers
+                .into_iter()
+                .map(|layer| scriberig_protocol::QgisLayerReferenceView {
+                    id: layer.id.to_string(),
+                    name: layer.name,
+                    data_source: layer.source.raw,
+                    path: layer.source.path,
+                    resolved_path: layer.resolved_path,
+                    source_layer: layer.source_layer,
+                    dataset: layer.dataset.map(|id| id.to_string()),
+                    layer: layer.layer.map(|id| id.to_string()),
+                    resolution_diagnostic: layer.resolution_diagnostic,
+                    visible: layer.presentation.visible,
+                    renderer: layer.presentation.renderer,
+                    scale_range: layer.presentation.scale_range,
+                })
+                .collect(),
+            groups: model
+                .groups
+                .into_iter()
+                .map(|group| scriberig_protocol::QgisLayerGroupView {
+                    id: group.id.to_string(),
+                    name: group.name,
+                    layers: group.layers.into_iter().map(|id| id.to_string()).collect(),
+                })
+                .collect(),
+        })
+    }
+
+    /// Inspects one exact coordinate through the shared application query contract.
+    ///
+    /// # Parameters
+    /// - `self`: Shared query service.
+    /// - `context`: Caller authorization context.
+    /// - `request`: Exact project, snapshot, worksheet, row, and column.
+    ///
+    /// # Returns
+    /// Typed cell details normalized to the protocol response shape.
+    ///
+    /// # Errors
+    /// Returns the query service's structured authorization, request, or storage failure.
+    fn inspect_spreadsheet_cell(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::SpreadsheetCellQuery,
+    ) -> Result<scriberig_protocol::SpreadsheetCellInspectResponse, ApplicationError> {
+        QueryService::inspect_spreadsheet_cell(self, context, request)
+            .map(crate::view::spreadsheet::cell_inspection_from_application)
+    }
+
+    /// Reads a bounded exact-snapshot spreadsheet page through the query service.
+    ///
+    /// # Parameters
+    /// - `self`: Shared query service.
+    /// - `context`: Caller authorization context.
+    /// - `request`: Exact project, snapshot, worksheet, range, and page bounds.
+    ///
+    /// # Returns
+    /// Typed cells and continuation metadata normalized to the protocol shape.
+    ///
+    /// # Errors
+    /// Returns the query service's structured authorization, request, or storage failure.
+    fn inspect_spreadsheet_cells(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::SpreadsheetCellsQuery,
+    ) -> Result<scriberig_protocol::SpreadsheetCellsResponse, ApplicationError> {
+        self.read_spreadsheet_cells(context, request)
+            .map(crate::view::spreadsheet::from_application)
+    }
+
     /// Delegates inspection through a public query service.
     ///
     /// - `context`: Application context for the request.

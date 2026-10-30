@@ -101,6 +101,7 @@ pub(super) fn project_error(error: &scriberig_project::ProjectError) -> (u16, Va
             "code": error.code,
             "message": error.message,
             "diagnostics": error.diagnostics.iter().map(|diagnostic| json!({
+                "entity": diagnostic.entity.map(|entity| entity.to_string()),
                 "path": diagnostic.path,
                 "adapter": diagnostic.adapter,
                 "stage": diagnostic.stage,
@@ -156,7 +157,32 @@ pub(super) fn authorized_path(roots: &[PathBuf], requested: &str) -> Result<Path
 
 #[cfg(test)]
 mod tests {
-    use super::authorized_path;
+    use super::{authorized_path, project_error};
+
+    /// Preserves an exact semantic entity target in a project error response.
+    #[test]
+    fn project_error_serializes_target_entity_diagnostic() {
+        let entity = scriberig_core::EntityId::new();
+        let error = scriberig_project::ProjectError {
+            code: "dxf_invalid_coordinate",
+            message: "line coordinates must be finite numeric values".to_owned(),
+            diagnostics: vec![scriberig_project::ImportDiagnostic {
+                entity: Some(entity),
+                path: "roads.dxf".to_owned(),
+                adapter: "dxf".to_owned(),
+                stage: "edit".to_owned(),
+                code: "dxf_invalid_coordinate".to_owned(),
+                message: "line coordinates must be finite numeric values".to_owned(),
+                retryable: false,
+            }],
+        };
+
+        let (status, body) = project_error(&error);
+
+        assert_eq!(status, 400);
+        assert_eq!(body["diagnostics"][0]["entity"], entity.to_string());
+        assert_eq!(body["diagnostics"][0]["path"], "roads.dxf");
+    }
 
     /// Rejects a project path outside the operator-selected root.
     #[test]

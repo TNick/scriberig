@@ -73,7 +73,8 @@ impl<B> ApplicationService<B> {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub(super) fn save_session_state(&self, session: Session) -> Result<(), ApplicationError> {
+    pub(super) fn save_session_state(&self, mut session: Session) -> Result<(), ApplicationError> {
+        session.compact_branch_results();
         if let Some(store) = &self.session_store {
             store
                 .save(&session)

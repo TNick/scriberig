@@ -170,10 +170,18 @@ pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
 /// Panics when Git cannot enumerate repository files or a file cannot be copied.
 fn copy_repository_entries(source: &Path, destination: &Path) {
     fs::create_dir_all(destination).expect("create repository checkout");
-    let output = Command::new("git")
+    let mut command = Command::new("git");
+    command
         .arg("-C")
         .arg(source)
-        .args(["ls-files", "--cached", "-z"])
+        .args(["ls-files", "--cached", "-z"]);
+    let is_workspace_checkout = source == PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    if is_workspace_checkout {
+        if let Some(index) = std::env::var_os("SCRIBE_TEST_GIT_INDEX_FILE") {
+            command.env("GIT_INDEX_FILE", index);
+        }
+    }
+    let output = command
         .output()
         .expect("enumerate Git-indexed repository files");
     assert!(

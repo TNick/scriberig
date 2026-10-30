@@ -34,6 +34,9 @@ mod service_operation_model_request;
 #[path = "service_plan_contract_methods.rs"]
 mod service_plan_contract_methods;
 #[macro_use]
+#[path = "service_domain_contract_methods.rs"]
+mod service_domain_contract_methods;
+#[macro_use]
 #[path = "service_contract_methods.rs"]
 mod service_contract_methods;
 #[path = "service_model_request.rs"]
@@ -78,6 +81,8 @@ pub use service_runtime::TuiRuntimeService;
 
 /// Supplies semantic reads to the TUI without exposing storage internals.
 pub trait TuiService: TuiModelRequestService + TuiRecoveryService + TuiRuntimeService {
+    tui_domain_methods!();
+
     /// Returns the optional upstream registry for plugin-supplied components.
     ///
     /// # Returns

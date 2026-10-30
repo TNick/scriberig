@@ -40,6 +40,8 @@ mod startup_options;
 #[cfg(feature = "provider-package-worker-tests")]
 #[path = "tui_pty_support/startup_plugin.rs"]
 mod startup_plugin;
+#[path = "tui_pty_support/startup_rich.rs"]
+mod startup_rich;
 
 /// Owns one real terminal session used by native TUI workflow tests.
 pub struct TuiPty {

@@ -15,20 +15,38 @@ mod agent_profile_composition;
 mod agent_profile_recovery_command;
 mod agent_tool;
 mod agent_tool_helpers;
+#[cfg(test)]
+#[path = "artifact_agent_tests.rs"]
+mod artifact_agent_tests;
 mod bootstrap_failure_provider;
+#[cfg(test)]
+#[path = "cad_agent_tests.rs"]
+mod cad_agent_tests;
 mod child_runtime;
 mod deterministic_provider;
 mod doctor_command;
+#[cfg(test)]
+#[path = "document_agent_tests.rs"]
+mod document_agent_tests;
+#[cfg(test)]
+#[path = "geo_agent_tests.rs"]
+mod geo_agent_tests;
 mod logging;
 mod main_agent_execution;
 mod native_scenario;
 mod native_tui_agent;
 mod projection_style_composition;
+#[cfg(test)]
+#[path = "qgis_agent_tests.rs"]
+mod qgis_agent_tests;
 mod remote_commands;
 mod scenario_helpers;
 mod secrets_command;
 mod self_hosting_provider;
 mod shared_agent_command;
+#[cfg(test)]
+#[path = "spreadsheet_agent_tests.rs"]
+mod spreadsheet_agent_tests;
 mod tui_command;
 #[cfg(test)]
 pub(crate) use shared_agent_command::run_composed_model;
@@ -123,9 +141,10 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 &args.project_roots,
                 Some(agent_execution_handler),
                 Some(plan_lifecycle_handler),
-                scriberig_server::ServerModelCatalog {
+                scriberig_server::ServerProviderCatalog {
                     provider_extension_runtime,
                     provider_readiness_handler: Some(provider_readiness_handler),
+                    cad_provider_registry: scriberig_app::CadProviderRegistry::new(),
                 },
                 projection_style_composition::domain_projection_style_configuration(&args.db)?,
             )?;
@@ -265,6 +284,15 @@ fn agent_actions() -> BTreeSet<CapabilityAction> {
         CapabilityAction::Query,
         CapabilityAction::Custom("agent.delegate".to_owned()),
         CapabilityAction::Custom("domain_operation".to_owned()),
+        CapabilityAction::Custom("cad.update_line_geometry".to_owned()),
+        CapabilityAction::Custom("cad.change_entity_layer".to_owned()),
+        CapabilityAction::Custom("spreadsheet.set_cell_value".to_owned()),
+        CapabilityAction::Custom("document.replace_paragraph".to_owned()),
+        CapabilityAction::Custom("document.update_table_cell".to_owned()),
+        CapabilityAction::Custom("spreadsheet.read_range".to_owned()),
+        CapabilityAction::Custom("spreadsheet.rename_sheet".to_owned()),
+        CapabilityAction::Custom("qgis.rename_layer_reference".to_owned()),
+        CapabilityAction::Custom("artifact.inspect".to_owned()),
         CapabilityAction::Custom("runtime_capabilities".to_owned()),
         CapabilityAction::Custom("operation_status".to_owned()),
         CapabilityAction::Custom("operation_cancel".to_owned()),

@@ -43,7 +43,8 @@ impl SessionStore for SqliteSessionStore {
         for (session_id, payload) in records {
             let mut decoded = payload::decode(&payload)?;
             self.hydrate_semantic_plans(&mut decoded.session)?;
-            if decoded.requires_rewrite {
+            let compacted_results = decoded.session.compact_branch_results() > 0;
+            if decoded.requires_rewrite || compacted_results {
                 rewrites.push((
                     session_id,
                     payload::encode(&decoded.session, &decoded.legacy_execution)?,
@@ -99,7 +100,8 @@ impl SessionStore for SqliteSessionStore {
         };
         let mut decoded = payload::decode(&payload)?;
         self.hydrate_semantic_plans(&mut decoded.session)?;
-        if !decoded.requires_rewrite {
+        let compacted_results = decoded.session.compact_branch_results() > 0;
+        if !decoded.requires_rewrite && !compacted_results {
             return Ok(Some(decoded.session));
         }
         let transaction = connection
@@ -295,3 +297,7 @@ impl SessionStore for SqliteSessionStore {
         self.compare_and_swap_plan_inner(session, plan_id, expected_revision)
     }
 }
+
+#[cfg(test)]
+#[path = "session_sqlite_store_tests.rs"]
+mod tests;

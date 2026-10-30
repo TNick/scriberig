@@ -1,13 +1,15 @@
 //! Exercises durable SQLite storage contracts.
 use scriberig_core::{EncodingVersion, EntityId, ObjectType, RevisionId, RootName};
 use scriberig_store::{
-    ProtectedRoots, Revision, RevisionStore, RootStore, SnapshotChange, SnapshotStore,
-    StoreErrorCategory, StoreObservability,
+    ProtectedRoots, Revision, RevisionStore, RootStore, SnapshotChange, SnapshotRelation,
+    SnapshotRelationChange, SnapshotStore, StoreErrorCategory, StoreObservability,
 };
 use scriberig_store_sqlite::SqliteStore;
 use std::fs;
 use std::path::PathBuf;
 
+#[path = "durable/atomic_promotion.rs"]
+mod atomic_promotion;
 #[path = "../../scriberig-store/tests/conformance.rs"]
 mod shared_conformance;
 
@@ -166,6 +168,81 @@ fn missing_referenced_revision_is_corruption() {
     fs::remove_file(path).expect("cleanup");
 }
 
+/// Verifies typed relation snapshots survive closing and reopening SQLite.
+#[test]
+fn snapshot_relations_round_trip_durably() {
+    let path = temporary_database_path("snapshot-relations");
+    let from = EntityId::from_bytes([11; 16]);
+    let to = EntityId::from_bytes([12; 16]);
+    let store = SqliteStore::open(&path).expect("open");
+    let revision = store
+        .put(
+            Revision::new(
+                EncodingVersion::V1,
+                ObjectType::new("test.relation-endpoint").expect("type"),
+                vec![1],
+            )
+            .expect("revision"),
+        )
+        .expect("put revision");
+    let relation = SnapshotRelation::new(
+        from,
+        ObjectType::new("document.references").expect("relation type"),
+        to,
+    );
+    let base = scriberig_store::Snapshot::empty().id();
+    let snapshot = store
+        .apply_changes_with_relations(
+            base,
+            &[
+                SnapshotChange::Set(from, revision),
+                SnapshotChange::Set(to, revision),
+            ],
+            &[SnapshotRelationChange::Add(relation.clone())],
+        )
+        .expect("add relation");
+    assert_ne!(snapshot, base);
+    drop(store);
+
+    let store = SqliteStore::open(&path).expect("reopen");
+    assert_eq!(
+        store.relations(snapshot).expect("relations"),
+        vec![relation.clone()]
+    );
+    assert_eq!(
+        store
+            .diff_snapshot_relations(base, snapshot)
+            .expect("relation diff"),
+        vec![SnapshotRelationChange::Add(relation.clone())]
+    );
+    assert_eq!(store.resolve(snapshot, from), Ok(Some(revision)));
+    assert_eq!(store.resolve(snapshot, to), Ok(Some(revision)));
+    assert_eq!(
+        store
+            .integrity_check(&ProtectedRoots {
+                snapshots: [snapshot].into_iter().collect(),
+            })
+            .expect("relation snapshot integrity")
+            .corrupt,
+        []
+    );
+    let without_relation = store
+        .apply_changes_with_relations(
+            snapshot,
+            &[SnapshotChange::Remove(from), SnapshotChange::Remove(to)],
+            &[SnapshotRelationChange::Remove(relation.clone())],
+        )
+        .expect("remove relation");
+    assert_eq!(without_relation, base);
+    assert_eq!(
+        store.relations(snapshot).expect("old snapshot remains"),
+        vec![relation]
+    );
+    assert_eq!(store.relations(without_relation).expect("new snapshot"), []);
+    drop(store);
+    fs::remove_file(path).expect("cleanup");
+}
+
 /// Runs the shared backend-neutral conformance suite against SQLite.
 #[test]
 fn sqlite_shared_conformance_passes() {
@@ -288,39 +365,6 @@ fn committed_state_survives_reopen() {
     assert_eq!(store.read_root(&root), Some(snapshot));
     drop(store);
     fs::remove_file(path).expect("cleanup");
-}
-
-/// Verifies stale atomic promotion rolls back the attempted snapshot and root.
-#[test]
-fn failed_atomic_promotion_preserves_previous_root() {
-    let store = SqliteStore::open_in_memory().expect("open");
-    let root = RootName::new("main").expect("root");
-    let base = scriberig_store::Snapshot::empty().id();
-    store
-        .compare_and_set_root(root.clone(), None, base)
-        .expect("base root");
-    let kind = ObjectType::new("test.promotion").expect("type");
-    let revision = store
-        .put(Revision::new(EncodingVersion::V1, kind, vec![9]).expect("revision"))
-        .expect("put");
-    let entity = EntityId::from_bytes([3; 16]);
-    let attempted = scriberig_store::Snapshot::empty()
-        .apply([SnapshotChange::Set(entity, revision)])
-        .id();
-    let error = store
-        .apply_changes_and_promote(
-            root.clone(),
-            None,
-            base,
-            &[SnapshotChange::Set(entity, revision)],
-        )
-        .expect_err("stale promotion");
-    assert!(matches!(
-        error,
-        scriberig_store_sqlite::PromotionError::Root(_)
-    ));
-    assert_eq!(store.read_root(&root), Some(base));
-    assert!(store.resolve(attempted, entity).is_err());
 }
 
 /// Returns a unique temporary database path for one durable test.

@@ -287,6 +287,19 @@ fn a_style_the_renderer_cannot_read_is_read_only() {
     assert!(!fidelity.fidelity.is_editable());
 }
 
+/// Verifies a proposed comment-hiding style is read-only until trivia is modeled.
+#[test]
+fn comment_hiding_style_is_read_only_until_trivia_has_semantic_identity() {
+    let fidelity = EcmaStyleAdapter.classify(
+        &kind("javascript"),
+        &ResolvedStyle::inline(raw("comments=omit")),
+        ProjectionPurpose::InteractiveView,
+    );
+
+    assert_eq!(fidelity.fidelity, ProjectionFidelity::ReadOnlyLossy);
+    assert!(!fidelity.fidelity.is_editable());
+}
+
 /// Verifies two exact styles render one semantic module as different bytes.
 #[test]
 fn two_exact_styles_render_the_same_semantic_module_differently() {

@@ -7,18 +7,30 @@ use scriberig_protocol::{
     CapabilitiesResponse, CommandRequest, DomainOperationCommand, EntityReference, Event,
     InspectEntityRequest, InspectEntityResponse, OperationReference, OperationStatusRequest,
     OperationStatusResponse, ProtocolTransport, ProtocolVersion, QueryRequest, Request,
-    RequestEnvelope, Response, RuntimeCapabilitiesRequest, SessionReadRequest, SessionReadResponse,
-    SessionReference, SnapshotSelector, SubscribeRequest,
+    RequestEnvelope, Response, RuntimeCapabilitiesRequest, SessionReference, SnapshotSelector,
+    SubscribeRequest,
 };
 
 #[path = "client_agent.rs"]
 mod client_agent;
 #[path = "client_agent_recovery.rs"]
 mod client_agent_recovery;
+#[path = "client_cad.rs"]
+mod client_cad;
+#[path = "client_document.rs"]
+mod client_document;
+#[path = "client_geo.rs"]
+mod client_geo;
 #[path = "client_project.rs"]
 mod client_project;
+#[path = "client_projection_style.rs"]
+mod client_projection_style;
 #[path = "client_session.rs"]
 mod client_session;
+#[path = "client_session_read.rs"]
+mod client_session_read;
+#[path = "client_spreadsheet.rs"]
+mod client_spreadsheet;
 use scriberig_query::{QueryResult, QuerySpec};
 
 use crate::error::ClientError;
@@ -124,34 +136,6 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::OperationStatus(response) => Ok(response),
-            Response::Error(error) => Err(error.into()),
-            _ => Err(ClientError::UnexpectedResponse),
-        }
-    }
-
-    /// Reads one compact durable session tree.
-    ///
-    /// - `session`: Stable session identity.
-    ///
-    /// Provider-neutral session and branch activity summaries.
-    ///
-    /// Returns a structured server error or response mismatch.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn read_session(
-        &self,
-        session: impl Into<String>,
-    ) -> Result<SessionReadResponse, ClientError> {
-        match self
-            .send(Request::SessionRead(SessionReadRequest {
-                session: SessionReference { id: session.into() },
-                branch: None,
-            }))?
-            .response
-        {
-            Response::Session(response) => Ok(response),
             Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
@@ -362,6 +346,11 @@ impl<T: ProtocolTransport> Client<T> {
         &self,
         request: DomainOperationCommand,
     ) -> Result<OperationStatusResponse, ClientError> {
+        if let Some(anchor) = &request.projection_anchor {
+            anchor
+                .validate()
+                .map_err(|error| ClientError::Encoding(error.to_owned()))?;
+        }
         self.command(
             "domain_operation",
             serde_json::to_value(request)
@@ -380,7 +369,10 @@ impl<T: ProtocolTransport> Client<T> {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    fn send(&self, request: Request) -> Result<scriberig_protocol::ResponseEnvelope, ClientError> {
+    pub(crate) fn send(
+        &self,
+        request: Request,
+    ) -> Result<scriberig_protocol::ResponseEnvelope, ClientError> {
         let correlation = self.next_correlation.fetch_add(1, Ordering::Relaxed);
         let response = self.transport.send(RequestEnvelope {
             version: ProtocolVersion::default(),

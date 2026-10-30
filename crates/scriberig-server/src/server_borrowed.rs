@@ -13,7 +13,42 @@ mod plan_view_method;
 #[macro_use]
 #[path = "server_borrowed_recovery.rs"]
 mod recovery_methods;
+#[macro_use]
+#[path = "server_borrowed_artifacts.rs"]
+mod artifact_methods;
+#[macro_use]
+#[path = "server_borrowed_spreadsheet_rename.rs"]
+mod spreadsheet_rename_methods;
+#[macro_use]
+#[path = "server_borrowed_spreadsheet.rs"]
+mod spreadsheet_methods;
+#[macro_use]
+#[path = "server_borrowed_session_read.rs"]
+mod session_read_method;
+#[macro_use]
+#[path = "server_borrowed_projection_style.rs"]
+mod projection_style_methods;
+#[macro_use]
+#[path = "server_borrowed_queries.rs"]
+mod query_methods;
+
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
+    server_borrowed_projection_style_methods!();
+
+    /// Delegates project-service composition to the borrowed application.
+    ///
+    /// # Parameters
+    /// - `store`: Durable project catalog and semantic store.
+    ///
+    /// # Returns
+    /// A project service configured by the borrowed host.
+    fn project_service(
+        &self,
+        store: std::sync::Arc<scriberig_store_sqlite::SqliteStore>,
+    ) -> scriberig_project::ProjectService {
+        (**self).project_service(store)
+    }
+
     /// Delegates migration detail to the borrowed application service.
     ///
     /// - `context`: Trusted request context.
@@ -52,6 +87,9 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).inspect(context, request)
     }
 
+    shared_borrowed_artifact_methods!();
+    shared_borrowed_session_read_method!();
+
     /// Delegates capability discovery to the borrowed application service.
     ///
     /// # Returns
@@ -60,23 +98,12 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).capabilities()
     }
 
-    /// Delegates compact session reads to the borrowed service.
-    /// - `context`: Trusted request context.
-    /// - `session`: Stable session identity.
+    /// Delegates CAD provider discovery to the borrowed application service.
     ///
-    /// Compact session tree response.
-    ///
-    /// Returns the service's structured failure.
     /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn read_session(
-        &self,
-        context: &ApplicationContext,
-        session: &str,
-    ) -> Result<scriberig_protocol::SessionReadResponse, ApplicationError> {
-        (**self).read_session(context, session)
+    /// The delegated server-side provider state.
+    fn cad_provider_capabilities(&self) -> Vec<scriberig_protocol::CadProviderCapabilityInfo> {
+        (**self).cad_provider_capabilities()
     }
 
     shared_borrowed_plan_detail_methods!();
@@ -312,81 +339,5 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).events_after(event_kinds, after)
     }
 
-    /// Delegates semantic discovery to the borrowed application service.
-    ///
-    /// - `context`: Trusted request context.
-    /// - `request`: Snapshot-scoped discovery request.
-    ///
-    /// The service's bounded discovery result.
-    ///
-    /// Returns the service's structured failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn find(
-        &self,
-        context: &ApplicationContext,
-        request: &FindRequest,
-    ) -> Result<FindResult, ApplicationError> {
-        (**self).find(context, request)
-    }
-
-    /// Delegates bounded collection listing to the borrowed service.
-    ///
-    /// - `context`: Trusted request context.
-    /// - `request`: Snapshot-bound collection request.
-    ///
-    /// The service's bounded collection page.
-    ///
-    /// Returns the service's structured failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn list(
-        &self,
-        context: &ApplicationContext,
-        request: &ListRequest,
-    ) -> Result<ListResult, ApplicationError> {
-        (**self).list(context, request)
-    }
-
-    /// Delegates structured queries to the borrowed application service.
-    /// - `context`: Argument named `context`.
-    /// - `request`: Argument named `request`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn query(
-        &self,
-        context: &ApplicationContext,
-        request: &QuerySpec,
-    ) -> Result<QueryResult, ApplicationError> {
-        (**self).query(context, request)
-    }
-
-    /// Delegates declared commands to the borrowed application service.
-    /// - `context`: Argument named `context`.
-    /// - `kind`: Argument named `kind`.
-    /// - `payload`: Argument named `payload`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn command(
-        &self,
-        context: &ApplicationContext,
-        kind: &str,
-        payload: &serde_json::Value,
-    ) -> Result<Operation, ApplicationError> {
-        (**self).command(context, kind, payload)
-    }
+    server_borrowed_query_methods!();
 }

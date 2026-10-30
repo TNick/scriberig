@@ -5,12 +5,14 @@ use std::fmt::{Display, Formatter};
 
 use rusqlite::{Connection, Transaction};
 
+#[path = "schema_migrations.rs"]
+mod migrations;
 #[cfg(test)]
 #[path = "schema_tests.rs"]
 mod tests;
 
 /// Current SQLite backend schema version.
-pub const CURRENT_SCHEMA_VERSION: u32 = 5;
+pub const CURRENT_SCHEMA_VERSION: u32 = 11;
 
 const INTEGRITY_FORMAT_VERSION: &str = "1";
 const RECOVERY_MODE: &str = "transactional-root-promotion";
@@ -94,30 +96,10 @@ pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
     let transaction = connection.transaction()?;
     initialize_schema(&transaction)?;
     transaction.execute(
-        "UPDATE metadata SET value=? WHERE key='schema_version' AND value IN ('1','2','3','4')",
+        "UPDATE metadata SET value=? WHERE key='schema_version' AND value IN ('1','2','3','4','5','6','7','8','9','10')",
         [CURRENT_SCHEMA_VERSION.to_string()],
     )?;
-    let has_name = transaction
-        .prepare("PRAGMA table_info(project_entities)")?
-        .query_map([], |row| row.get::<_, String>(1))?
-        .collect::<rusqlite::Result<Vec<_>>>()?
-        .into_iter()
-        .any(|column| column == "name");
-    if !has_name {
-        transaction.execute("ALTER TABLE project_entities ADD COLUMN name TEXT", [])?;
-    }
-    let has_validation_profile = transaction
-        .prepare("PRAGMA table_info(project_candidates)")?
-        .query_map([], |row| row.get::<_, String>(1))?
-        .collect::<rusqlite::Result<Vec<_>>>()?
-        .into_iter()
-        .any(|column| column == "validation_profile");
-    if !has_validation_profile {
-        transaction.execute(
-            "ALTER TABLE project_candidates ADD COLUMN validation_profile TEXT",
-            [],
-        )?;
-    }
+    migrations::upgrade_optional_columns(&transaction)?;
     let version = metadata_u32(&transaction, "schema_version")?;
     if version > CURRENT_SCHEMA_VERSION || version == 0 {
         return Err(rusqlite::Error::ToSqlConversionFailure(Box::new(
@@ -170,6 +152,13 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              revision BLOB NOT NULL,
              PRIMARY KEY(snapshot_id, entity)
          );
+         CREATE TABLE IF NOT EXISTS snapshot_relations (
+             snapshot_id BLOB NOT NULL,
+             source_entity BLOB NOT NULL,
+             relation_type TEXT NOT NULL,
+             target_entity BLOB NOT NULL,
+             PRIMARY KEY(snapshot_id, source_entity, relation_type, target_entity)
+         );
          CREATE TABLE IF NOT EXISTS snapshot_nodes (
              id BLOB PRIMARY KEY,
              kind INTEGER NOT NULL,
@@ -188,7 +177,7 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              snapshot_id BLOB NOT NULL
          );
          INSERT OR IGNORE INTO metadata(key, value)
-             VALUES ('schema_version', '5');
+             VALUES ('schema_version', '7');
          INSERT OR IGNORE INTO metadata(key, value)
              VALUES ('integrity_format_version', '1');
          INSERT OR IGNORE INTO metadata(key, value)
@@ -211,6 +200,7 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              bytes BLOB NOT NULL,
              adapter TEXT NOT NULL,
              status TEXT NOT NULL,
+             grouping_key TEXT,
              PRIMARY KEY(project_id, relative_path),
              FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
          );
@@ -238,6 +228,10 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              validation TEXT NOT NULL,
              diagnostics TEXT NOT NULL,
              validation_profile TEXT,
+             validation_digest BLOB,
+             semantic_operation TEXT,
+             semantic_target BLOB,
+             semantic_changes TEXT,
              created_at TEXT NOT NULL,
              FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
          );
@@ -250,6 +244,7 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              kind TEXT NOT NULL,
              old_bytes BLOB,
              new_bytes BLOB,
+             observed_bytes BLOB,
              PRIMARY KEY(candidate_id, ordinal),
              UNIQUE(candidate_id, relative_path),
              FOREIGN KEY(candidate_id) REFERENCES project_candidates(id) ON DELETE CASCADE

@@ -8,10 +8,13 @@ export function SessionBranchTree({
   branches,
   onSelect,
   onNavigate,
+  onReviewCandidate,
 }: {
   branches: readonly BranchDescriptor[];
   onSelect?: (branch: BranchDescriptor) => void;
   onNavigate?: (handle: string) => void;
+  /** Opens shared review for one durable project candidate. */
+  onReviewCandidate?: (candidate: string) => void;
 }): ReactElement {
   const [expanded, setExpanded] = useState<Readonly<Record<string, boolean>>>({});
   const children = useMemo(() => {
@@ -50,11 +53,20 @@ export function SessionBranchTree({
               <button type="button" onClick={() => onNavigate?.(branch.result?.resultId ?? "")}>
                 Open result {branch.result.resultId}
               </button>
-              {branch.result.handles.map((handle) => (
-                <button key={handle} type="button" onClick={() => onNavigate?.(handle)}>
-                  Open {handle}
-                </button>
-              ))}
+              {branch.result.handles.map((handle) => {
+                const candidate = handle.startsWith("candidate:")
+                  ? handle.slice("candidate:".length)
+                  : undefined;
+                return candidate !== undefined && onReviewCandidate !== undefined ? (
+                  <button key={handle} type="button" onClick={() => onReviewCandidate(candidate)}>
+                    Review candidate {candidate}
+                  </button>
+                ) : (
+                  <button key={handle} type="button" onClick={() => onNavigate?.(handle)}>
+                    Open {handle}
+                  </button>
+                );
+              })}
             </span>
           ) : null}
         </div>

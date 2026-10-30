@@ -1,7 +1,9 @@
 //! Defines generic projection lifecycle status independent of storage location.
 
+use serde::{Deserialize, Serialize};
+
 /// Describes the current synchronization or import state of a projection.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ProjectionStatus {
     /// External representation matches the last successful render.
     Synchronized,

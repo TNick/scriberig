@@ -223,6 +223,7 @@ fn remote_capabilities_are_decoded_without_provider_details() {
                     id: "agent".to_owned(),
                     enabled: true,
                 }],
+                cad_providers: Vec::new(),
             }),
         },
     };

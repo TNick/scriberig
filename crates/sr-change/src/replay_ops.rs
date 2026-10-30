@@ -187,9 +187,13 @@ pub fn apply_delta(
             "entity delta precondition failed",
         )));
     }
-    state.snapshot = match delta.after {
-        Some(revision) => state.snapshot.with_revision(delta.entity, revision),
-        None => state.snapshot.without_entity(delta.entity),
+    state.snapshot = if let Some(revision) = delta.after {
+        state.snapshot.with_revision(delta.entity, revision)
+    } else {
+        state
+            .relations
+            .retain(|(from, _, to)| *from != delta.entity && *to != delta.entity);
+        state.snapshot.without_entity(delta.entity)
     };
     Ok(())
 }
@@ -239,9 +243,13 @@ pub fn apply_operation_state(state: &mut ReplayState, operation: &Operation) {
         } => {
             state.collections.insert(*collection, members.clone());
         }
+        Operation::RemoveEntity { entity } => {
+            state
+                .relations
+                .retain(|(from, _, to)| from != entity && to != entity);
+        }
         Operation::CreateEntity { .. }
         | Operation::ReplaceRevision { .. }
-        | Operation::RemoveEntity { .. }
         | Operation::Domain { .. } => {}
     }
 }

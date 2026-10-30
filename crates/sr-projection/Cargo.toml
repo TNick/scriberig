@@ -12,6 +12,7 @@ sr-change = { path = "../sr-change" }
 scriberig-store = { path = "../scriberig-store" }
 scriberig-core = { path = "../scriberig-core" }
 blake3 = "1.8"
+serde = { version = "1.0", features = ["derive"] }
 
 [lints]
 workspace = true

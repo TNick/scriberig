@@ -21,7 +21,7 @@ pub(super) fn workspace_from_result(
         .tool_evidence
         .iter()
         .rev()
-        .find(|evidence| evidence.name == "project_workspace" && !evidence.failed)
+        .find(|evidence| evidence_is_workspace_result(evidence))
         .and_then(|evidence| serde_json::from_slice::<serde_json::Value>(&evidence.output).ok())
     else {
         return Ok(None);
@@ -29,7 +29,7 @@ pub(super) fn workspace_from_result(
     let manifest_id = result
         .tool_evidence
         .iter()
-        .find(|evidence| evidence.name == "project_scan" && !evidence.failed)
+        .find(|evidence| evidence_is_scan_result(evidence))
         .and_then(|evidence| serde_json::from_slice::<serde_json::Value>(&evidence.output).ok())
         .and_then(|output| {
             output
@@ -84,4 +84,129 @@ pub(super) fn workspace_from_result(
         root,
         manifest_id,
     }))
+}
+
+/// Recognizes one successful tool result by its stable name or typed output.
+///
+/// The output type provides a fallback for runtime adapters that normalize the
+/// provider-visible name while preserving the application result shape.
+///
+/// # Parameters
+/// - `evidence`: Captured tool execution evidence.
+/// - `object_type`: Expected application result type.
+///
+/// # Returns
+/// Whether the evidence is successful and carries the expected result.
+fn evidence_is_workspace_result(evidence: &scriberig_app::ToolExecutionEvidence) -> bool {
+    evidence_is_type(evidence, "project_workspace")
+        || output_summary(evidence)
+            .is_some_and(|summary| summary.starts_with("active semantic workspace "))
+        || output_workspace_handles(evidence).is_some()
+}
+
+/// Recognizes a successful project scan result by its stable type or summary.
+///
+/// # Parameters
+/// - `evidence`: Captured tool execution evidence.
+///
+/// # Returns
+/// Whether the evidence contains a persisted project scan manifest.
+fn evidence_is_scan_result(evidence: &scriberig_app::ToolExecutionEvidence) -> bool {
+    evidence_is_type(evidence, "project_scan")
+        || output_summary(evidence)
+            .is_some_and(|summary| summary.starts_with("scan persisted for "))
+        || output_scan_handles(evidence).is_some()
+}
+
+/// Recognizes an exact project, snapshot, and root tuple in a tool result.
+///
+/// # Parameters
+/// - `evidence`: Captured tool execution evidence.
+///
+/// # Returns
+/// The parsed workspace identities when the output has that exact shape.
+fn output_workspace_handles(
+    evidence: &scriberig_app::ToolExecutionEvidence,
+) -> Option<(
+    scriberig_core::ProjectId,
+    scriberig_core::SnapshotId,
+    scriberig_core::EntityId,
+)> {
+    if evidence.failed {
+        return None;
+    }
+    let output: serde_json::Value = serde_json::from_slice(&evidence.output).ok()?;
+    let handles = output.get("handles")?.as_array()?;
+    let [project, snapshot, root] = handles.as_slice() else {
+        return None;
+    };
+    Some((
+        project.as_str()?.parse().ok()?,
+        snapshot.as_str()?.parse().ok()?,
+        root.as_str()?.parse().ok()?,
+    ))
+}
+
+/// Recognizes a persisted scan output with project and manifest identities.
+///
+/// # Parameters
+/// - `evidence`: Captured tool execution evidence.
+///
+/// # Returns
+/// Unit when the output contains a parseable project and manifest tuple.
+fn output_scan_handles(evidence: &scriberig_app::ToolExecutionEvidence) -> Option<()> {
+    if evidence.failed {
+        return None;
+    }
+    let output: serde_json::Value = serde_json::from_slice(&evidence.output).ok()?;
+    let handles = output.get("handles")?.as_array()?;
+    let [project, manifest, ..] = handles.as_slice() else {
+        return None;
+    };
+    project
+        .as_str()?
+        .parse::<scriberig_core::ProjectId>()
+        .ok()?;
+    manifest
+        .as_str()?
+        .parse::<scriberig_core::EntityId>()
+        .ok()?;
+    Some(())
+}
+
+/// Reads the safe summary from captured structured tool output.
+///
+/// # Parameters
+/// - `evidence`: Captured tool execution evidence.
+///
+/// # Returns
+/// The summary string when output contains valid structured JSON.
+fn output_summary(evidence: &scriberig_app::ToolExecutionEvidence) -> Option<String> {
+    if evidence.failed {
+        return None;
+    }
+    serde_json::from_slice::<serde_json::Value>(&evidence.output)
+        .ok()?
+        .get("summary")?
+        .as_str()
+        .map(str::to_owned)
+}
+
+/// Recognizes one successful tool result by its stable name or typed output.
+///
+/// # Parameters
+/// - `evidence`: Captured tool execution evidence.
+/// - `object_type`: Expected application result type.
+///
+/// # Returns
+/// Whether the evidence is successful and carries the expected result.
+fn evidence_is_type(evidence: &scriberig_app::ToolExecutionEvidence, object_type: &str) -> bool {
+    if evidence.failed {
+        return false;
+    }
+    evidence.name == object_type
+        || serde_json::from_slice::<serde_json::Value>(&evidence.output)
+            .ok()
+            .and_then(|output| output.get("object_type")?.as_str().map(str::to_owned))
+            .is_some_and(|actual| actual == object_type)
 }

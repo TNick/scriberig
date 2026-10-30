@@ -126,7 +126,9 @@ pub(super) fn run(
     )?);
     let agent_runner =
         super::native_tui_agent::NativeTuiAgentRunner::from_environment(Arc::clone(&store))?;
+    let project_workflow = scriberig_project::ProjectService::new(Arc::clone(&store));
     let service = ApplicationService::new(backend)
+        .with_project_service(project_workflow.clone())
         .with_session_store(session_store)
         .with_agent_profile_provider(super::agent_profile_composition::provider(Arc::clone(
             &store,
@@ -166,7 +168,7 @@ pub(super) fn run(
                     .collect();
                 scriberig_tui::ProjectProjection {
                     project: value.project,
-                    workflow: scriberig_project::ProjectService::new(Arc::clone(&store)),
+                    workflow: project_workflow.clone(),
                     snapshot,
                     sources,
                 }
@@ -175,7 +177,7 @@ pub(super) fn run(
     let service = scriberig_tui::ApplicationOperationAdapter::new(service)
         .with_agent_runner(agent_runner)
         .with_explorer_labels(labels.unwrap_or_default())
-        .with_project_workflow(scriberig_project::ProjectService::new(Arc::clone(&store)));
+        .with_project_workflow(project_workflow);
     let service = if let Some(value) = projection {
         service.with_project_projection(value)
     } else {

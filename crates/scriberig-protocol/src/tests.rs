@@ -113,82 +113,6 @@ fn remote_agent_requests_never_serialize_provider_credentials() {
     }
 }
 
-/// Verifies stable references and snapshot-aware requests round trip.
-#[test]
-fn references_and_requests_round_trip() {
-    let entity = EntityReference {
-        id: "entity-1".to_owned(),
-    };
-    round_trip(&entity);
-    round_trip(&InspectEntityRequest {
-        entity,
-        snapshot: SnapshotSelector::Current,
-        detail: request::DetailLevel::Deep,
-    });
-    round_trip(&QueryRequest {
-        specification: serde_json::json!({"scope": "snapshot"}),
-    });
-    round_trip(&ListRequest {
-        specification: serde_json::json!({"collection": "snapshot.entities"}),
-    });
-    round_trip(&CommandRequest {
-        kind: "apply".to_owned(),
-        payload: serde_json::json!({"change": "change-1"}),
-    });
-    round_trip(&DomainOperationCommand {
-        capability: "code.add_function".to_owned(),
-        entity: EntityReference {
-            id: "entity-1".to_owned(),
-        },
-        snapshot: SnapshotReference {
-            id: "snapshot-1".to_owned(),
-        },
-        revision: None,
-        branch: Some("root_working".to_owned()),
-        arguments: [("name".to_owned(), serde_json::json!("greet"))]
-            .into_iter()
-            .collect(),
-    });
-    round_trip(&AgentStartRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
-        prompt: "inspect the selected branch".to_owned(),
-        selection: None,
-    });
-    round_trip(&AgentNewSessionRequest {
-        prompt: "create a conversation".to_owned(),
-        selection: None,
-    });
-    round_trip(&Request::AgentNewSession(AgentNewSessionRequest {
-        prompt: "create a conversation".to_owned(),
-        selection: None,
-    }));
-    round_trip(&AgentContinueRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
-        branch: BranchReference {
-            id: "branch-1".to_owned(),
-        },
-        prompt: "continue".to_owned(),
-        selection: None,
-    });
-    round_trip(&AgentContinueAtRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
-        anchor: SessionContinuationAnchor::AssistantOutput {
-            branch: "branch-1".to_owned(),
-            turn: "turn-7".to_owned(),
-        },
-        prompt: "continue from this exact answer".to_owned(),
-        selection: None,
-    });
-    plan_contracts::session_plan_contracts_round_trip();
-    tests_additional::model_contracts_round_trip();
-}
-
 /// Verifies session and plan contracts round trip.
 /// Verifies session snapshots and durable plans round trip.
 fn session_snapshot_contracts_round_trip() {
@@ -385,6 +309,61 @@ fn plan_view_round_trip() {
     });
 }
 
+/// Verifies exact-snapshot QGIS project links round trip without native provider types.
+#[test]
+fn qgis_project_reference_contract_round_trip() {
+    round_trip(&QgisProjectRequest {
+        project: "project-1".to_owned(),
+        path: "maps/project.qgs".to_owned(),
+        snapshot: "snapshot-1".to_owned(),
+    });
+    round_trip(&QgisProjectResponse {
+        project: "project-1".to_owned(),
+        path: "maps/project.qgs".to_owned(),
+        snapshot: "snapshot-1".to_owned(),
+        revision: "revision-1".to_owned(),
+        id: "qgis-project-1".to_owned(),
+        title: Some("Planning".to_owned()),
+        crs: None,
+        layers: vec![QgisLayerReferenceView {
+            id: "reference-1".to_owned(),
+            name: "Parcels".to_owned(),
+            data_source: "./parcels.gpkg|layername=parcels".to_owned(),
+            path: Some("./parcels.gpkg".to_owned()),
+            resolved_path: Some("maps/parcels.gpkg".to_owned()),
+            source_layer: Some("parcels".to_owned()),
+            dataset: Some("dataset-1".to_owned()),
+            layer: Some("layer-1".to_owned()),
+            resolution_diagnostic: None,
+            visible: true,
+            renderer: Some("categorized".to_owned()),
+            scale_range: None,
+        }],
+        groups: vec![QgisLayerGroupView {
+            id: "group-1".to_owned(),
+            name: "Administrative".to_owned(),
+            layers: vec!["reference-1".to_owned()],
+        }],
+    });
+}
+
+/// Verifies complete QGIS project order requests and candidate responses serialize.
+#[test]
+fn qgis_layer_order_contract_round_trip() {
+    round_trip(&QgisLayerOrderRequest {
+        project: "project-1".to_owned(),
+        snapshot: "snapshot-1".to_owned(),
+        path: "maps/project.qgs".to_owned(),
+        ordered_references: vec!["reference-2".to_owned(), "reference-1".to_owned()],
+    });
+    round_trip(&QgisLayerOrderResponse {
+        candidate: "candidate-1".to_owned(),
+        project: "project-1".to_owned(),
+        base_snapshot: "snapshot-1".to_owned(),
+        path: "maps/project.qgs".to_owned(),
+    });
+}
+
 #[path = "tests_plan_contracts.rs"]
 mod plan_contracts;
 #[path = "tests_additional.rs"]
@@ -392,3 +371,8 @@ mod tests_additional;
 #[path = "tests_models.rs"]
 mod tests_models;
 use tests_models::model_metadata_snapshot;
+
+#[path = "agent_selection_tests.rs"]
+mod agent_selection_tests;
+#[path = "reference_tests.rs"]
+mod reference_tests;

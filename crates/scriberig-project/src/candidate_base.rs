@@ -47,6 +47,7 @@ pub(super) fn project_files_at(
         }
         let bytes = revision.payload().to_vec();
         let adapter = adapter_for(std::path::Path::new(&entity.relative_path), &bytes);
+        let grouping_key = crate::support::logical_grouping_key(&entity.relative_path);
         files.push(ProjectFileRecord {
             project_id: project,
             relative_path: entity.relative_path,
@@ -60,6 +61,7 @@ pub(super) fn project_files_at(
                 "ready"
             }
             .to_owned(),
+            grouping_key,
         });
     }
     files.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));

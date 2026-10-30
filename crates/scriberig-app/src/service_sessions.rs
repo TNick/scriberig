@@ -163,10 +163,12 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         session: &Session,
     ) -> Result<(), ApplicationError> {
         service_session_authorization::authorize_session_mutation(context, session.id)?;
-        match self.backend.save_session(context, session) {
+        let mut compacted = session.clone();
+        compacted.compact_branch_results();
+        match self.backend.save_session(context, &compacted) {
             Ok(()) => Ok(()),
             Err(error) if error.category() == "unsupported_operation" => {
-                self.save_session_state(session.clone())
+                self.save_session_state(compacted)
             }
             Err(error) => Err(error),
         }

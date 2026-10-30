@@ -1,0 +1,23 @@
+{
+  "purpose": "InteractiveView",
+  "reference": "Inline",
+  "value": [105, 110, 100, 101, 110, 116, 61, 116, 97, 98, 115, 44, 105, 110, 100, 101, 110, 116, 45, 119, 105, 100, 116, 104, 61, 50],
+  "schema": {
+    "adapter_id": "rust-source-style",
+    "version": "1"
+  },
+  "applied": [
+    {
+      "kind": "user-preference",
+      "identity": "fixture-user",
+      "revision": null,
+      "generation": 2,
+      "value": [105, 110, 100, 101, 110, 116, 61, 116, 97, 98, 115, 44, 105, 110, 100, 101, 110, 116, 45, 119, 105, 100, 116, 104, 61, 50]
+    }
+  ],
+  "fidelity": {
+    "fidelity": "LosslessEditable",
+    "omitted_categories": [],
+    "explanation": null
+  }
+}

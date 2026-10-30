@@ -8,8 +8,8 @@
 //! store contract.
 
 use crate::manifest::{
-    Declaration, member_declarations, read_toml, workspace_dependency_table, workspace_members,
-    workspace_root,
+    Declaration, member_runtime_declarations, read_toml, workspace_dependency_table,
+    workspace_members, workspace_root,
 };
 
 /// Workspace members allowed to link the SQLite driver directly.
@@ -25,13 +25,18 @@ const SQLITE_BACKEND_OWNERS: [&str; 3] = [
     "crates/scriberig-style-sqlite",
 ];
 
+/// Domain adapters allowed to link SQLite as an artifact-format codec.
+///
+/// `GeoPackage` is itself a SQLite container; this adapter edits staged
+/// `GeoPackage` source bytes and does not own `ScribeRig`'s durable application store.
+const SQLITE_FORMAT_CODEC_OWNERS: [&str; 1] = ["crates/domains/scriberig-domain-geo"];
+
 /// Members that must consume semantics through shared operations instead of a
 /// storage backend.
 ///
-/// The terminal and remote-client surfaces present the shared plan, session, and
-/// review views and emit shared `scriberig-app` requests; neither has storage
-/// authority, so a plan read or mutation from them cannot bypass the shared
-/// operation boundary.
+/// The terminal and remote-client runtime surfaces present shared plan, session,
+/// and review views and emit shared `scriberig-app` requests; test-only storage
+/// dependencies do not grant runtime storage authority.
 const SHARED_OPERATION_SURFACE_MEMBERS: [&str; 2] =
     ["crates/scriberig-client", "crates/scriberig-tui"];
 
@@ -75,20 +80,22 @@ fn backend_declarations(owner: &str, declarations: &[Declaration]) -> Vec<String
     failures
 }
 
-/// Verifies only the SQLite storage backends link the SQLite driver.
+/// Verifies SQLite storage is limited to backends and the `GeoPackage` codec.
 #[test]
 fn only_storage_backends_link_the_sqlite_driver() {
     let root = workspace_root();
     let workspace_deps = workspace_dependency_table(&root);
     let mut failures: Vec<String> = Vec::new();
     for member in workspace_members(&root) {
-        if SQLITE_BACKEND_OWNERS.contains(&member.as_str()) {
+        if SQLITE_BACKEND_OWNERS.contains(&member.as_str())
+            || SQLITE_FORMAT_CODEC_OWNERS.contains(&member.as_str())
+        {
             continue;
         }
         let manifest = read_toml(&root.join(&member).join("Cargo.toml"));
         failures.extend(driver_declarations(
             &member,
-            &member_declarations(&manifest, &workspace_deps),
+            &member_runtime_declarations(&manifest, &workspace_deps),
         ));
     }
     assert!(
@@ -97,10 +104,10 @@ fn only_storage_backends_link_the_sqlite_driver() {
     );
 }
 
-/// Verifies the terminal and remote-client surfaces declare no storage backend.
+/// Verifies the terminal and remote-client do not ship a storage backend.
 ///
-/// A plan action from either surface must travel through the shared application
-/// operations, so a storage request here would create a second, direct write path.
+/// A plan action from either surface must travel through shared application
+/// operations, so a runtime storage dependency would create a second write path.
 #[test]
 fn shared_operation_surfaces_declare_no_storage_backend() {
     let root = workspace_root();
@@ -110,7 +117,7 @@ fn shared_operation_surfaces_declare_no_storage_backend() {
         let manifest = read_toml(&root.join(member).join("Cargo.toml"));
         failures.extend(backend_declarations(
             member,
-            &member_declarations(&manifest, &workspace_deps),
+            &member_runtime_declarations(&manifest, &workspace_deps),
         ));
     }
     assert!(

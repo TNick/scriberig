@@ -5,10 +5,18 @@ import { useObject, useSelection, useScriberig, useSnapshot } from "@scriberig/r
 import { useMemo, type ReactElement } from "react";
 import { SelectionSummary } from "../components/SelectionSummary";
 import type { AppRuntime } from "../runtime";
+import { semanticRouteForKind, type AppRoute } from "../routes";
 
-/** Displays the selected semantic object at its exact snapshot. */
-/** @returns The rendered semantic inspection view. */
-export function SemanticView(): ReactElement {
+/**
+ * Displays the selected semantic object at its exact snapshot.
+ * @param props Navigation callback for an opened domain view.
+ * @returns The rendered semantic inspection view.
+ */
+export function SemanticView({
+  onNavigate,
+}: {
+  onNavigate: (route: AppRoute) => void;
+}): ReactElement {
   const runtime = useScriberig() as unknown as AppRuntime;
   const { selection, setSelection } = useSelection();
   const request = useMemo(
@@ -38,12 +46,14 @@ export function SemanticView(): ReactElement {
           <li key={symbol.entityId}>
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
                 setSelection({
                   entityId: symbol.entityId as never,
                   snapshotId: symbol.snapshotId as never,
-                })
-              }
+                });
+                const route = semanticRouteForKind(symbol.kind);
+                if (route !== undefined) onNavigate(route);
+              }}
             >
               {symbol.name} · {symbol.kind} · {symbol.path}
             </button>

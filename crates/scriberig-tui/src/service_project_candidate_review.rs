@@ -6,6 +6,10 @@ use scriberig_app::{
 
 use scriberig_project::ProjectService;
 
+#[cfg(test)]
+#[path = "service_project_candidate_review_tests.rs"]
+mod tests;
+
 /// Loads an exact-base candidate for the shared change review operation.
 ///
 /// - `workflow`: Shared durable project workflow.
@@ -54,6 +58,13 @@ pub(super) fn review_candidate(
         "scope: entity={} snapshot={}",
         candidate.entity, candidate.base_snapshot
     )];
+    if let Some(operation) = &candidate.semantic_operation {
+        review_details.push(format!("semantic operation: {operation}"));
+    }
+    if let Some(target) = candidate.semantic_target {
+        review_details.push(format!("semantic target: {target}"));
+    }
+    review_details.extend(semantic_change_details(&candidate.semantic_changes));
     review_details.extend(
         candidate
             .effects
@@ -83,6 +94,60 @@ pub(super) fn review_candidate(
         review_details,
         conflicts: Vec::new(),
     })))
+}
+
+/// Converts durable semantic before/after values into bounded TUI review details.
+///
+/// # Parameters
+/// - `changes`: Typed semantic changes stored on the candidate.
+///
+/// # Returns
+/// One compact user-facing review line for each semantic change.
+fn semantic_change_details(changes: &[scriberig_project::SemanticCandidateChange]) -> Vec<String> {
+    changes
+        .iter()
+        .map(|change| {
+            format!(
+                "semantic change: {} {} → {}",
+                change.property,
+                review_semantic_value(&change.before),
+                review_semantic_value(&change.after)
+            )
+        })
+        .collect()
+}
+
+/// Returns a bounded JSON preview for one semantic candidate value.
+///
+/// # Parameters
+/// - `value`: Semantic value stored in the durable candidate.
+///
+/// # Returns
+/// A compact JSON preview with an explicit truncation marker when needed.
+fn review_semantic_value(value: &serde_json::Value) -> String {
+    let display = match value {
+        serde_json::Value::String(value) => format!("Text {}", serde_json::json!(value)),
+        serde_json::Value::Object(object) if object.len() == 1 => {
+            let (kind, payload) = object.iter().next().expect("one typed semantic value");
+            if kind == "Formula" {
+                payload
+                    .get("expression")
+                    .and_then(serde_json::Value::as_str)
+                    .map_or_else(
+                        || format!("Formula {payload}"),
+                        |expression| format!("Formula {expression}"),
+                    )
+            } else {
+                format!("{kind} {payload}")
+            }
+        }
+        _ => value.to_string(),
+    };
+    let mut preview = display.chars().take(500).collect::<String>();
+    if display.chars().count() > 500 {
+        preview.push_str("… truncated …");
+    }
+    preview
 }
 
 /// Applies one durable project candidate after explicit application confirmation.
@@ -118,9 +183,13 @@ pub(super) fn apply_candidate(
         });
     }
     let report = workflow.apply_candidate(&candidate).map_err(|error| {
+        let receipt = workflow
+            .materialization_receipt(&request.change)
+            .ok()
+            .flatten();
         ApplicationError::OperationFailed {
             operation: error.code.to_owned(),
-            message: error.message,
+            message: append_materialization_receipt(&error.message, receipt),
         }
     })?;
     Ok(ApplicationResult::Commit(OperationSummary {
@@ -137,6 +206,49 @@ pub(super) fn apply_candidate(
         review_details: vec![format!("materialized {}", report.path)],
         conflicts: Vec::new(),
     }))
+}
+
+/// Adds bounded durable recovery state to a failed candidate apply message.
+///
+/// # Parameters
+/// - `message`: Original safe materialization error.
+/// - `receipt`: Aggregate and per-path state persisted by the project service.
+///
+/// # Returns
+/// A terminal-safe message that states whether recovery is needed and which paths committed.
+fn append_materialization_receipt(
+    message: &str,
+    receipt: Option<scriberig_project::ProjectMaterializationReceipt>,
+) -> String {
+    let Some(receipt) = receipt else {
+        return message.to_owned();
+    };
+    let mut details = vec![format!("materialization state: {}", receipt.state)];
+    if let Some(diagnostic) = receipt.diagnostic {
+        details.push(crate::inspector::sanitize(&diagnostic));
+    }
+    for path in receipt.paths.iter().take(16) {
+        let path_name: String = crate::inspector::sanitize(&path.path)
+            .chars()
+            .take(256)
+            .collect();
+        let diagnostic = path
+            .diagnostic
+            .as_deref()
+            .map(crate::inspector::sanitize)
+            .map(|value| value.chars().take(256).collect::<String>());
+        details.push(match diagnostic {
+            Some(diagnostic) => format!("{path_name}: {} ({diagnostic})", path.state),
+            None => format!("{path_name}: {}", path.state),
+        });
+    }
+    if receipt.paths.len() > 16 {
+        details.push(format!(
+            "{} more path receipts omitted",
+            receipt.paths.len() - 16
+        ));
+    }
+    format!("{message}; {}", details.join("; "))
 }
 
 /// Returns a bounded, readable preview for candidate source bytes.

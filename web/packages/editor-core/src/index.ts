@@ -2,6 +2,7 @@
 
 // Re-export editor-controller areas through one stable package boundary.
 export * from "./selection";
+export * from "./agent-selection";
 export * from "./commands";
 export * from "./knowledge-tree";
 export * from "./navigation";

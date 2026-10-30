@@ -12,6 +12,34 @@ const UNSELECTED_PROJECT_SCOPE: &str = "unselected-project";
 /// Workspace-scope label used when no project workspace has been activated.
 const UNSELECTED_WORKSPACE_SCOPE: &str = "unselected-workspace";
 
+/// Builds effective-style resolution for the exact interactive source view.
+///
+/// - `entity`: Selected source entity used to identify the personal view.
+/// - `project`: Activated project identity, when present.
+///
+/// # Returns
+/// The shared style resolver request matching the rendered source view scopes.
+pub(crate) fn style_resolution_request(
+    entity: EntityId,
+    project: Option<&str>,
+) -> scriberig_protocol::ProjectionStyleResolveRequest {
+    let (project_id, workspace_id) = match project {
+        Some(project) => (project.to_owned(), project.to_owned()),
+        None => (
+            UNSELECTED_PROJECT_SCOPE.to_owned(),
+            UNSELECTED_WORKSPACE_SCOPE.to_owned(),
+        ),
+    };
+    scriberig_protocol::ProjectionStyleResolveRequest {
+        projection_kind: "rust".to_owned(),
+        project_id,
+        workspace_id,
+        purpose: scriberig_protocol::ProjectionStylePurpose::InteractiveView,
+        view_id: Some(format!("project-source:{entity}")),
+        explicit_personal: None,
+    }
+}
+
 /// Builds one project-source render request for one selected entity.
 ///
 /// The request carries an explicit style selection rather than a style value: the

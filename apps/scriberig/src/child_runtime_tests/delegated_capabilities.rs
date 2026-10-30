@@ -1,0 +1,109 @@
+//! Verifies delegated worker capability boundaries.
+
+use super::*;
+use crate::child_runtime::delegated_capabilities;
+
+/// Restricts the bootstrap catalog to capabilities granted to one branch.
+#[test]
+fn catalog_filters_bootstrap_tools_by_branch_capability() {
+    let capabilities = CapabilityContext::new([
+        CapabilityId::new("project_scan").expect("scan capability"),
+        CapabilityId::new("inspect.entity").expect("inspect capability"),
+    ]);
+    let names = inspect_catalog()
+        .descriptors_for(&capabilities)
+        .into_iter()
+        .map(|descriptor| descriptor.definition.name)
+        .collect::<Vec<_>>();
+    assert_eq!(names, vec!["inspect", "project_scan"]);
+}
+
+/// Keeps child capabilities within the explicit read-only delegation.
+#[test]
+fn child_capabilities_do_not_inherit_parent_mutations() {
+    let parent = CapabilityContext {
+        granted: vec![
+            CapabilityId::new("inspect.entity").expect("inspect capability"),
+            CapabilityId::new("project_import").expect("import capability"),
+        ],
+        grants: vec![Capability {
+            scope: CapabilityScope::Project,
+            actions: [
+                CapabilityAction::Inspect,
+                CapabilityAction::Custom("project_import".to_owned()),
+                CapabilityAction::Custom("semantic_find".to_owned()),
+                CapabilityAction::Custom("semantic_render".to_owned()),
+            ]
+            .into_iter()
+            .collect(),
+            constraints: CapabilityConstraints::unrestricted(),
+        }],
+    };
+    let child = delegated_capabilities(
+        &parent,
+        &[
+            "inspect.entity".to_owned(),
+            "semantic_find".to_owned(),
+            "semantic_render".to_owned(),
+        ],
+    );
+    let names = inspect_catalog()
+        .descriptors_for(&child)
+        .into_iter()
+        .map(|descriptor| descriptor.definition.name)
+        .collect::<Vec<_>>();
+
+    assert!(names.contains(&"inspect".to_owned()));
+    assert!(names.contains(&"semantic_find".to_owned()));
+    assert!(names.contains(&"semantic_render".to_owned()));
+    assert!(!names.contains(&"project_import".to_owned()));
+    assert!(!names.contains(&"project_repair_file".to_owned()));
+    assert!(!names.contains(&"project_rescan".to_owned()));
+    assert!(!child.allows(&CapabilityId::new("project_import").expect("id")));
+}
+
+/// Keeps candidate construction and validation available without delegating Apply.
+#[test]
+fn implementation_child_can_validate_but_cannot_apply_candidates() {
+    let parent = CapabilityContext {
+        granted: [
+            "project_propose",
+            "project_validate_candidate",
+            "project_apply",
+        ]
+        .into_iter()
+        .map(|id| CapabilityId::new(id).expect("capability identity"))
+        .collect(),
+        grants: vec![Capability {
+            scope: CapabilityScope::Project,
+            actions: [
+                "project_propose",
+                "project_validate_candidate",
+                "project_apply",
+            ]
+            .into_iter()
+            .map(|name| CapabilityAction::Custom(name.to_owned()))
+            .collect(),
+            constraints: CapabilityConstraints::unrestricted(),
+        }],
+    };
+    let child = delegated_capabilities(
+        &parent,
+        &[
+            "project_propose".to_owned(),
+            "project_validate_candidate".to_owned(),
+        ],
+    );
+    let names = inspect_catalog()
+        .descriptors_for(&child)
+        .into_iter()
+        .map(|descriptor| descriptor.definition.name)
+        .collect::<Vec<_>>();
+
+    assert!(child.allows(&CapabilityId::new("project_propose").expect("propose id")));
+    assert!(child.allows(&CapabilityId::new("project_validate_candidate").expect("validation id")));
+    assert!(!child.allows(&CapabilityId::new("project_apply").expect("apply id")));
+    assert!(names.contains(&"project_propose".to_owned()));
+    assert!(names.contains(&"project_validate_candidate".to_owned()));
+    assert!(!names.contains(&"project_apply".to_owned()));
+}

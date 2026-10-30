@@ -304,3 +304,83 @@ fn selected_agent_scope(state: &TuiState) -> Option<scriberig_app::AgentSelectio
         },
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::selected_agent_scope;
+    use crate::{effect::Effect, selection::EntitySelection, state::TuiState};
+
+    /// Verifies a selected semantic entity enters the next branch context by stable ID.
+    #[test]
+    fn selected_rich_entity_flows_to_branch_context() {
+        let project = scriberig_core::ProjectId::from_bytes([171; 16]);
+        let root = scriberig_core::EntityId::from_bytes([172; 16]);
+        let selected = scriberig_core::EntityId::from_bytes([173; 16]);
+        let snapshot = scriberig_core::SnapshotId::new([174; 32]);
+        let state = TuiState {
+            agent_selection: Some(scriberig_app::AgentSelection {
+                project: Some(project),
+                root,
+                entity: root,
+                snapshot,
+            }),
+            selection: Some(EntitySelection {
+                entity: selected,
+                revision: None,
+                snapshot: Some(snapshot),
+            }),
+            ..TuiState::default()
+        };
+
+        let scope = selected_agent_scope(&state).expect("selected branch context");
+
+        assert_eq!(scope.entity, selected);
+        assert_eq!(scope.root, root);
+        assert_eq!(scope.project, Some(project));
+        assert_eq!(scope.snapshot, snapshot);
+    }
+
+    /// Routes the source-style slash command to the shared preference service.
+    #[test]
+    fn source_style_command_dispatches_shared_preference_effect() {
+        let mut state = TuiState::default();
+        let effects = super::commands::console_command(
+            &mut state,
+            "/source-style indent=tabs,indent-width=2,blank-lines=0",
+        )
+        .expect("recognized source style command");
+        assert!(matches!(
+            effects.as_slice(),
+            [Effect::SetProjectionStylePreference { request, .. }]
+                if request.projection_kind == "rust"
+                    && request.scope == scriberig_protocol::ProjectionStyleScope::User
+                    && request.style.as_deref() == Some(b"indent=tabs,indent-width=2,blank-lines=0".as_slice())
+        ));
+    }
+
+    /// Resolves displayed style evidence using the selected project's view identity.
+    #[test]
+    fn source_style_show_dispatches_exact_effective_style_request() {
+        let entity = scriberig_core::EntityId::from_bytes([175; 16]);
+        let mut state = TuiState {
+            project: Some("warehouse-service".to_owned()),
+            selection: Some(EntitySelection {
+                entity,
+                revision: None,
+                snapshot: Some(scriberig_core::SnapshotId::new([176; 32])),
+            }),
+            ..TuiState::default()
+        };
+        let effects = super::commands::console_command(&mut state, "/source-style show")
+            .expect("recognized source style inspection command");
+        assert!(matches!(
+            effects.as_slice(),
+            [Effect::ResolveProjectionStyle { request, .. }]
+                if request.projection_kind == "rust"
+                    && request.project_id == "warehouse-service"
+                    && request.workspace_id == "warehouse-service"
+                    && request.view_id.as_deref() == Some(format!("project-source:{entity}").as_str())
+                    && request.purpose == scriberig_protocol::ProjectionStylePurpose::InteractiveView
+        ));
+    }
+}

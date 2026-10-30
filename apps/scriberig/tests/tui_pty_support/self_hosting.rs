@@ -125,7 +125,24 @@ impl TuiPty {
             );
         };
         git(&["init", "-q"]);
-        git(&["add", "-A"]);
+        let mut staged_paths = vec![
+            "add",
+            "--",
+            "Cargo.toml",
+            "Cargo.lock",
+            "README.md",
+            ":(glob)**/Cargo.toml",
+            "crates",
+            "apps",
+            "tests/fixtures",
+            "tests/conformance/fixtures",
+            "tests/self-hosting/php-extension",
+        ];
+        if checkout.join(".serena/project.yml").is_file() {
+            staged_paths.push(".serena/project.yml");
+        }
+        git(&staged_paths);
+        git(&["clean", "-fdx"]);
         Self::start_configured_scenario(
             fixture,
             super::startup_options::ProjectStartupOptions {

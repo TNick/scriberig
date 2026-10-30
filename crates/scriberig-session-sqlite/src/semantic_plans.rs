@@ -7,12 +7,16 @@ use history::{plan_at_revision, plan_revision, semantic_writes};
 mod equivalence;
 #[path = "semantic_plans/projection.rs"]
 mod projection;
+#[path = "semantic_plans/root.rs"]
+mod root;
+use root::plan_persistence;
+pub(crate) use root::plan_root;
 
 use std::collections::BTreeMap;
 
 use rusqlite::Transaction;
 
-use scriberig_core::{EncodingVersion, EntityId, RootName, SnapshotId};
+use scriberig_core::{EncodingVersion, EntityId, SnapshotId};
 use scriberig_session::{Plan, PlanStoreError, Session};
 use scriberig_store::{
     Revision, RevisionStore, RootStore, Snapshot, SnapshotChange, SnapshotStore,
@@ -79,6 +83,7 @@ impl SqliteSessionStore {
             }
         }
         self.hydrate_semantic_plans(&mut projection)?;
+        projection.compact_branch_results();
         Ok(projection)
     }
 
@@ -368,35 +373,4 @@ impl SqliteSessionStore {
             .ok_or_else(|| "plan semantic root is absent".to_owned())?;
         self.load_plan_at_snapshot(session, plan, snapshot)
     }
-}
-
-/// Names the canonical universal root for one session plan.
-///
-/// # Parameters
-/// - `session`: Owning session identity.
-/// - `plan`: Stable plan identity.
-///
-/// The deterministic plan root name.
-///
-/// # Errors
-/// Returns an error if the generated name is invalid.
-///
-/// # Returns
-/// The value described by the return type.
-pub(crate) fn plan_root(session: EntityId, plan: EntityId) -> Result<RootName, String> {
-    RootName::new(format!("scriberig-plan-{session}-{plan}"))
-        .map_err(|error| format!("invalid plan root name: {error:?}"))
-}
-
-/// Converts a storage diagnostic to the plan repository error type.
-///
-/// # Parameters
-/// - `message`: Bounded persistence diagnostic.
-///
-/// A typed plan persistence error.
-///
-/// # Returns
-/// The value described by the return type.
-fn plan_persistence(message: impl Into<String>) -> PlanStoreError {
-    PlanStoreError::Persistence(message.into())
 }

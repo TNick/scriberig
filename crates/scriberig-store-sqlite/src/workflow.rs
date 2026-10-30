@@ -15,6 +15,12 @@ pub struct ProjectCandidateRecord {
     pub base_snapshot: SnapshotId,
     /// Selected semantic entity.
     pub entity: EntityId,
+    /// Stable semantic operation that created this candidate, when known.
+    pub semantic_operation: Option<String>,
+    /// Exact semantic entity targeted by the operation, when known.
+    pub semantic_target: Option<EntityId>,
+    /// Serialized typed semantic before/after changes, when available.
+    pub semantic_changes: Option<String>,
     /// Candidate-relative source path.
     pub path: String,
     /// Source bytes at candidate creation.
@@ -27,6 +33,8 @@ pub struct ProjectCandidateRecord {
     pub diagnostics: String,
     /// Most recent registered validation profile, when the candidate was checked.
     pub validation_profile: Option<String>,
+    /// Digest of the exact aggregate output accepted by passing validation.
+    pub validation_digest: Option<Vec<u8>>,
     /// Ordered project source effects belonging to this candidate.
     pub effects: Vec<ProjectSourceEffectRecord>,
 }
@@ -40,6 +48,8 @@ pub struct ProjectSourceEffectRecord {
     pub kind: String,
     /// Exact base bytes, absent for a create.
     pub old: Option<Vec<u8>>,
+    /// Exact live bytes expected before materialization for external rebases.
+    pub observed: Option<Vec<u8>>,
     /// Proposed bytes, absent for a delete.
     pub new: Option<Vec<u8>>,
 }
@@ -174,142 +184,6 @@ impl SqliteStore {
                 })
             })?
             .collect()
-    }
-
-    /// Stores or replaces a durable project candidate.
-    ///
-    /// - `candidate`: Candidate data to persist.
-    ///
-    /// Unit after the candidate is durable.
-    ///
-    /// Returns a SQLite transaction error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn put_project_candidate(
-        &self,
-        candidate: &ProjectCandidateRecord,
-    ) -> rusqlite::Result<()> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| rusqlite::Error::InvalidQuery)?;
-        let transaction = connection.unchecked_transaction()?;
-        transaction.execute(
-            "INSERT INTO project_candidates
-             (id,project_id,base_snapshot,entity,relative_path,old_bytes,new_bytes,
-              validation,diagnostics,validation_profile,created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now'))
-             ON CONFLICT(id) DO UPDATE SET
-                 validation=excluded.validation,
-                 diagnostics=excluded.diagnostics,
-                 validation_profile=excluded.validation_profile",
-            params![
-                candidate.id,
-                candidate.project.as_bytes().as_slice(),
-                candidate.base_snapshot.as_bytes().as_slice(),
-                candidate.entity.as_bytes().as_slice(),
-                candidate.path,
-                candidate.old,
-                candidate.new,
-                candidate.validation,
-                candidate.diagnostics,
-                candidate.validation_profile,
-            ],
-        )?;
-        transaction.execute(
-            "DELETE FROM project_candidate_effects WHERE candidate_id=?",
-            [&candidate.id],
-        )?;
-        for (ordinal, effect) in candidate.effects.iter().enumerate() {
-            let ordinal = i64::try_from(ordinal).map_err(|_| rusqlite::Error::InvalidQuery)?;
-            transaction.execute(
-                "INSERT INTO project_candidate_effects
-                 (candidate_id,ordinal,relative_path,kind,old_bytes,new_bytes)
-                 VALUES (?,?,?,?,?,?)",
-                params![
-                    candidate.id,
-                    ordinal,
-                    effect.path,
-                    effect.kind,
-                    effect.old,
-                    effect.new
-                ],
-            )?;
-        }
-        transaction.commit()?;
-        Ok(())
-    }
-
-    /// Loads one durable project candidate by identity.
-    ///
-    /// - `id`: Candidate identity.
-    ///
-    /// The candidate when it exists.
-    ///
-    /// Returns a SQLite query or identifier conversion error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn project_candidate(&self, id: &str) -> rusqlite::Result<Option<ProjectCandidateRecord>> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| rusqlite::Error::InvalidQuery)?;
-        let mut candidate = connection
-            .query_row(
-                "SELECT id,project_id,base_snapshot,entity,relative_path,old_bytes,new_bytes,
-                        validation,diagnostics,validation_profile
-                 FROM project_candidates WHERE id=?",
-                [id],
-                |row| {
-                    Ok(ProjectCandidateRecord {
-                        id: row.get(0)?,
-                        project: ProjectId::from_bytes(
-                            row.get::<_, Vec<u8>>(1)?
-                                .try_into()
-                                .map_err(|_| rusqlite::Error::InvalidQuery)?,
-                        ),
-                        base_snapshot: SnapshotId::new(
-                            row.get::<_, Vec<u8>>(2)?
-                                .try_into()
-                                .map_err(|_| rusqlite::Error::InvalidQuery)?,
-                        ),
-                        entity: EntityId::from_bytes(
-                            row.get::<_, Vec<u8>>(3)?
-                                .try_into()
-                                .map_err(|_| rusqlite::Error::InvalidQuery)?,
-                        ),
-                        path: row.get(4)?,
-                        old: row.get(5)?,
-                        new: row.get(6)?,
-                        validation: row.get(7)?,
-                        diagnostics: row.get(8)?,
-                        validation_profile: row.get(9)?,
-                        effects: Vec::new(),
-                    })
-                },
-            )
-            .optional()?;
-        if let Some(candidate) = &mut candidate {
-            let mut statement = connection.prepare(
-                "SELECT relative_path,kind,old_bytes,new_bytes
-                 FROM project_candidate_effects WHERE candidate_id=? ORDER BY ordinal",
-            )?;
-            candidate.effects = statement
-                .query_map([id], |row| {
-                    Ok(ProjectSourceEffectRecord {
-                        path: row.get(0)?,
-                        kind: row.get(1)?,
-                        old: row.get(2)?,
-                        new: row.get(3)?,
-                    })
-                })?
-                .collect::<rusqlite::Result<Vec<_>>>()?;
-        }
-        Ok(candidate)
     }
 
     /// Records the current external materialization effect state.

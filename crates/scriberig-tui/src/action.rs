@@ -97,6 +97,434 @@ pub enum Action {
         /// Opaque continuation for another bounded page.
         next: Option<scriberig_query::ContinuationToken>,
     },
+    /// Requests a bounded logical artifact page for one stable project identity.
+    ArtifactsRequested {
+        /// Project whose persisted scan is summarized.
+        project: scriberig_core::ProjectId,
+        /// Zero-based artifact offset.
+        offset: usize,
+    },
+    /// Applies a successful bounded artifact page.
+    ArtifactsLoaded {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Terminal-safe artifact metadata.
+        model: crate::view::artifacts::ArtifactPageModel,
+    },
+    /// Applies a failed artifact-page request.
+    ArtifactsFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests a bounded page of members from one exact artifact.
+    ArtifactMembersRequested {
+        /// Stable owning project identity.
+        project: scriberig_core::ProjectId,
+        /// Stable semantic artifact identity.
+        artifact: scriberig_core::EntityId,
+        /// Zero-based member offset.
+        offset: usize,
+    },
+    /// Applies one successful exact artifact-member page.
+    ArtifactMembersLoaded {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Terminal-safe exact member page.
+        model: crate::view::ArtifactMembersModel,
+    },
+    /// Applies one failed artifact-member request.
+    ArtifactMembersFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests the selected semantic CAD drawing and an exact entity page.
+    CadRequested {
+        /// Stable owning project identity.
+        project: scriberig_core::ProjectId,
+        /// Exact immutable snapshot to inspect.
+        snapshot: scriberig_core::SnapshotId,
+        /// Stable semantic drawing identity.
+        drawing: scriberig_core::EntityId,
+        /// Zero-based entity page offset.
+        offset: usize,
+    },
+    /// Applies an exact-snapshot CAD drawing and entity page.
+    CadLoaded {
+        /// Request generation used to reject stale responses.
+        request_id: u64,
+        /// Typed drawing summary and semantic layers.
+        drawing: scriberig_protocol::CadDrawingInspectResponse,
+        /// Bounded semantic entity page.
+        entities: scriberig_protocol::CadEntitiesResponse,
+    },
+    /// Applies a failed CAD inspection request.
+    CadFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Selects an entity only when it occurs in the loaded exact CAD page.
+    CadEntitySelected {
+        /// Stable semantic CAD entity identity.
+        entity: scriberig_core::EntityId,
+    },
+    /// Requests a shared exact-base CAD layer-change candidate.
+    CadLayerChangeRequested(scriberig_protocol::CadLayerChangeRequest),
+    /// Applies a CAD layer candidate and opens common change review.
+    CadLayerChangeProposed {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Durable candidate metadata from the shared app operation.
+        candidate: scriberig_protocol::CadLayerChangeResponse,
+    },
+    /// Applies a failed CAD layer-change candidate request.
+    CadLayerChangeFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests a bounded worksheet range or page.
+    SpreadsheetRequested {
+        /// Stable owning project identity.
+        project: scriberig_core::ProjectId,
+        /// Exact immutable snapshot to inspect.
+        snapshot: scriberig_core::SnapshotId,
+        /// Stable semantic worksheet identity.
+        worksheet: scriberig_core::EntityId,
+        /// Optional inclusive coordinate bounds.
+        range: Option<scriberig_domain_spreadsheet::CellRange>,
+        /// Zero-based sparse-cell page offset.
+        offset: usize,
+    },
+    /// Applies a successful bounded spreadsheet page.
+    SpreadsheetLoaded {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Typed semantic cell page normalized from local or remote service.
+        page: scriberig_protocol::SpreadsheetCellsResponse,
+    },
+    /// Applies a failed spreadsheet page request.
+    SpreadsheetFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests inspection of one exact worksheet coordinate.
+    SpreadsheetCellRequested(scriberig_app::SpreadsheetCellQuery),
+    /// Applies a successful exact-coordinate inspection.
+    SpreadsheetCellLoaded {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Typed cell data, including sparse blank coordinates.
+        cell: scriberig_protocol::SpreadsheetCellInspectResponse,
+    },
+    /// Applies a failed exact-coordinate inspection.
+    SpreadsheetCellFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests a shared exact-base spreadsheet candidate.
+    SpreadsheetEditRequested(scriberig_app::SpreadsheetCellEditQuery),
+    /// Applies a created spreadsheet candidate and opens shared review.
+    SpreadsheetEditProposed {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Reviewable candidate returned by the shared operation.
+        candidate: scriberig_app::SpreadsheetEditCandidate,
+    },
+    /// Applies a failed spreadsheet candidate request.
+    SpreadsheetEditFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests an exact-snapshot semantic document tree.
+    DocumentRequested(scriberig_app::DocumentTreeQuery),
+    /// Applies a successful semantic document read.
+    DocumentLoaded {
+        /// Request generation used to reject stale responses.
+        request_id: u64,
+        /// Typed section, paragraph, and table structure.
+        tree: scriberig_protocol::DocumentInspectResponse,
+    },
+    /// Applies a failed semantic document read.
+    DocumentFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Selects a verified paragraph or table cell from the loaded document tree.
+    DocumentPartSelected {
+        /// Exact semantic part identity found in the loaded tree.
+        entity: scriberig_core::EntityId,
+    },
+    /// Selects a bounded document outline page already present in the loaded tree.
+    DocumentPageSelected {
+        /// Zero-based record offset into the flattened semantic outline.
+        offset: usize,
+    },
+    /// Requests an exact-base semantic paragraph replacement candidate.
+    DocumentEditRequested(scriberig_app::DocumentParagraphEditQuery),
+    /// Request an exact-base table-cell replacement candidate.
+    DocumentTableCellEditRequested(scriberig_app::DocumentTableCellEditQuery),
+    /// Applies a created paragraph candidate and opens shared review.
+    DocumentEditProposed {
+        /// Request generation used to reject stale responses.
+        request_id: u64,
+        /// Reviewable candidate returned by the shared application API.
+        candidate: scriberig_app::DocumentParagraphCandidate,
+    },
+    /// Carries a completed table-cell candidate response.
+    DocumentCellEditProposed {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Durable candidate metadata.
+        candidate: scriberig_app::DocumentParagraphCandidate,
+    },
+    /// Carries a failed table-cell candidate response.
+    DocumentCellEditFailed {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Stable failure category.
+        category: String,
+        /// Safe failure message.
+        message: String,
+    },
+    /// Applies a failed paragraph candidate request.
+    DocumentEditFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests one exact-snapshot QGIS project and its resolved data references.
+    QgisProjectRequested(scriberig_app::QgisProjectQuery),
+    /// Applies one exact-snapshot QGIS project result.
+    QgisProjectLoaded {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Provider-neutral project and linked-layer details.
+        project: scriberig_protocol::QgisProjectResponse,
+    },
+    /// Applies a failed QGIS project request.
+    QgisProjectFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe user-facing message.
+        message: String,
+    },
+    /// Requests a shared exact-base QGIS layer-reference rename candidate.
+    QgisLayerRenameRequested(scriberig_protocol::QgisLayerRenameRequest),
+    /// Requests a complete exact-snapshot QGIS project layer order.
+    QgisLayerOrderRequested(scriberig_protocol::QgisLayerOrderRequest),
+    /// Applies a QGIS rename candidate and opens common change review.
+    QgisLayerRenameProposed {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Durable candidate metadata from the shared app operation.
+        candidate: scriberig_protocol::QgisLayerRenameResponse,
+    },
+    /// Applies a QGIS layer-order candidate and opens common change review.
+    QgisLayerOrderProposed {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Durable candidate metadata from the shared app operation.
+        candidate: scriberig_protocol::QgisLayerOrderResponse,
+    },
+    /// Applies a failed QGIS project layer-order proposal.
+    QgisLayerOrderFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Applies a failed QGIS rename proposal.
+    QgisLayerRenameFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests a personal source-style preference update or clear.
+    ProjectionStylePreferenceRequested(scriberig_protocol::ProjectionStyleSettingRequest),
+    /// Applies the authoritative result of a personal source-style preference update.
+    ProjectionStylePreferenceSet {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Stored value and compare-and-swap revision.
+        setting: scriberig_protocol::ProjectionStyleSettingResponse,
+    },
+    /// Applies a failed personal source-style preference update.
+    ProjectionStylePreferenceFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Applies the exact effective projection style resolution.
+    ProjectionStyleResolved {
+        /// Request generation used to reject stale results.
+        request_id: u64,
+        /// Effective style, provenance, and fidelity from the shared resolver.
+        resolution: scriberig_protocol::ProjectionStyleResolveResponse,
+    },
+    /// Applies a failed effective projection style request.
+    ProjectionStyleResolveFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests effective style inspection for the selected source view.
+    ProjectionStyleResolveRequested(scriberig_protocol::ProjectionStyleResolveRequest),
+    /// Requests one exact-snapshot `GeoPackage` catalog page.
+    GeoCatalogRequested {
+        /// Owning project.
+        project: scriberig_core::ProjectId,
+        /// Exact source path in the project artifact manifest.
+        path: String,
+        /// Exact immutable semantic snapshot.
+        snapshot: scriberig_core::SnapshotId,
+        /// Zero-based layer page offset.
+        offset: usize,
+    },
+    /// Applies one exact-snapshot `GeoPackage` catalog page.
+    GeoCatalogLoaded {
+        /// Request generation used to reject stale responses.
+        request_id: u64,
+        /// Typed dataset and layer catalog metadata.
+        catalog: scriberig_protocol::GeoCatalogResponse,
+    },
+    /// Applies a failed `GeoPackage` catalog request.
+    GeoCatalogFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests a bounded feature page for a catalog layer.
+    GeoFeaturesRequested {
+        /// Stable semantic layer identity.
+        layer: scriberig_core::EntityId,
+        /// Zero-based feature page offset.
+        offset: usize,
+    },
+    /// Applies one bounded feature page.
+    GeoFeaturesLoaded {
+        /// Request generation used to reject stale responses.
+        request_id: u64,
+        /// Typed provider-neutral feature data.
+        page: scriberig_protocol::GeoFeaturesResponse,
+    },
+    /// Applies a failed feature page request.
+    GeoFeaturesFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests a bounded typed geospatial predicate query.
+    GeoFeatureQueryRequested(scriberig_app::GeoFeatureQuery),
+    /// Applies one query result with source and CRS provenance.
+    GeoFeatureQueryLoaded {
+        /// Request generation used to reject stale responses.
+        request_id: u64,
+        /// Typed query matches and provenance.
+        result: scriberig_protocol::GeoFeatureQueryResponse,
+    },
+    /// Applies a failed geospatial query request.
+    GeoFeatureQueryFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured failure category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Selects a verified feature from the loaded exact-snapshot page.
+    GeoFeatureSelected {
+        /// Stable semantic feature identity.
+        feature: scriberig_core::EntityId,
+    },
+    /// Requests a shared exact-base feature attribute candidate.
+    GeoAttributeEditRequested(scriberig_project::GeoPackageFeatureAttributeEdit),
+    /// Applies a created geospatial candidate and opens the shared Changes review.
+    GeoAttributeEditProposed {
+        /// Request generation used to reject stale responses.
+        request_id: u64,
+        /// Reviewable candidate returned by the shared service.
+        candidate: scriberig_app::GeoAttributeCandidate,
+    },
+    /// Applies a failed geospatial candidate request.
+    GeoAttributeEditFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured error category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
+    /// Requests a shared exact-base feature geometry candidate.
+    GeoGeometryEditRequested(scriberig_protocol::GeoGeometryEditRequest),
+    /// Applies a created geometry candidate and opens the shared Changes review.
+    GeoGeometryEditProposed {
+        /// Request generation used to reject stale responses.
+        request_id: u64,
+        /// Reviewable candidate returned by the shared service.
+        candidate: scriberig_app::GeoGeometryCandidate,
+    },
+    /// Applies a failed geometry candidate request.
+    GeoGeometryEditFailed {
+        /// Request generation used to reject stale failures.
+        request_id: u64,
+        /// Safe structured error category.
+        category: String,
+        /// Safe presentation message.
+        message: String,
+    },
     /// Apply runtime capability metadata returned by the application.
     CapabilitiesLoaded(Vec<scriberig_app::RuntimeCapability>),
     /// Replace observed lifecycle state with a current application snapshot.

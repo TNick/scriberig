@@ -16,8 +16,11 @@ IGNORED_PARTS = {
 MAX_SOURCE_LINES = 400
 # Native TUI trait composition cannot be split across multiple implementations.
 # Its behavior is delegated to focused runner submodules; permit modest glue growth.
+# Rust also requires the public Action enum to remain indivisible to preserve its
+# Action::Variant API; keep it declarative and delegate behavior to sibling modules.
 SOURCE_LINE_EXCEPTIONS = {
     "apps/scriberig/src/native_tui_agent/runner.rs": 420,
+    "crates/scriberig-tui/src/action.rs": 700,
 }
 RUST_FUNCTION = re.compile(
     r"^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:unsafe\s+)?fn\s+(\w+)\s*\("

@@ -22,6 +22,27 @@ pub struct ProjectFileRecord {
     pub adapter: String,
     /// Scan classification such as `ready` or `unsupported`.
     pub status: String,
+    /// Adapter-classified logical grouping key, when one is nominated.
+    pub grouping_key: Option<String>,
+}
+
+/// Describes exact persisted file evidence without loading its source bytes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectFileDescriptor {
+    /// Owning project identity.
+    pub project_id: ProjectId,
+    /// Stable project-relative POSIX path.
+    pub relative_path: String,
+    /// Stable source-artifact entity identity.
+    pub entity: EntityId,
+    /// BLAKE3 digest of the exact source bytes.
+    pub digest: [u8; 32],
+    /// Selected domain adapter identifier.
+    pub adapter: String,
+    /// Scan classification such as `ready` or `unsupported`.
+    pub status: String,
+    /// Adapter-classified logical grouping key, when one is nominated.
+    pub grouping_key: Option<String>,
 }
 
 /// Describes one semantic entity currently owned by a project source file.
@@ -69,8 +90,8 @@ impl SqliteStore {
         for file in files {
             transaction.execute(
                 "INSERT INTO project_files
-                 (project_id,relative_path,entity,digest,bytes,adapter,status)
-                 VALUES (?,?,?,?,?,?,?)",
+                 (project_id,relative_path,entity,digest,bytes,adapter,status,grouping_key)
+                 VALUES (?,?,?,?,?,?,?,?)",
                 params![
                     file.project_id.as_bytes().as_slice(),
                     file.relative_path,
@@ -79,6 +100,7 @@ impl SqliteStore {
                     file.bytes,
                     file.adapter,
                     file.status,
+                    file.grouping_key,
                 ],
             )?;
         }
@@ -102,10 +124,66 @@ impl SqliteStore {
             .lock()
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
         let mut statement = connection.prepare(
-            "SELECT project_id,relative_path,entity,digest,bytes,adapter,status
+            "SELECT project_id,relative_path,entity,digest,bytes,adapter,status,grouping_key
              FROM project_files WHERE project_id=? ORDER BY relative_path",
         )?;
         let rows = statement.query_map(params![project.as_bytes().as_slice()], file_from_row)?;
+        rows.collect()
+    }
+
+    /// Lists persisted scan descriptors without loading potentially large bytes.
+    ///
+    /// - `project`: Project whose manifest descriptors are requested.
+    ///
+    /// # Returns
+    /// Descriptors in deterministic relative-path order.
+    ///
+    /// # Errors
+    /// Returns an error when the query fails or a stored identifier is malformed.
+    pub fn project_file_descriptors(
+        &self,
+        project: ProjectId,
+    ) -> rusqlite::Result<Vec<ProjectFileDescriptor>> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let mut statement = connection.prepare(
+            "SELECT project_id,relative_path,entity,digest,adapter,status,grouping_key
+             FROM project_files WHERE project_id=? ORDER BY relative_path",
+        )?;
+        let rows = statement.query_map(params![project.as_bytes().as_slice()], |row| {
+            let project_bytes: Vec<u8> = row.get(0)?;
+            let entity_bytes: Vec<u8> = row.get(2)?;
+            let digest_bytes: Vec<u8> = row.get(3)?;
+            Ok(ProjectFileDescriptor {
+                project_id: ProjectId::from_bytes(project_bytes.try_into().map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Blob,
+                        Box::new(std::io::Error::other("invalid project identifier")),
+                    )
+                })?),
+                relative_path: row.get(1)?,
+                entity: EntityId::from_bytes(entity_bytes.try_into().map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        2,
+                        rusqlite::types::Type::Blob,
+                        Box::new(std::io::Error::other("invalid entity identifier")),
+                    )
+                })?),
+                digest: digest_bytes.try_into().map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        3,
+                        rusqlite::types::Type::Blob,
+                        Box::new(std::io::Error::other("invalid file digest")),
+                    )
+                })?,
+                adapter: row.get(4)?,
+                status: row.get(5)?,
+                grouping_key: row.get(6)?,
+            })
+        })?;
         rows.collect()
     }
 

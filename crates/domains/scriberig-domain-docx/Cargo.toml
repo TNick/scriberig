@@ -1,0 +1,23 @@
+[package]
+name = "scriberig-domain-docx"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "DOCX semantic import adapter with fidelity-probed paragraph editing."
+repository.workspace = true
+
+[dependencies]
+blake3 = "1.8.2"
+roxmltree = "0.20"
+scriberig-core = { path = "../../scriberig-core" }
+scriberig-domain-document = { path = "../scriberig-domain-document" }
+tempfile = "3"
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+blake3 = "1.8.2"
+zip = { version = "2.2", default-features = false, features = ["deflate"] }

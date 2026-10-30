@@ -9,8 +9,12 @@ use scriberig_store_sqlite::SqliteStore;
 
 use super::agent_tool_helpers::{argument_id, invalid_argument, require_capability};
 
+#[path = "agent_tool/cad_edit.rs"]
+mod cad_edit;
 #[path = "agent_tool/control.rs"]
 mod control;
+#[path = "agent_tool/document_edit.rs"]
+mod document_edit;
 #[path = "agent_tool/domain_operation.rs"]
 mod domain_operation;
 #[path = "agent_tool/project_candidate_merge.rs"]
@@ -18,6 +22,10 @@ mod project_candidate_merge;
 #[path = "agent_tool_sessions.rs"]
 mod session_operations;
 
+#[path = "agent_tool/artifact_inspect.rs"]
+mod artifact_inspect;
+#[path = "agent_tool/geo_edit.rs"]
+mod geo_edit;
 #[path = "project_bootstrap.rs"]
 mod project_bootstrap;
 #[cfg(test)]
@@ -29,6 +37,14 @@ mod project_candidates;
 mod project_recovery;
 #[path = "project_semantic.rs"]
 mod project_semantic;
+#[path = "agent_tool/qgis_rename.rs"]
+mod qgis_rename;
+#[path = "agent_tool/spreadsheet_edit.rs"]
+mod spreadsheet_edit;
+#[path = "agent_tool/spreadsheet_read.rs"]
+mod spreadsheet_read;
+#[path = "agent_tool/spreadsheet_rename.rs"]
+mod spreadsheet_rename;
 
 /// Provides inspect and application-control tools to one local agent branch.
 pub(super) struct LocalAgentTool<'a, B> {
@@ -204,6 +220,26 @@ impl<B: ApplicationBackend> Tool<ApplicationContext> for LocalAgentTool<'_, B> {
             "semantic_find" => self.semantic_find(context, arguments),
             "semantic_render" => self.semantic_render(context, arguments),
             "domain_operation" => self.domain_operation(context, arguments),
+            "cad.update_line_geometry" => {
+                self.cad_update_line_geometry(context, name, arguments, cancelled)
+            }
+            "cad.change_entity_layer" => {
+                self.cad_change_entity_layer(context, name, arguments, cancelled)
+            }
+            "spreadsheet.set_cell_value" => {
+                self.spreadsheet_set_cell_value(context, name, arguments, cancelled)
+            }
+            "document.replace_paragraph" | "document.update_table_cell" => {
+                self.document_edit(context, name, arguments, cancelled)
+            }
+            "spreadsheet.read_range" => self.spreadsheet_read_range(context, name, arguments),
+            "spreadsheet.rename_sheet" => self.spreadsheet_rename_sheet(context, name, arguments),
+            "geo.set_attribute" => self.geo_set_attribute(context, name, arguments, cancelled),
+            "geo.replace_geometry" => {
+                self.geo_replace_geometry(context, name, arguments, cancelled)
+            }
+            "qgis.rename_layer_reference" => self.qgis_rename_layer(context, name, arguments),
+            "artifact.inspect" => self.artifact_inspect(context, arguments),
             "project_rescan" => self.project_rescan(arguments),
             "project_repair_file" => self.project_repair_file(arguments),
             "project_propose" => self.project_propose(context, arguments),

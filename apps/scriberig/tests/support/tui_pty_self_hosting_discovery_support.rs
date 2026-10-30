@@ -331,6 +331,17 @@ pub(crate) fn wait_for_branch(
                 tui.diagnostic()
             );
         }
+        if let Some(failure) = saved.branches.iter().find_map(|branch| {
+            (branch.title == "agent continuation" && branch.status == BranchStatus::Abandoned)
+                .then(|| branch.result.as_ref()?.summary.as_deref())
+                .flatten()
+                .filter(|summary| summary.contains("upstream agent:"))
+        }) {
+            panic!(
+                "continuation failed before child {purpose:?}: {failure}; {}",
+                tui.diagnostic()
+            );
+        }
         let branches = saved
             .branches
             .iter()

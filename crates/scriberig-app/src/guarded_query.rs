@@ -5,8 +5,7 @@ use crate::guarded_query_support::{
     query_error_to_application, target_entity, target_snapshot,
 };
 use crate::{
-    ApplicationContext, ApplicationError, CapabilityAction, CapabilityScope, InspectRequest,
-    InspectResult, OperationKind, QueryService,
+    ApplicationContext, ApplicationError, CapabilityAction, CapabilityScope, OperationKind,
 };
 use scriberig_query::{
     FindRequest, FindResult, FindService, FollowRequest, FollowResult, InspectService, Inspection,
@@ -86,74 +85,8 @@ impl<S> GuardedQueryService<S> {
     }
 }
 
-impl<S: QueryService> QueryService for GuardedQueryService<S> {
-    /// Authorizes and delegates one application inspection.
-    ///
-    /// - `self`: Guarded provider.
-    /// - `context`: Caller grants and exact request context.
-    /// - `request`: Entity inspection request.
-    ///
-    /// The provider's inspection result after authorization.
-    ///
-    /// Returns a structured permission denial or provider error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn inspect(
-        &self,
-        context: &ApplicationContext,
-        request: &InspectRequest,
-    ) -> Result<InspectResult, ApplicationError> {
-        let scope = CapabilityScope::Entity(request.entity);
-        Self::authorize(
-            context,
-            &CapabilityAction::Inspect,
-            &scope,
-            match request.snapshot {
-                crate::SnapshotResolution::At(snapshot) => Some(snapshot),
-                _ => context.snapshot,
-            },
-            crate::OperationKind::Inspect,
-        )?;
-        let result = self.inner.inspect(context, request)?;
-        Ok(result)
-    }
-
-    /// Authorizes and delegates an inspection while preserving cancellation.
-    ///
-    /// - `self`: Guarded provider.
-    /// - `context`: Caller grants and exact request context.
-    /// - `request`: Entity inspection request.
-    /// - `cancelled`: Caller-owned cancellation flag.
-    ///
-    /// The authorized inspection result when the read completes.
-    ///
-    /// # Returns
-    /// The inspection result.
-    ///
-    /// # Errors
-    /// Returns cancellation, authorization denial, or the inner query error.
-    fn inspect_cancellable(
-        &self,
-        context: &ApplicationContext,
-        request: &InspectRequest,
-        cancelled: &std::sync::atomic::AtomicBool,
-    ) -> Result<InspectResult, ApplicationError> {
-        let scope = CapabilityScope::Entity(request.entity);
-        Self::authorize(
-            context,
-            &CapabilityAction::Inspect,
-            &scope,
-            match request.snapshot {
-                crate::SnapshotResolution::At(snapshot) => Some(snapshot),
-                _ => context.snapshot,
-            },
-            crate::OperationKind::Inspect,
-        )?;
-        self.inner.inspect_cancellable(context, request, cancelled)
-    }
-}
+#[path = "guarded_query/service.rs"]
+mod query_service;
 
 #[path = "guarded_query_session.rs"]
 mod session;

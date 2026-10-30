@@ -33,6 +33,12 @@ use crate::source::EcmaSource;
 /// construct outside the supported subset.
 pub fn parse_source(path: &Path, source: &str) -> Result<EcmaSource, EcmaError> {
     crate::with_program(path, source, |program| {
+        if let Some(comment) = program.comments.first() {
+            return Err(unsupported(
+                "comment trivia (not preserved by the semantic model)",
+                comment.span,
+            ));
+        }
         if let Some(directive) = program.directives.first() {
             return Err(unsupported("directive", directive.span));
         }

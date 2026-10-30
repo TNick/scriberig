@@ -1,6 +1,7 @@
 /** @file Implements generic semantic operations over an injected transport. */
 import type {
   CapabilitiesResponse,
+  DomainOperationCommand,
   DiffRequest,
   FindRequest,
   HistoryRequest,
@@ -8,26 +9,25 @@ import type {
   ListRequest,
   MigrationDetail,
   Operation,
-  ProtocolEvent,
   QueryRequest,
   ReadResponse,
 } from "@scriberig/protocol";
-import { subscribeEvents, type EventSubscription } from "./event-stream";
+import { validateProjectionAnchor } from "./projection-anchor-validation";
+import { RichArtifactClientOperations } from "./rich-artifact-client-operations";
 import {
   normalizeCollectionPage,
   normalizeObjectDescription,
   normalizeOperation,
 } from "./response-normalizers";
-import type { SemanticTransport, TransportConnectionState } from "./transport";
 
 /** Framework-independent semantic operations over an injected transport.
  *
- * Public members: semantic operation methods and event subscription.
- * Private members: none.
+ * Public members: `inspect`, `list`, `find`, `query`, `history`, `migrationDetail`, `diff`,
+ * `capabilities`, `operation`, `getOperation`, `command`, `domainOperation`, `project`, `branch`,
+ * `migrate`, `validate`, `render`, `session`, and `agent`.
+ * Private members: inherited rich artifact methods and transport state.
  */
-export class SemanticClient {
-  /** Creates a client over an injected transport. */
-  constructor(protected readonly transport: SemanticTransport) {}
+export class SemanticClient extends RichArtifactClientOperations {
   /** Inspects one entity. */ inspect(
     request: InspectRequest,
     signal?: AbortSignal,
@@ -88,6 +88,23 @@ export class SemanticClient {
   /** Executes a declared application command through the public boundary. */
   command<TPayload>(kind: string, payload: TPayload, signal?: AbortSignal): Promise<Operation> {
     return this.transport.request("command", { kind, payload }, signal).then(normalizeOperation);
+  }
+  /** Runs one typed semantic operation with optional bounded projection context.
+   * @param request Exact entity, snapshot, operation, arguments, and optional anchor.
+   * @param signal Optional request cancellation signal.
+   * @returns Accepted operation lifecycle state.
+   */
+  domainOperation(request: DomainOperationCommand, signal?: AbortSignal): Promise<Operation> {
+    const { projectionAnchor, ...selection } = request;
+    if (projectionAnchor !== undefined) validateProjectionAnchor(projectionAnchor);
+    return this.command(
+      "domain_operation",
+      {
+        ...selection,
+        ...(projectionAnchor === undefined ? {} : { projection_anchor: projectionAnchor }),
+      },
+      signal,
+    );
   }
   /** Executes one typed project onboarding operation. */
   project<TResponse>(

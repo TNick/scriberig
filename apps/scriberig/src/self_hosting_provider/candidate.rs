@@ -6,8 +6,7 @@ use rpi_ai::{AssistantMessage, Model};
 use serde_json::{Value, json};
 
 const PHP_WORKSPACE_MEMBER: &str = "  \"crates/domains/scriberig-domain-php\",\n";
-const PHP_LOCK_PACKAGES: &str = r#"
-[[package]]
+const PHP_DOMAIN_LOCK_PACKAGE: &str = r#"[[package]]
 name = "scriberig-domain-php"
 version = "0.1.0"
 dependencies = [
@@ -15,8 +14,9 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-php",
 ]
+"#;
 
-[[package]]
+const PHP_GRAMMAR_LOCK_PACKAGE: &str = r#"[[package]]
 name = "tree-sitter-php"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -118,13 +118,6 @@ fn candidate_create_effects() -> Vec<Value> {
         ),
         effect(
             "create",
-            "crates/scriberig-project/src/support_child_entity.rs",
-            include_str!(
-                "../../../../tests/self-hosting/php-extension/candidate/changes/crates/scriberig-project/src/support_child_entity.rs"
-            ),
-        ),
-        effect(
-            "create",
             "crates/scriberig-project/tests/php_ingestion.rs",
             include_str!(
                 "../../../../tests/self-hosting/php-extension/candidate/changes/crates/scriberig-project/tests/php_ingestion.rs"
@@ -145,30 +138,22 @@ fn candidate_update_effects() -> Vec<Value> {
         effect(
             "update",
             "crates/scriberig-project/Cargo.toml",
-            include_str!(
-                "../../../../tests/self-hosting/php-extension/candidate/changes/crates/scriberig-project/Cargo.toml"
-            ),
+            candidate_project_manifest(),
         ),
         effect(
             "update",
             "crates/scriberig-project/src/scan.rs",
-            include_str!(
-                "../../../../tests/self-hosting/php-extension/candidate/changes/crates/scriberig-project/src/scan.rs"
-            ),
+            candidate_scan_module(),
         ),
         effect(
             "update",
             "crates/scriberig-project/src/adapters.rs",
-            include_str!(
-                "../../../../tests/self-hosting/php-extension/candidate/changes/crates/scriberig-project/src/adapters.rs"
-            ),
+            candidate_adapters_module(),
         ),
         effect(
             "update",
             "crates/scriberig-project/src/support.rs",
-            include_str!(
-                "../../../../tests/self-hosting/php-extension/candidate/changes/crates/scriberig-project/src/support.rs"
-            ),
+            candidate_support_module(),
         ),
     ]
 }
@@ -186,6 +171,102 @@ fn candidate_workspace_manifest() -> String {
     );
     let anchor = "  \"crates/domains/scriberig-domain-python\",\n";
     manifest.replacen(anchor, &format!("{anchor}{PHP_WORKSPACE_MEMBER}"), 1)
+}
+
+/// Derives the project package manifest from the exact compiled checkout.
+///
+/// The current project dependencies with only the PHP domain adapter added.
+/// # Returns
+/// The operation result.
+fn candidate_project_manifest() -> String {
+    let manifest = include_str!("../../../../crates/scriberig-project/Cargo.toml");
+    assert!(
+        !manifest.contains("scriberig-domain-php"),
+        "base project manifest already contains the PHP dependency"
+    );
+    let anchor = "scriberig-domain-python = { path = \"../domains/scriberig-domain-python\" }\n";
+    assert!(
+        manifest.contains(anchor),
+        "base project manifest contains the Python domain dependency"
+    );
+    manifest.replace(
+        anchor,
+        &format!(
+            "scriberig-domain-php = {{ path = \"../domains/scriberig-domain-php\" }}\n{anchor}"
+        ),
+    )
+}
+
+/// Adds PHP classification to the exact current project scanner.
+///
+/// The current scanner with PHP selected as its own adapter.
+/// # Returns
+/// The operation result.
+fn candidate_scan_module() -> String {
+    let source = include_str!("../../../../crates/scriberig-project/src/scan.rs");
+    assert!(source.contains("| \"swift\" | \"php\" | \"rb\""));
+    let source = source.replace("| \"swift\" | \"php\" | \"rb\"", "| \"swift\" | \"rb\"");
+    let anchor = "        Some(\"py\" | \"pyi\" | \"pyw\") => \"python\",\n";
+    assert!(!source.contains("Some(\"php\") => \"php\""));
+    assert!(
+        source.contains(anchor),
+        "project scanner has Python classification"
+    );
+    source.replace(
+        anchor,
+        &format!("        Some(\"php\") => \"php\",\n{anchor}"),
+    )
+}
+
+/// Adds the PHP semantic importer to the exact current adapter module.
+///
+/// The current adapter module with its deterministic PHP importer appended.
+/// # Returns
+/// The operation result.
+fn candidate_adapters_module() -> String {
+    let source = include_str!("../../../../crates/scriberig-project/src/adapters.rs");
+    let fixture = include_str!(
+        "../../../../tests/self-hosting/php-extension/candidate/changes/crates/scriberig-project/src/adapters.rs"
+    );
+    let marker = "/// Extracts complete PHP syntax and named declarations.";
+    let start = fixture
+        .find(marker)
+        .expect("PHP adapter fixture contains its importer");
+    let importer = fixture[start..].trim();
+    assert!(!source.contains(marker), "base adapter has no PHP importer");
+    assert!(source.contains("use super::add_child;"));
+    let source = source.replace(
+        "use super::add_child;",
+        "use super::{add_child, add_named_child};",
+    );
+    format!("{}\n\n{importer}\n", source.trim_end())
+}
+
+/// Adds PHP dispatch to the exact current semantic import module.
+///
+/// The current importer module with one PHP adapter dispatch branch.
+/// # Returns
+/// The operation result.
+fn candidate_support_module() -> String {
+    let source = include_str!("../../../../crates/scriberig-project/src/support.rs");
+    let import_anchor = "import_geopackage, import_html, import_python, import_qgis";
+    assert!(
+        source.contains(import_anchor),
+        "base importer exposes adapter list"
+    );
+    let source = source.replace(
+        import_anchor,
+        "import_geopackage, import_html, import_php, import_python, import_qgis",
+    );
+    let dispatch_anchor = "        \"python\" => {\n";
+    assert!(
+        source.contains(dispatch_anchor),
+        "base importer dispatches Python files"
+    );
+    source.replace(
+        dispatch_anchor,
+        "        \"php\" => {\n            import_php(project, file, source, revisions, changes, &mut ownership)?;\n        }\n        \"python\" => {\n",
+    )
 }
 
 /// Derives the candidate lockfile from the exact compiled checkout.
@@ -215,14 +296,26 @@ fn candidate_workspace_lock() -> String {
     );
     let updated_project = project_block.replacen(
         dependency_anchor,
-        &format!("{dependency_anchor} \"scriberig-domain-php\",\n"),
+        &format!(" \"scriberig-domain-php\",\n{dependency_anchor}"),
         1,
     );
     lock.replace_range(project_start..project_end, &updated_project);
-    if !lock.ends_with('\n') {
-        lock.push('\n');
-    }
-    lock.push_str(PHP_LOCK_PACKAGES);
+    let php_domain_anchor = "[[package]]\nname = \"scriberig-domain-python\"\n";
+    let php_domain_position = lock
+        .find(php_domain_anchor)
+        .expect("Python domain lock package exists");
+    lock.insert_str(
+        php_domain_position,
+        &format!("{PHP_DOMAIN_LOCK_PACKAGE}\n\n"),
+    );
+    let php_grammar_anchor = "[[package]]\nname = \"tree-sitter-python\"\n";
+    let php_grammar_position = lock
+        .find(php_grammar_anchor)
+        .expect("Python grammar lock package exists");
+    lock.insert_str(
+        php_grammar_position,
+        &format!("{PHP_GRAMMAR_LOCK_PACKAGE}\n\n"),
+    );
     lock
 }
 
@@ -241,7 +334,10 @@ fn effect(kind: &str, path: &str, content: impl Into<String>) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use super::{candidate_workspace_lock, candidate_workspace_manifest};
+    use super::{
+        candidate_adapters_module, candidate_project_manifest, candidate_scan_module,
+        candidate_support_module, candidate_workspace_lock, candidate_workspace_manifest,
+    };
 
     /// Verifies PHP workspace metadata stays based on the current checkout graph.
     #[test]
@@ -251,11 +347,26 @@ mod tests {
         assert!(manifest.contains("crates/domains/scriberig-domain-php"));
         assert!(!manifest.contains("third_party/rpi-tui"));
 
+        let project_manifest = candidate_project_manifest();
+        assert!(project_manifest.contains("scriberig-domain-php"));
+        assert!(project_manifest.contains("scriberig-domain-qgis"));
+        assert!(candidate_scan_module().contains("Some(\"php\") => \"php\""));
+        assert!(candidate_adapters_module().contains("fn import_php("));
+        assert!(candidate_support_module().contains("\"php\" => {"));
+
         let lock = candidate_workspace_lock();
         assert!(lock.contains("name = \"rpi-tui\""));
         assert!(!lock.contains("name = \"scriberig-tui-kit\""));
         assert!(lock.contains("name = \"scriberig-domain-php\""));
         assert!(lock.contains("name = \"tree-sitter-php\""));
+        assert!(
+            lock.find("name = \"scriberig-domain-php\"").unwrap()
+                < lock.find("name = \"scriberig-domain-python\"").unwrap()
+        );
+        assert!(
+            lock.find("name = \"tree-sitter-php\"").unwrap()
+                < lock.find("name = \"tree-sitter-python\"").unwrap()
+        );
         let project = lock
             .split("[[package]]\nname = \"scriberig-project\"\n")
             .nth(1)

@@ -214,6 +214,9 @@ supported product surfaces. Logs and the local database stay in
 
 ## Product workflow status
 
+Current spreadsheet, document, CAD, and geospatial artifact capabilities and
+their fidelity limits are summarized in [Rich Artifact Support](RICH_ARTIFACT_SUPPORT.md).
+
 The repository contains a deterministic Rust project golden fixture and
 real-process browser, native TUI, and cross-surface acceptance suites. These
 currently exercise project activation, named `Calculator`/`add` navigation,

@@ -17,14 +17,22 @@ rpi-agent = { workspace = true }
 rpi-model-runtime = { workspace = true }
 rpi-extensions = { workspace = true }
 scriberig-core = { path = "../scriberig-core" }
+scriberig-domain-spreadsheet = { path = "../domains/scriberig-domain-spreadsheet" }
+scriberig-domain-cad = { path = "../domains/scriberig-domain-cad" }
+scriberig-domain-geo = { path = "../domains/scriberig-domain-geo" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-client = { path = "../scriberig-client" }
 scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-project = { path = "../scriberig-project" }
+scriberig-domain-document = { path = "../domains/scriberig-domain-document" }
 scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 sr-change = { path = "../sr-change" }
 sr-projection = { path = "../sr-projection" }
+
+[dev-dependencies]
+scriberig-store = { path = "../scriberig-store" }
+scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 
 [lints]
 workspace = true

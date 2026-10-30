@@ -5,7 +5,9 @@ use crate::{
     HistoryRequest, MergeRequest, MigrationDelta, MigrationDetail, OperationProvider,
     OperationSummary, RenderRequest,
 };
-use scriberig_store::{RootError, RootStore, SnapshotChange, SnapshotDiff, SnapshotStore};
+use scriberig_store::{
+    RootError, RootStore, SnapshotChange, SnapshotDiff, SnapshotRelationChange, SnapshotStore,
+};
 use sr_change::{EntityDelta, HistoryGraph, MigrationReference};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Mutex;
@@ -58,26 +60,6 @@ impl<S> StoreOperationProvider<S> {
     #[must_use]
     pub const fn store(&self) -> &S {
         &self.store
-    }
-
-    /// Registers a canonical migration for later apply or commit execution.
-    ///
-    /// - `self`: Provider owning the migration registry.
-    /// - `id`: Stable migration handle supplied by the caller.
-    /// - `migration`: Validated canonical migration.
-    ///
-    /// `true` when the handle was new, or `false` when it already existed.
-    /// # Returns
-    /// The operation result.
-    pub fn register_migration(
-        &self,
-        id: impl Into<String>,
-        migration: sr_change::Migration,
-    ) -> bool {
-        let Ok(mut migrations) = self.migrations.lock() else {
-            return false;
-        };
-        migrations.insert(id.into(), migration).is_none()
     }
 }
 
@@ -323,10 +305,10 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
         _context: &ApplicationContext,
         request: &ApplyRequest,
     ) -> Result<OperationSummary, ApplicationError> {
-        let changes = self.changes_for(&request.change)?;
+        let (changes, relation_changes) = self.semantic_changes_for(&request.change)?;
         let candidate = self
             .store
-            .apply_changes(request.base_snapshot, &changes)
+            .apply_changes_with_relations(request.base_snapshot, &changes, &relation_changes)
             .map_err(|_| ApplicationError::SnapshotUnavailable {
                 snapshot: request.base_snapshot,
             })?;
@@ -364,10 +346,10 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
         _context: &ApplicationContext,
         request: &CommitRequest,
     ) -> Result<OperationSummary, ApplicationError> {
-        let changes = self.changes_for(&request.change)?;
+        let (changes, relation_changes) = self.semantic_changes_for(&request.change)?;
         let candidate = self
             .store
-            .apply_changes(request.base_snapshot, &changes)
+            .apply_changes_with_relations(request.base_snapshot, &changes, &relation_changes)
             .map_err(|_| ApplicationError::SnapshotUnavailable {
                 snapshot: request.base_snapshot,
             })?;

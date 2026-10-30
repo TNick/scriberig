@@ -200,6 +200,7 @@ impl<B: ApplicationBackend + Send + Sync + 'static> scriberig_tui::AgentCommandR
         branch: Option<EntityId>,
         prompt: &str,
     ) -> Result<scriberig_tui::AgentHandle, ApplicationError> {
+        tracing::info!(target: "scriberig::agent_execution", stage = "submit_started");
         let selection = previous_workspace_selection(service, context, session)?;
         let request = AgentCommandRequest {
             session,
@@ -209,6 +210,12 @@ impl<B: ApplicationBackend + Send + Sync + 'static> scriberig_tui::AgentCommandR
             selection: selection.clone(),
         };
         let handle = service.begin_agent_execution(context, &request)?;
+        tracing::info!(
+            target: "scriberig::agent_execution",
+            stage = "operation_accepted",
+            operation_id = %handle.operation,
+            branch_id = %handle.root_branch
+        );
         self.execute_accepted(service, context, &handle)
     }
 
@@ -236,6 +243,11 @@ impl<B: ApplicationBackend + Send + Sync + 'static> scriberig_tui::AgentCommandR
         context: &ApplicationContext,
         handle: &scriberig_app::LocalAgentHandle,
     ) -> Result<scriberig_tui::AgentHandle, ApplicationError> {
+        tracing::info!(
+            target: "scriberig::agent_execution",
+            stage = "runtime_setup_started",
+            operation_id = %handle.operation
+        );
         let session = handle.session;
         let selection = handle.selection.clone().map_or_else(
             || previous_workspace_selection(service, context, session),
@@ -246,6 +258,7 @@ impl<B: ApplicationBackend + Send + Sync + 'static> scriberig_tui::AgentCommandR
             service.fail_local_agent(handle, &message)?;
             return Err(ApplicationError::UnsupportedOperation { operation: message });
         }
+        tracing::info!(target: "scriberig::agent_execution", stage = "provider_packages_ready");
         let selected = selected_runtime_model(service, context, session, &self.model)?;
         let profile = selected.profile;
         let thinking_level = selected.thinking_level;
@@ -264,6 +277,7 @@ impl<B: ApplicationBackend + Send + Sync + 'static> scriberig_tui::AgentCommandR
                 return Err(ApplicationError::UnsupportedOperation { operation: message });
             }
         };
+        tracing::info!(target: "scriberig::agent_execution", stage = "provider_resolved");
         let Some((upstream, upstream_model, request_secret)) = upstream_provider else {
             self.continuations.discard(handle.root_branch);
             let message = "configure an upstream provider before starting agent work";
@@ -286,6 +300,11 @@ impl<B: ApplicationBackend + Send + Sync + 'static> scriberig_tui::AgentCommandR
             &profile,
         )
         .ok();
+        tracing::info!(
+            target: "scriberig::agent_execution",
+            stage = "continuation_context_checked",
+            reusable_continuation = candidate_fingerprint.is_some()
+        );
         // The handle is consumed before the attempt, so a divergent, failed, or
         // cancelled turn cannot leave it reusable.
         let continuation = candidate_fingerprint.and_then(|fingerprint| {

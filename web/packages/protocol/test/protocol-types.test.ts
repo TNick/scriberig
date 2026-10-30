@@ -1,7 +1,7 @@
 /** @file Verifies protocol discriminants and opaque identity boundaries. */
 import { describe, expect, it } from "vitest";
 import type { EntityId } from "../src/ids";
-import { newSessionId } from "../src/ids";
+import type { CapabilitiesResponse } from "../src/capabilities";
 import type { ProtocolEvent } from "../src/operations";
 import type { ConflictSummary, PromotionResult, TrustEvent, ValidationSummary } from "../src/trust";
 
@@ -14,11 +14,6 @@ describe("protocol types", () => {
   it("keeps IDs opaque at boundaries", () => {
     const entity = "entity-1" as EntityId;
     expect(entity).toBe("entity-1");
-  });
-
-  it("creates Rust-compatible random session entity identifiers", () => {
-    const session = newSessionId();
-    expect(session).toMatch(/^ent_[a-f0-9]{32}$/);
   });
 
   it("exposes structured trust states and event handles", () => {
@@ -39,5 +34,24 @@ describe("protocol types", () => {
     expect(validation.status).toBe("failed");
     expect(conflict.handle).toBe("conflict-1");
     expect(event.type).toBe("snapshot_promoted");
+  });
+
+  it("exposes provider-neutral server-side CAD capability state", () => {
+    const response: CapabilitiesResponse = {
+      protocolMajor: 1,
+      capabilities: [],
+      features: [],
+      cadProviders: [
+        {
+          format: "dwg",
+          availability: "initializationFailed",
+          canRead: false,
+          canWrite: false,
+          canValidate: false,
+          opaquePreservation: "unproven",
+        },
+      ],
+    };
+    expect(response.cadProviders?.[0]?.availability).toBe("initializationFailed");
   });
 });

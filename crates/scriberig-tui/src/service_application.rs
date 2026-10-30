@@ -11,6 +11,9 @@ mod constructor;
 mod recovery;
 #[path = "service_application_runtime.rs"]
 mod runtime;
+#[macro_use]
+#[path = "service_application_query_methods.rs"]
+mod service_application_query_methods;
 
 use super::*;
 use scriberig_app::{AgentConsoleBackend, RuntimeCapability, SessionBackend};
@@ -22,6 +25,8 @@ pub struct ApplicationAdapter<S> {
 }
 
 impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for ApplicationAdapter<S> {
+    application_query_methods!();
+
     /// Continues an exact anchor through the shared session backend.
     ///
     /// - `context`: Caller authorization context.

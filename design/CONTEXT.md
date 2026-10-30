@@ -954,7 +954,21 @@ Where older wording is less precise than a later explicit refinement, preserve t
 
 ---
 
-# 31. Recommended 20-File ChatGPT Project Attachment Set
+# 31. Rich Project Artifacts
+
+Spreadsheets, rich documents, CAD drawings, and geospatial datasets are
+semantic domains over the shared project, change, validation, and projection
+contracts. Preserve exact source evidence and opaque content, support scalable
+collections, and materialize compound artifacts atomically. User interfaces
+consume shared domain capabilities rather than implementing format semantics.
+
+Authoritative:
+
+- `level-1/025. compound artifacts scalable collections and rich domain editing.md`
+- `level-2/035. rich project artifacts office cad and geospatial implementation plan.md`
+- tasks 153–162
+
+# 32. Recommended 20-File ChatGPT Project Attachment Set
 
 Because the Project has a 20-file limit, prefer a stable architecture spine plus current implementation tasks rather than attaching all design files.
 
@@ -999,7 +1013,7 @@ Do not spend permanent attachment slots on old conversation exports after their 
 
 ---
 
-# 32. Active Implementation Reading Rule
+# 33. Active Implementation Reading Rule
 
 `CONTEXT.md` is an orientation map, not sufficient implementation instruction.
 

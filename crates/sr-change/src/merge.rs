@@ -2,7 +2,9 @@
 
 use crate::{ConflictKind, EntityDelta, MergeConflict};
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
-use scriberig_store::{Snapshot, SnapshotChange, SnapshotError, SnapshotStore};
+use scriberig_store::{
+    Snapshot, SnapshotChange, SnapshotError, SnapshotRelationChange, SnapshotStore,
+};
 use std::collections::BTreeSet;
 
 /// Exact snapshots supplied to a three-way merge.
@@ -62,6 +64,8 @@ pub struct MergeResult {
     pub right: SnapshotId,
     /// Automatically or strategy-resolved entity deltas.
     pub resolved_deltas: Vec<EntityDelta>,
+    /// Automatically resolved typed relation changes.
+    pub resolved_relation_changes: Vec<SnapshotRelationChange>,
     /// Unresolved semantic conflicts.
     pub conflicts: Vec<MergeConflict>,
     /// Retained merged snapshot when materialization completed without conflicts.
@@ -112,6 +116,7 @@ pub fn merge_snapshots(
         left: input.left,
         right: input.right,
         resolved_deltas: Vec::new(),
+        resolved_relation_changes: Vec::new(),
         conflicts: Vec::new(),
         result: None,
     };
@@ -180,6 +185,7 @@ pub fn merge_snapshots(
             detail: None,
         });
     }
+    result.resolved_relation_changes = merge_relation_changes(base, left, right);
     Ok(result)
 }
 
@@ -226,7 +232,11 @@ pub fn merge_snapshots_into_store<S: SnapshotStore>(
             .collect::<Vec<_>>();
         result.result = Some(
             store
-                .apply_changes(input.base, &changes)
+                .apply_changes_with_relations(
+                    input.base,
+                    &changes,
+                    &result.resolved_relation_changes,
+                )
                 .map_err(MergeStoreError::Snapshot)?,
         );
     }
@@ -239,7 +249,55 @@ fn snapshot_from_store<S: SnapshotStore>(
     id: SnapshotId,
 ) -> Result<Snapshot, MergeStoreError> {
     let entries = store.iter(id).map_err(MergeStoreError::Snapshot)?;
-    Ok(Snapshot::from_entries(entries.into_iter().collect()))
+    let snapshot = Snapshot::from_entries(entries.into_iter().collect());
+    let changes = store
+        .relations(id)
+        .map_err(MergeStoreError::Snapshot)?
+        .into_iter()
+        .map(SnapshotRelationChange::Add);
+    Ok(snapshot.apply_relation_changes(changes))
+}
+
+/// Merges directed relation memberships using exact three-way set semantics.
+///
+/// - `base`: Explicit common ancestor snapshot.
+/// - `left`: Left branch snapshot.
+/// - `right`: Right branch snapshot.
+///
+/// # Returns
+/// Typed relation changes transforming `base` into the merged relation set.
+fn merge_relation_changes(
+    base: &Snapshot,
+    left: &Snapshot,
+    right: &Snapshot,
+) -> Vec<SnapshotRelationChange> {
+    let base_relations = base.relations().cloned().collect::<BTreeSet<_>>();
+    let left_relations = left.relations().cloned().collect::<BTreeSet<_>>();
+    let right_relations = right.relations().cloned().collect::<BTreeSet<_>>();
+    let candidates = base_relations
+        .iter()
+        .chain(left_relations.iter())
+        .chain(right_relations.iter())
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    candidates
+        .into_iter()
+        .filter_map(|relation| {
+            let base_has = base_relations.contains(&relation);
+            let left_has = left_relations.contains(&relation);
+            let right_has = right_relations.contains(&relation);
+            let merged_has = if left_has == base_has {
+                right_has
+            } else {
+                left_has
+            };
+            match (base_has, merged_has) {
+                (false, true) => Some(SnapshotRelationChange::Add(relation)),
+                (true, false) => Some(SnapshotRelationChange::Remove(relation)),
+                _ => None,
+            }
+        })
+        .collect()
 }
 
 /// Adds a delta when the transition is semantically non-empty.

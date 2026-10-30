@@ -1,0 +1,16 @@
+[package]
+name = "scriberig-domain-document"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Format-independent structured document semantics."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../../scriberig-core" }
+serde = { version = "1.0", features = ["derive"] }
+scriberig-schema = { path = "../../scriberig-schema" }
+
+[lints]
+workspace = true

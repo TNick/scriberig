@@ -2,12 +2,10 @@
 
 use crate::context::{
     BranchExecutionContext, BranchRole, CompactResultContext, CompiledContext, ContextActivity,
-    ContextCompiler, ContextPolicy,
+    ContextCompiler, ContextPolicy, compact_branch_result,
 };
 use scriberig_core::EntityId;
-use scriberig_session::{
-    BranchResult, ContinuationAnchor, Plan, PlanNode, PlanNodeParent, Session, WorkerClaim,
-};
+use scriberig_session::{ContinuationAnchor, Plan, PlanNode, PlanNodeParent, Session, WorkerClaim};
 
 /// Holds selected durable inputs and their provider-ready compiled projection.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -285,24 +283,6 @@ fn compact_result(session: &Session, result_id: EntityId) -> Result<CompactResul
         .find(|result| result.id == result_id)
         .ok_or_else(|| "selected durable branch result is missing".to_owned())?;
     Ok(compact_branch_result(result))
-}
-
-/// Converts a durable result into summary and semantic handles only.
-/// # Parameters
-/// - `result`: Input for this operation.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-fn compact_branch_result(result: &BranchResult) -> CompactResultContext {
-    CompactResultContext {
-        handle: format!("branch-result:{}", result.id),
-        revision: result
-            .candidate_context
-            .map(|candidate| candidate.candidate_snapshot.to_string()),
-        summary: result.summary.clone().unwrap_or_default(),
-        semantic_handles: result.result_handles.clone(),
-    }
 }
 
 /// Adds only the claimed branch's existing visible local conversation history.

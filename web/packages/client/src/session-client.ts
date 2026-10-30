@@ -65,6 +65,12 @@ export class SessionClient extends LegacyExecutionRecoveryClient {
             ? {}
             : {
                 selection: {
+                  ...(request.selection.projectId === undefined
+                    ? {}
+                    : { project_id: request.selection.projectId }),
+                  ...(request.selection.rootId === undefined
+                    ? {}
+                    : { root: { id: request.selection.rootId } }),
                   entity: { id: request.selection.entityId },
                   snapshot: { id: request.selection.snapshotId ?? "" },
                 },
@@ -90,6 +96,12 @@ export class SessionClient extends LegacyExecutionRecoveryClient {
             ? {}
             : {
                 selection: {
+                  ...(request.selection.projectId === undefined
+                    ? {}
+                    : { project_id: request.selection.projectId }),
+                  ...(request.selection.rootId === undefined
+                    ? {}
+                    : { root: { id: request.selection.rootId } }),
                   entity: { id: request.selection.entityId },
                   snapshot: { id: request.selection.snapshotId ?? "" },
                 },

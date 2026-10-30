@@ -62,6 +62,7 @@ mod session_persistence;
 /// - `extension_component_mailbox`: Optional upstream plugin UI registry.
 /// - `presentation_preferences`: Agent presentation preference store.
 /// - `projection_style`: Projection style configuration.
+/// - `project_service`: Optional persisted project catalog for artifact inspection.
 pub struct ApplicationService<B> {
     backend: Arc<B>,
     operations: crate::OperationRegistry,
@@ -74,6 +75,9 @@ pub struct ApplicationService<B> {
     extension_component_mailbox: Option<rpi_extensions::ExtensionStatusMailbox>,
     presentation_preferences: Arc<dyn crate::AgentPresentationPreferenceStore>,
     projection_style: crate::ProjectionStyleConfiguration,
+    pub(super) project_service: Option<Arc<scriberig_project::ProjectService>>,
+    /// Optional external CAD providers configured by the product host.
+    pub(super) cad_provider_registry: Arc<crate::cad_provider_registry::CadProviderRegistry>,
 }
 
 impl<B: ApplicationBackend> ApplicationService<B> {

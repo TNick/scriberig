@@ -3,6 +3,7 @@
 #![allow(clippy::missing_errors_doc)]
 
 pub mod branch;
+pub mod branch_result;
 pub mod description;
 pub mod error;
 pub mod execution;
@@ -11,6 +12,8 @@ pub mod schema;
 pub mod turn;
 pub mod types;
 pub mod views;
+
+pub use branch_result::BranchResult;
 
 /// Defines the durable session repository boundary.
 pub mod repository {
@@ -351,7 +354,7 @@ pub use turn::{
     ResolvedContinuationAnchor, ToolInvocation, ToolResult, Turn,
 };
 pub use types::{
-    BranchCandidateContext, BranchResult, Decision, Goal, LegacyExecutionRecord,
-    LegacyExecutionTarget, Observation, Question, Session, Summary, Task,
+    BranchCandidateContext, Decision, Goal, LegacyExecutionRecord, LegacyExecutionTarget,
+    Observation, Question, Session, Summary, Task,
 };
 pub use views::{BranchDescriptor, ChildBranchSummary, DecisionEntry, SessionViews, TurnView};

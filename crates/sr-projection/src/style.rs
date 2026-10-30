@@ -3,9 +3,10 @@
 use std::fmt;
 
 use scriberig_core::{EntityId, RevisionId};
+use serde::{Deserialize, Serialize};
 
 /// Identifies an immutable style revision or exact adapter-supplied value.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum StyleRef {
     /// References a style entity at one immutable revision.
     Revision {
@@ -19,11 +20,11 @@ pub enum StyleRef {
 }
 
 /// Carries an exact adapter-defined style value.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct StyleValue(Vec<u8>);
 
 /// Identifies the adapter-owned style schema that interprets resolved values.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct StyleSchemaRef {
     /// Stable adapter or schema identifier.
     adapter_id: String,
@@ -37,7 +38,7 @@ pub struct StyleSchemaRef {
 /// canonical adapter-defined value consumed by the renderer, and the optional
 /// schema needed to validate that value. Renderers therefore never need to
 /// consult storage or ambient user settings to interpret a style revision.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ResolvedStyle {
     /// Exact provenance reference selected by style resolution.
     reference: StyleRef,

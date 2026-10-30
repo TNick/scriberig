@@ -46,10 +46,24 @@ fn initial_projection_is_synchronized() {
         &rendered.bytes,
         ProjectionOwnership::ManagedEditable,
     ));
-    assert_eq!(states.find(&location).expect("state").base.0, snapshot);
     assert_eq!(
-        digest_bytes(&rendered.bytes),
-        states.find(&location).expect("state").rendered
+        states
+            .find(&location)
+            .expect("state")
+            .baseline
+            .rendered
+            .base_state
+            .0,
+        snapshot
+    );
+    assert_eq!(
+        rendered.bytes,
+        states
+            .find(&location)
+            .expect("state")
+            .baseline
+            .rendered
+            .bytes
     );
     assert_eq!(
         inspect_observation(&io, &mut states, &Observation::Modified(location)).expect("observe"),
@@ -280,7 +294,13 @@ fn rename_keeps_projection_identity() {
         Some(ProjectionStatus::Synchronized)
     );
     assert_eq!(
-        states.find(&new_location).expect("moved state").base.0,
+        states
+            .find(&new_location)
+            .expect("moved state")
+            .baseline
+            .rendered
+            .base_state
+            .0,
         snapshot
     );
     let _ = fs::remove_dir_all(root);

@@ -103,11 +103,24 @@ pub async fn run_upstream_branch_invocation_with_continuation(
     // A provider response id may be the bearer material from which continuation is
     // reconstructed, so keep it out of durable provenance for continuation providers.
     let provider_supports_continuation = invocation.provider.supports_response_continuation();
+    let prompt = prompt.into();
+    tracing::info!(
+        target: "scriberig::agent_invocation",
+        context_bytes = invocation.context.provider_context.len(),
+        tool_count = invocation.tools.len(),
+        prompt_bytes = prompt.len(),
+        "building upstream branch agent"
+    );
     let built = build_agent(&invocation, continuation)?;
+    tracing::info!(
+        target: "scriberig::agent_invocation",
+        message_count = built.agent.state().messages.len(),
+        "upstream branch agent is ready"
+    );
     let initial_message_count = built.agent.state().messages.len();
     let run_result = event_forwarding::run_agent_and_forward(
         &built.agent,
-        prompt.into(),
+        prompt,
         &cancellation,
         output_callback.as_ref(),
         summary_callback.as_ref(),

@@ -40,8 +40,61 @@ pub enum ProjectionAnchor {
         /// Region height.
         height: u32,
     },
+    /// One cell in a spreadsheet projection.
+    SpreadsheetCell {
+        /// Stable semantic worksheet identity.
+        worksheet: EntityId,
+        /// One-based row coordinate.
+        row: u32,
+        /// One-based column coordinate.
+        column: u32,
+    },
+    /// Inclusive cell range in a spreadsheet projection.
+    SpreadsheetRange {
+        /// Stable semantic worksheet identity.
+        worksheet: EntityId,
+        /// First one-based row.
+        first_row: u32,
+        /// First one-based column.
+        first_column: u32,
+        /// Last one-based row.
+        last_row: u32,
+        /// Last one-based column.
+        last_column: u32,
+    },
+    /// CRS-aware geometry bounds in exact adapter-neutral decimal text.
+    GeometryBounds {
+        /// Coordinate reference system identifier.
+        crs: String,
+        /// Minimum x coordinate as exact decimal text.
+        min_x: String,
+        /// Minimum y coordinate as exact decimal text.
+        min_y: String,
+        /// Maximum x coordinate as exact decimal text.
+        max_x: String,
+        /// Maximum y coordinate as exact decimal text.
+        max_y: String,
+    },
+    /// Projection-space bounds for one selected CAD entity.
+    CadBounds {
+        /// Stable semantic drawing identity.
+        drawing_id: String,
+        /// Model, paper, or named CAD space identity.
+        space: String,
+        /// Minimum x coordinate as exact drawing-unit text.
+        min_x: String,
+        /// Minimum y coordinate as exact drawing-unit text.
+        min_y: String,
+        /// Maximum x coordinate as exact drawing-unit text.
+        max_x: String,
+        /// Maximum y coordinate as exact drawing-unit text.
+        max_y: String,
+    },
     /// Adapter-defined anchor that is not part of canonical identity.
     Opaque {
+        /// Adapter owning the projection anchor schema.
+        #[serde(default)]
+        adapter: String,
         /// Anchor kind.
         kind: String,
         /// Adapter-defined anchor value.

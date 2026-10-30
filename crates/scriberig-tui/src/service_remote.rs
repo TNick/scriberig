@@ -8,6 +8,18 @@ mod plan_contract_methods;
 #[macro_use]
 #[path = "service_remote_session_methods.rs"]
 mod session_methods;
+#[macro_use]
+#[path = "service_remote_cad_methods.rs"]
+mod remote_cad_methods;
+#[macro_use]
+#[path = "service_remote_qgis_methods.rs"]
+mod remote_qgis_methods;
+#[macro_use]
+#[path = "service_remote_geopackage_document_methods.rs"]
+mod remote_geopackage_document_methods;
+#[macro_use]
+#[path = "service_remote_spreadsheet_artifact_methods.rs"]
+mod remote_spreadsheet_artifact_methods;
 use super::service_remote_mapping::{
     map_remote_operation, protocol_agent_selection, remote_error, session_from_response,
 };
@@ -52,21 +64,27 @@ impl<T> RemoteAdapter<T> {
 }
 
 impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
+    remote_cad_methods!();
+
+    remote_qgis_methods!();
+
+    remote_geopackage_document_methods!();
+
+    remote_spreadsheet_artifact_methods!();
+
     /// Continues a remote conversation from an exact durable anchor.
     ///
-    /// - `self`: Remote service adapter.
+    /// # Parameters
     /// - `_context`: Local context; remote authorization is transport-owned.
     /// - `session`: Owning session identity.
     /// - `anchor`: Exact replyable location.
     /// - `prompt`: User-authored follow-up.
     ///
+    /// # Returns
     /// Authoritative operation, session, and continuation branch handles.
     ///
-    /// Returns sanitized protocol or identity errors.
-    /// # Returns
-    /// The operation result.
     /// # Errors
-    /// Returns an error when the operation fails.
+    /// Returns sanitized protocol or identity errors.
     fn continue_agent_at_handle(
         &self,
         _context: &ApplicationContext,

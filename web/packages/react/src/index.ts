@@ -13,3 +13,4 @@ export * from "./use-trust";
 export * from "./knowledge-tree";
 export * from "./use-migration-review";
 export * from "./use-agent-execution-selection";
+export * from "./use-projection-style-controller";

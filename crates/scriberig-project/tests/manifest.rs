@@ -59,13 +59,11 @@ fn manifest_pages_bind_import_to_reviewed_scan() {
         .expect("source symbol");
     fs::write(root.join("src.rs"), "fn main() { let changed = true; }\n").expect("change source");
     let changed = service.scan(None, &root).expect("rescan");
-    assert_eq!(
-        service
-            .projection_at(scan.project.id, snapshot, source.entity)
-            .expect("exact snapshot source")
-            .text,
-        b"fn main() {}\n"
-    );
+    let projection = service
+        .projection_at(scan.project.id, snapshot, source.entity)
+        .expect("exact snapshot source");
+    assert_eq!(projection.projection_kind, "rust");
+    assert_eq!(projection.text, b"fn main() {}\n");
     let changed_summary = service
         .manifest_summary(changed.project.id)
         .expect("updated summary");

@@ -1,5 +1,6 @@
 //! Defines deterministic projection render inputs and outputs.
 
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use crate::model::{
@@ -8,7 +9,7 @@ use crate::model::{
 use crate::{model::SemanticStateRef, style::ResolvedStyle};
 
 /// Supplies explicit immutable and contextual inputs to a renderer.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RenderRequest {
     /// Persistent projection specification being rendered.
     pub specification: ProjectionSpecRef,
@@ -27,14 +28,14 @@ pub struct RenderRequest {
 }
 
 /// Carries deterministic extension values without universal domain schemas.
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RenderingContext {
     /// Stable-keyed adapter extension values.
     pub extensions: BTreeMap<String, Vec<u8>>,
 }
 
 /// Exact immutable inputs identifying one render/cache computation.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RenderCacheKey {
     /// Persistent projection specification reference.
     pub specification: ProjectionSpecRef,
@@ -75,7 +76,7 @@ impl RenderCacheKey {
 }
 
 /// Carries one adapter-owned reusable intermediate rendering fragment.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RenderedFragment {
     /// Exact local immutable-input key selected by the adapter.
     pub input_key: Vec<u8>,
@@ -108,7 +109,7 @@ impl RenderedFragment {
 }
 
 /// Describes exact rendered representation and output hash metadata.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RenderedProjection {
     /// Exact rendered representation bytes.
     pub bytes: Vec<u8>,
@@ -131,7 +132,7 @@ pub struct RenderedProjection {
 }
 
 /// Represents deterministic output digest metadata without choosing an algorithm.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct OutputHash {
     /// Stable algorithm identifier such as an adapter-defined hash name.
     pub algorithm: String,

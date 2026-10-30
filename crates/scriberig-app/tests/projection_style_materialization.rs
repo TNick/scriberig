@@ -14,12 +14,14 @@ use scriberig_app::{
 use scriberig_core::{EntityId, SnapshotId};
 use scriberig_style_sqlite::SqliteProjectionStyleStore;
 use sr_projection::{
-    ProjectionAdapter, ProjectionCapabilities, ProjectionKind, ProjectionPurpose, ProjectionResult,
-    RenderRequest, RenderedProjection, StyleRef, StyleValue,
+    FidelityAssessment, ProjectionAdapter, ProjectionAdapterIdentity, ProjectionCapabilities,
+    ProjectionKind, ProjectionPurpose, ProjectionResult, ProjectionSpecRef, ReconciliationBaseline,
+    RenderRequest, RenderedProjection, RendererVersion, RenderingContext, ResolvedStyle,
+    SemanticScopeRef, StyleValue,
 };
 use sr_projection_fs::{
     FileSystem as _, LocalFileSystem, MemorySyncStore, ProjectionLocation, ProjectionOwnership,
-    SyncCoordinator, SyncState, digest_bytes,
+    SyncCoordinator, SyncState,
 };
 
 use fixture::{DocumentStyleAdapter, RecordingBackend, context_for, kind, style};
@@ -97,31 +99,41 @@ fn service_on(path: &std::path::Path) -> (ApplicationService<RecordingBackend>, 
 /// The coordinator with its synchronization state.
 fn coordinator(path: &std::path::Path) -> SyncCoordinator<LocalFileSystem> {
     let mut states = MemorySyncStore::default();
-    states.put(SyncState {
-        projection: sr_projection::ProjectionRef(EntityId::from_bytes([1; 16])),
-        specification: sr_projection::ProjectionSpecRef(EntityId::from_bytes([4; 16])),
-        scope: sr_projection::SemanticScopeRef {
+    let projection = sr_projection::ProjectionRef(EntityId::from_bytes([1; 16]));
+    let base = sr_projection::SemanticStateRef(SnapshotId::new([2; 32]));
+    let request = RenderRequest {
+        specification: ProjectionSpecRef(EntityId::from_bytes([4; 16])),
+        scope: SemanticScopeRef {
             entity: EntityId::from_bytes([5; 16]),
             revision: None,
         },
+        base_state: base,
         kind: kind(),
-        location: ProjectionLocation::new(path),
-        ownership: ProjectionOwnership::ManagedEditable,
-        base: sr_projection::SemanticStateRef(SnapshotId::new([2; 32])),
-        current: sr_projection::SemanticStateRef(SnapshotId::new([3; 32])),
-        style: StyleRef::Value(StyleValue::new(Vec::new())),
-        renderer: sr_projection::RendererVersion::new("test"),
-        rendered: digest_bytes(b"seed"),
-        observed: None,
-        status: sr_projection::ProjectionStatus::Synchronized,
-    });
+        style: ResolvedStyle::inline(StyleValue::new(Vec::new())),
+        renderer: RendererVersion::new("test"),
+        context: RenderingContext::default(),
+    };
+    let baseline = ReconciliationBaseline::from_render(
+        &request,
+        Some(projection),
+        b"seed".to_vec(),
+        ProjectionAdapterIdentity::new("test-adapter", "1").expect("adapter identity"),
+        FidelityAssessment::lossless(),
+    );
+    states.put(SyncState::new(
+        projection,
+        baseline,
+        ProjectionLocation::new(path),
+        ProjectionOwnership::ManagedEditable,
+        sr_projection::SemanticStateRef(SnapshotId::new([3; 32])),
+        sr_projection::ProjectionStatus::Synchronized,
+    ));
     SyncCoordinator::new(LocalFileSystem, states)
 }
 
-/// Verifies materialization applies the shared purpose style, never the personal
-/// preference stored for the same principal.
+/// Verifies two personal styles remain separate from one shared materialization style.
 #[test]
-fn materialization_writes_the_shared_style_and_not_the_personal_preference() {
+fn two_user_styles_do_not_change_shared_materialization() {
     let directory = tempfile::tempdir().expect("temporary directory");
     let database = directory.path().join("scriberig.db");
     let file = directory.path().join("document.txt");
@@ -133,6 +145,12 @@ fn materialization_writes_the_shared_style_and_not_the_personal_preference() {
             &fixture::set_style(&[("width", "100")]),
         )
         .expect("personal preference written");
+    writer
+        .set_projection_style_user_preference(
+            &context_for("bob"),
+            &fixture::set_style(&[("width", "80")]),
+        )
+        .expect("second personal preference written");
     let policy =
         ProjectionStyleSettingRequest::new(kind(), "ws-1", Some(style(&[("width", "80")])));
     writer
@@ -140,15 +158,29 @@ fn materialization_writes_the_shared_style_and_not_the_personal_preference() {
         .expect("workspace materialization policy written");
 
     let (reader, _probe) = service_on(&database);
-    let request = scriberig_app::StyleResolutionRequest::new(
+    let view_request = scriberig_app::StyleResolutionRequest::new(
+        kind(),
+        "proj-1",
+        "ws-1",
+        ProjectionPurpose::InteractiveView,
+    );
+    let alice_view = reader
+        .projection_style_effective(&context_for("alice"), &view_request)
+        .expect("alice personal style resolves");
+    let bob_view = reader
+        .projection_style_effective(&context_for("bob"), &view_request)
+        .expect("bob personal style resolves");
+    assert_ne!(alice_view.resolved.value(), bob_view.resolved.value());
+
+    let shared_request = scriberig_app::StyleResolutionRequest::new(
         kind(),
         "proj-1",
         "ws-1",
         ProjectionPurpose::SharedMaterialization,
     );
     let effective = reader
-        .projection_style_effective(&context_for("alice"), &request)
-        .expect("shared style resolves");
+        .projection_style_effective(&context_for("bob"), &shared_request)
+        .expect("shared style resolves independently of viewer");
 
     let mut coordinator = coordinator(&file);
     let adapter = StyleEchoAdapter::default();
@@ -169,7 +201,7 @@ fn materialization_writes_the_shared_style_and_not_the_personal_preference() {
     );
     assert!(
         !String::from_utf8_lossy(&written).contains("100"),
-        "a personal preference must never reach a materialized file: {written:?}"
+        "personal preferences must never reach a materialized file: {written:?}"
     );
     assert_eq!(written, effective.resolved.value().as_bytes());
 }

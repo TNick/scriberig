@@ -7,6 +7,17 @@ use super::common::{
 use crate::inspector::LoadState;
 use crate::state::TuiState;
 
+#[path = "model_views/artifacts.rs"]
+mod artifacts;
+#[path = "model_views/document.rs"]
+mod document;
+#[path = "model_views/geo.rs"]
+mod geo;
+#[path = "model_views/qgis.rs"]
+mod qgis;
+#[path = "model_views/spreadsheet.rs"]
+mod spreadsheet;
+
 /// Renders the selected exact semantic entity summary.
 ///
 /// - `state`: Current inspector and selection projections.
@@ -14,6 +25,47 @@ use crate::state::TuiState;
 /// # Returns
 /// Overview content or the inspector request state.
 pub(super) fn overview(state: &TuiState) -> String {
+    if !matches!(state.cad_drawing, LoadState::NotRequested) {
+        return crate::view::cad::render(
+            &state.cad_drawing,
+            &state.cad_entities,
+            &state.cad_layer_edit,
+            state.cad_offset,
+        );
+    }
+    if !matches!(state.geo_geometry_edit, LoadState::NotRequested) {
+        return geo::render_geometry_edit(&state.geo_geometry_edit);
+    }
+    if !matches!(state.geo_edit, LoadState::NotRequested) {
+        return geo::render_edit(&state.geo_edit);
+    }
+    if !matches!(state.geo_query_result, LoadState::NotRequested) {
+        return geo::render_query(&state.geo_query_result);
+    }
+    if !matches!(state.geo_features, LoadState::NotRequested) {
+        return geo::render_features(
+            &state.geo_features,
+            state.selection.map(|value| value.entity),
+        );
+    }
+    if !matches!(state.geo_catalog, LoadState::NotRequested) {
+        return geo::render_catalog(&state.geo_catalog);
+    }
+    if !matches!(state.qgis_project, LoadState::NotRequested) {
+        return qgis::render(&state.qgis_project);
+    }
+    if !matches!(state.document_tree, LoadState::NotRequested) {
+        return document::render(&state.document_tree, state.selection, state.document_offset);
+    }
+    if !matches!(state.artifact_page, LoadState::NotRequested) {
+        return artifacts::render(&state.artifact_page, &state.artifact_members);
+    }
+    if !matches!(state.spreadsheet_page, LoadState::NotRequested) {
+        return spreadsheet::render(&state.spreadsheet_page);
+    }
+    if !matches!(state.spreadsheet_cell, LoadState::NotRequested) {
+        return spreadsheet::render_cell(&state.spreadsheet_cell);
+    }
     render_load_state("Overview", &state.inspector, |model, output| {
         append_value(output, &format!("Entity: {}", model.entity));
         if let Some(revision) = model.revision {
@@ -115,6 +167,12 @@ pub(super) fn history(state: &TuiState) -> String {
                     row.result
                 ),
             );
+            if let Some(operation) = &row.semantic_operation {
+                append_value(output, &format!("  Operation: {operation}"));
+            }
+            if let Some(candidate) = &row.source_change_id {
+                append_value(output, &format!("  Candidate: {candidate}"));
+            }
             for (entity, revision) in row.entities.iter().take(32) {
                 append_value(
                     output,

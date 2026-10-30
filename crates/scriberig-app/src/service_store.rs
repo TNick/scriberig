@@ -4,7 +4,7 @@ use crate::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult,
 };
 use scriberig_query::{
-    CollectionRef, EntityInSnapshot, Inspection, NavigationEntry, Page, TargetRef,
+    CollectionRef, EntityInSnapshot, Inspection, NavigationEntry, Page, ReadCapability, TargetRef,
 };
 use scriberig_store::{RevisionStore, RootStore, SnapshotStore};
 
@@ -147,6 +147,10 @@ where
                 },
             }));
         };
+        let relation_source = match request.target {
+            TargetRef::Snapshot(target) => Some(target.entity),
+            TargetRef::Revision(_) => None,
+        };
         let (subject, revision_id, snapshot) = match request.target {
             TargetRef::Snapshot(target) => {
                 let revision = self
@@ -167,6 +171,23 @@ where
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: revision_id.to_string(),
             })?;
+        let relations = match (snapshot, relation_source) {
+            (Some(snapshot), Some(source)) => self
+                .store
+                .relations(snapshot)
+                .map_err(|error| storage_snapshot_error(&error))?
+                .into_iter()
+                .filter(|relation| relation.from == source)
+                .map(|relation| relation.relation_type.to_string())
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .map(|relation_type| ReadCapability {
+                    id: relation_type.clone(),
+                    description: format!("Follow outgoing {relation_type} relations"),
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
         Ok(ApplicationResult::Inspect(Inspection {
             subject,
             snapshot,
@@ -176,7 +197,7 @@ where
             description: None,
             properties: Vec::new(),
             counts: Vec::new(),
-            relations: Vec::new(),
+            relations,
             collections: Vec::new(),
             views: Vec::new(),
             operations: Vec::new(),

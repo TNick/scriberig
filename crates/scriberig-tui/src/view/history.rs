@@ -17,6 +17,8 @@ pub struct HistoryRow {
     pub workspace: Option<String>,
     /// Accepted project source change that produced the result snapshot.
     pub source_change_id: Option<String>,
+    /// Semantic operation recorded by the source change, when known.
+    pub semantic_operation: Option<String>,
 }
 
 /// Bounded history projection for one exact snapshot context.
@@ -53,6 +55,7 @@ impl HistoryModel {
                     .collect(),
                 workspace: migration.workspace.clone(),
                 source_change_id: migration.source_change_id.clone(),
+                semantic_operation: migration.semantic_operation.clone(),
             })
             .collect();
         Self { snapshot, rows }
@@ -102,6 +105,7 @@ mod tests {
                 deltas: vec![EntityDelta::new(entity, None, Some(revision)).expect("delta")],
                 workspace: None,
                 source_change_id: Some("candidate-php".to_owned()),
+                semantic_operation: Some("php.add_adapter".to_owned()),
             }]),
             rendered: None,
             validation: None,
@@ -114,6 +118,10 @@ mod tests {
         assert_eq!(
             model.rows[0].source_change_id.as_deref(),
             Some("candidate-php")
+        );
+        assert_eq!(
+            model.rows[0].semantic_operation.as_deref(),
+            Some("php.add_adapter")
         );
         assert_eq!(
             model.selection(0, 0),

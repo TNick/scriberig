@@ -16,6 +16,7 @@ const DEPTH_COLORS = ["#4f46e5", "#0891b2", "#16a34a", "#d97706"];
  * @param props.presentation Client-local display choices.
  * @param props.onLoadMore Called when another page is requested.
  * @param props.onNavigate Called when a durable handle is opened.
+ * @param props.onReviewCandidate Called for a project candidate handle.
  * @param props.onLoadModelRequest Loads one previously captured request.
  * @param props.onLoadToolResult Loads expanded detail for one durable result.
  * @returns The rendered activity list.
@@ -27,12 +28,15 @@ export function BranchActivityView({
   onNavigate,
   onLoadModelRequest,
   onLoadToolResult,
+  onReviewCandidate,
   transientItems = [],
 }: {
   page: BranchActivityPage;
   presentation?: AgentPresentationPreferences;
   onLoadMore?: (cursor: string) => void;
   onNavigate?: (handle: string) => void;
+  /** Opens shared review for one durable project candidate. */
+  onReviewCandidate?: (candidate: string) => void;
   onLoadModelRequest?: (
     session: string,
     branch: string,
@@ -216,11 +220,24 @@ export function BranchActivityView({
                   ) : null}
                   {item.handles.length > 0 ? (
                     <small>
-                      {item.handles.map((handle) => (
-                        <button key={handle} type="button" onClick={() => onNavigate?.(handle)}>
-                          Open {handle}
-                        </button>
-                      ))}
+                      {item.handles.map((handle) => {
+                        const candidate = handle.startsWith("candidate:")
+                          ? handle.slice("candidate:".length)
+                          : undefined;
+                        return candidate !== undefined && onReviewCandidate !== undefined ? (
+                          <button
+                            key={handle}
+                            type="button"
+                            onClick={() => onReviewCandidate(candidate)}
+                          >
+                            Review candidate {candidate}
+                          </button>
+                        ) : (
+                          <button key={handle} type="button" onClick={() => onNavigate?.(handle)}>
+                            Open {handle}
+                          </button>
+                        );
+                      })}
                     </small>
                   ) : null}
                 </div>

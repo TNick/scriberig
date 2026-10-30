@@ -345,6 +345,12 @@ impl TuiPty {
             );
         }
         command.args(["tui", "--db", database.to_str().expect("database path")]);
+        if scenario == Some("self_hosting_php") {
+            command.args(["--debug", "--log-file"]);
+            command.arg(fixture.join("tui-debug.log"));
+            command.env("RUST_LOG", "info");
+            command.env("SCRIBE_LOG_FILE", fixture.join("agent-trace.log"));
+        }
         if let Some(project_path) = project.path {
             command.args(["--project", project_path.to_str().expect("project path")]);
             if project.import {

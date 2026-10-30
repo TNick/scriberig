@@ -6,8 +6,10 @@ use scriberig_app::{
     OperationId, OperationKind, OperationProvider, OperationRecord, OperationStatus,
     SnapshotSelector, StoreInspectionBackend, StoreOperationProvider,
 };
-use scriberig_core::{EntityId, RevisionId, RootName, SnapshotId};
-use scriberig_store::{RootStore, SnapshotChange, SnapshotStore};
+use scriberig_core::{EntityId, ObjectType, RevisionId, RootName, SnapshotId};
+use scriberig_store::{
+    RootStore, SnapshotChange, SnapshotRelation, SnapshotRelationChange, SnapshotStore,
+};
 use scriberig_store_memory::MemoryStore;
 use sr_change::{Migration, Provenance, SourceKind};
 use std::collections::BTreeMap;
@@ -265,117 +267,5 @@ fn storage_history_derives_snapshot_transition() {
     );
 }
 
-/// Verifies apply is candidate-only while commit performs root promotion.
-#[test]
-fn storage_apply_and_commit_keep_promotion_explicit() {
-    let store = MemoryStore::new();
-    let snapshot = store.empty_snapshot();
-    let migration = Migration::new(
-        snapshot,
-        snapshot,
-        Vec::new(),
-        Vec::new(),
-        Provenance {
-            source: SourceKind::User,
-            actor: None,
-            workspace: None,
-            projection: None,
-            validation: Vec::new(),
-            parents: Vec::new(),
-            metadata: BTreeMap::new(),
-        },
-    )
-    .expect("migration");
-    let provider = StoreOperationProvider::new(store);
-    assert!(provider.register_migration("empty", migration));
-    let applied = provider
-        .apply(
-            &ApplicationContext::empty(),
-            &scriberig_app::ApplyRequest {
-                base_snapshot: snapshot,
-                branch: None,
-                change: "empty".to_owned(),
-            },
-        )
-        .expect("apply");
-    assert_eq!(applied.snapshot, Some(snapshot));
-    assert!(
-        provider
-            .store()
-            .read_root(&RootName::new("main").expect("root"))
-            .is_none()
-    );
-    provider
-        .store()
-        .set_root(RootName::new("main").expect("root"), snapshot)
-        .expect("seed root");
-    let committed = provider
-        .commit(
-            &ApplicationContext::empty(),
-            &scriberig_app::CommitRequest {
-                base_snapshot: snapshot,
-                branch: None,
-                change: "empty".to_owned(),
-            },
-        )
-        .expect("commit");
-    assert_eq!(committed.snapshot, Some(snapshot));
-}
-
-/// Verifies registered migrations remain readable as exact proposal details.
-#[test]
-fn storage_migration_detail_is_snapshot_bound() {
-    let store = MemoryStore::new();
-    let base = store.empty_snapshot();
-    let result = SnapshotId::new([9; 32]);
-    let migration = Migration::new(
-        base,
-        result,
-        vec![
-            sr_change::EntityDelta::new(
-                scriberig_core::EntityId::from_bytes([1; 16]),
-                Some(RevisionId::new([2; 32])),
-                Some(RevisionId::new([3; 32])),
-            )
-            .expect("delta"),
-        ],
-        Vec::new(),
-        Provenance {
-            source: SourceKind::User,
-            actor: None,
-            workspace: None,
-            projection: None,
-            validation: Vec::new(),
-            parents: Vec::new(),
-            metadata: BTreeMap::new(),
-        },
-    )
-    .expect("migration");
-    let provider = StoreOperationProvider::new(store);
-    assert!(provider.register_migration("proposal-1", migration));
-    let detail = provider
-        .migration_detail("proposal-1")
-        .expect("migration detail");
-    assert_eq!(detail.base, base);
-    assert_eq!(detail.result, result);
-    assert_eq!(detail.deltas.len(), 1);
-}
-
-/// Verifies branch creation persists the requested named root.
-#[test]
-fn storage_branch_creates_requested_root() {
-    let store = MemoryStore::new();
-    let snapshot = store.empty_snapshot();
-    let provider = StoreOperationProvider::new(store);
-    let branch = RootName::new("feature").expect("branch");
-    provider
-        .branch(
-            &ApplicationContext::empty(),
-            &scriberig_app::BranchRequest {
-                base: SnapshotSelector::Exact(snapshot),
-                name: branch.clone(),
-            },
-        )
-        .expect("branch");
-    assert_eq!(provider.store().read_root(&branch), Some(snapshot));
-}
+#[path = "operation_model/candidate_application.rs"]
+mod candidate_application;

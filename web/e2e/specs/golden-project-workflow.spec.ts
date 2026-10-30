@@ -84,6 +84,25 @@ test("WEB-GOLDEN-02 selects add and shows actual Rust source", async ({ page, di
   expectHealthyBrowser(diagnostics);
 });
 
+test("WEB-GOLDEN-STYLE-01 resolves and updates a personal source style", async ({
+  page,
+  diagnostics,
+}) => {
+  await importFixture(page, "golden-web-style");
+  await page.getByRole("button", { name: /add · rust\.method/ }).click();
+  await page.getByRole("button", { name: "projection", exact: true }).click();
+
+  const controls = page.getByRole("region", { name: "Projection style controls" });
+  await expect(controls).toContainText("rust-source-style");
+  await expect(controls).toContainText("losslessEditable");
+  await controls
+    .getByRole("textbox", { name: "Personal style input" })
+    .fill("indent=tabs,indent-width=2");
+  await controls.getByRole("button", { name: "Save personal style" }).click();
+  await expect(controls).toContainText("user-preference", { timeout: 10_000 });
+  expectHealthyBrowser(diagnostics);
+});
+
 test("WEB-GOLDEN-03 reviews and validates a candidate without write-through", async ({
   page,
   diagnostics,

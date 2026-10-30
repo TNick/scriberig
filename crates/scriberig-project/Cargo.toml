@@ -21,15 +21,28 @@ scriberig-domain-rust = { path = "../domains/scriberig-domain-rust" }
 scriberig-domain-text = { path = "../domains/scriberig-domain-text" }
 scriberig-domain-data = { path = "../domains/scriberig-domain-data" }
 scriberig-domain-binary = { path = "../domains/scriberig-domain-binary" }
+scriberig-domain-xlsx = { path = "../domains/scriberig-domain-xlsx" }
+scriberig-domain-spreadsheet = { path = "../domains/scriberig-domain-spreadsheet" }
+scriberig-domain-dxf = { path = "../domains/scriberig-domain-dxf" }
+scriberig-domain-cad = { path = "../domains/scriberig-domain-cad" }
+scriberig-domain-docx = { path = "../domains/scriberig-domain-docx" }
+scriberig-domain-document = { path = "../domains/scriberig-domain-document" }
+scriberig-domain-qgis = { path = "../domains/scriberig-domain-qgis" }
+scriberig-domain-geo = { path = "../domains/scriberig-domain-geo" }
 scriberig-store = { path = "../scriberig-store" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 sr-markdown = { path = "../sr-markdown" }
 sr-projection-fs = { path = "../sr-projection-fs" }
 serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 syn = { version = "2.0.110", features = ["full"] }
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
 
 [lints]
 workspace = true
 
 [dev-dependencies]
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
+rxls = { version = "=0.1.4", default-features = false, features = ["xlsx"] }
+dxf = "=0.6.2"
+rusqlite = { version = "0.40.2", features = ["bundled", "serialize"] }

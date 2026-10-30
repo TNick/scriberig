@@ -44,6 +44,10 @@ impl SqliteStore {
         }
         for snapshot_id in &report.unreachable.snapshots {
             transaction.execute(
+                "DELETE FROM snapshot_relations WHERE snapshot_id=?",
+                params![snapshot_id.as_bytes().as_slice()],
+            )?;
+            transaction.execute(
                 "DELETE FROM snapshot_entries WHERE snapshot_id=?",
                 params![snapshot_id.as_bytes().as_slice()],
             )?;

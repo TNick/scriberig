@@ -18,6 +18,8 @@ pub(crate) mod server_session_operations;
 #[macro_use]
 #[path = "server_plan_operations.rs"]
 mod server_plan_operations;
+#[path = "server_spreadsheet.rs"]
+mod server_spreadsheet;
 
 use scriberig_app::{
     ApplicationContext, ApplicationError, ApplicationEvent, ApplicationRequest, ApplyRequest,
@@ -30,9 +32,52 @@ use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryRes
 #[macro_use]
 #[path = "server_recovery_contract.rs"]
 mod recovery_contract;
+#[macro_use]
+#[path = "server_document_contract.rs"]
+mod document_contract;
+#[macro_use]
+#[path = "server_cad_contract.rs"]
+mod cad_contract;
+#[macro_use]
+#[path = "server_rich_artifact_contract.rs"]
+mod rich_artifact_contract;
+#[macro_use]
+#[path = "server_spreadsheet_rename_contract.rs"]
+mod spreadsheet_rename_contract;
+#[macro_use]
+#[path = "server_projection_style_contract.rs"]
+mod projection_style_contract;
+
+#[macro_use]
+#[path = "server_events_contract.rs"]
+mod server_events_contract;
 
 /// Application semantics supplied to protocol dispatch.
 pub trait ApplicationService {
+    document_edit_contract!();
+    shared_rich_artifact_contract!();
+    shared_cad_contract!();
+    spreadsheet_rename_contract!();
+    server_projection_style_contract!();
+
+    /// Creates a project service configured with this host's injected providers.
+    ///
+    /// Product routes use this factory instead of constructing project services
+    /// directly, preserving one provider configuration for scans, imports, and
+    /// artifact fidelity.
+    ///
+    /// # Parameters
+    /// - `store`: Durable project catalog and semantic store.
+    ///
+    /// # Returns
+    /// A project service for the current server application.
+    fn project_service(
+        &self,
+        store: std::sync::Arc<scriberig_store_sqlite::SqliteStore>,
+    ) -> scriberig_project::ProjectService {
+        scriberig_project::ProjectService::new(store)
+    }
+
     /// Reads canonical detail for one migration proposal.
     ///
     /// - `_context`: Trusted request context.
@@ -79,6 +124,26 @@ pub trait ApplicationService {
     /// # Returns
     /// The operation result.
     fn capabilities(&self) -> Vec<RuntimeCapability>;
+
+    /// Reports provider-neutral CAD format capabilities available on this server.
+    ///
+    /// Hosts with injected providers should override this method with their actual
+    /// initialized provider descriptors. The default reports DWG as unavailable.
+    ///
+    /// # Returns
+    /// Server-side CAD provider state; this is independent of client machine libraries.
+    fn cad_provider_capabilities(&self) -> Vec<scriberig_protocol::CadProviderCapabilityInfo> {
+        vec![scriberig_protocol::CadProviderCapabilityInfo {
+            format: scriberig_protocol::CadProviderFormat::Dwg,
+            availability: scriberig_protocol::CadProviderAvailability::Unavailable,
+            provider_id: None,
+            provider_version: None,
+            can_read: false,
+            can_write: false,
+            can_validate: false,
+            opaque_preservation: scriberig_protocol::CadOpaquePreservation::Unproven,
+        }]
+    }
 
     /// Reads one compact durable session tree.
     ///
@@ -300,29 +365,7 @@ pub trait ApplicationService {
         })
     }
 
-    /// Returns public events after a reconnect cursor.
-    ///
-    /// - `event_kinds`: Event kind filters.
-    /// - `after`: Last cursor already processed by the caller.
-    ///
-    /// Retained events newer than `after`.
-    ///
-    /// Returns an error when the replay cursor is no longer retained.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn events_after(
-        &self,
-        event_kinds: &[String],
-        after: u64,
-    ) -> Result<Vec<Event>, ApplicationError> {
-        Ok(self
-            .events(event_kinds)?
-            .into_iter()
-            .filter(|event| event.sequence > after)
-            .collect())
-    }
+    server_events_contract!();
 
     server_query_contract!();
 }

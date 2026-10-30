@@ -1,6 +1,7 @@
 /** @file Defines long-running operations and exhaustive public events. */
 import type { BranchId, EntityId, OperationId, SessionId, SnapshotId } from "./ids";
 import type { SessionActivityItem } from "./sessions";
+import type { ProjectionAnchor } from "./query";
 /** Typed semantic mutation sent through the stable command envelope. */
 export interface DomainOperationCommand {
   capability: string;
@@ -8,6 +9,7 @@ export interface DomainOperationCommand {
   snapshot: { id: SnapshotId };
   revision?: string;
   branch?: string;
+  projectionAnchor?: ProjectionAnchor;
   arguments: Record<string, string | number | boolean>;
 }
 type AgentActivityKind = SessionActivityItem["kind"];

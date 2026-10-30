@@ -9,6 +9,29 @@ use crate::{ProjectError, ProjectService};
 mod candidate_support;
 use candidate_support::{candidate_id, validate_project};
 
+#[path = "candidate_validation_digest.rs"]
+mod validation_digest;
+pub(crate) use validation_digest::candidate_validation_digest;
+
+/// Loads source files visible in one exact candidate base snapshot.
+///
+/// - `store`: Shared project storage.
+/// - `project`: Owning project.
+/// - `snapshot`: Exact source snapshot.
+///
+/// # Returns
+/// Deterministically ordered source records.
+///
+/// # Errors
+/// Returns an error when snapshot source evidence is inconsistent.
+pub(crate) fn project_files_at(
+    store: &scriberig_store_sqlite::SqliteStore,
+    project: scriberig_core::ProjectId,
+    snapshot: scriberig_core::SnapshotId,
+) -> Result<Vec<scriberig_store_sqlite::ProjectFileRecord>, ProjectError> {
+    base::project_files_at(store, project, snapshot)
+}
+
 #[path = "candidate_aggregate.rs"]
 mod aggregate;
 #[path = "candidate_apply.rs"]
@@ -43,6 +66,30 @@ pub enum CandidateValidation {
     },
 }
 
+/// Summarizes durable aggregate and per-path state after candidate materialization.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectMaterializationReceipt {
+    /// Candidate whose source effects were attempted.
+    pub candidate: String,
+    /// Durable aggregate effect state.
+    pub state: String,
+    /// Aggregate recovery diagnostic, when present.
+    pub diagnostic: Option<String>,
+    /// Durable receipts for each affected project-relative source path.
+    pub paths: Vec<ProjectMaterializationPath>,
+}
+
+/// Describes the durable materialization state for one candidate path.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectMaterializationPath {
+    /// Exact project-relative source path.
+    pub path: String,
+    /// Durable state such as applied, failed, conflict, or not attempted.
+    pub state: String,
+    /// Safe path-level recovery diagnostic, when present.
+    pub diagnostic: Option<String>,
+}
+
 /// Immutable source candidate proposed against an exact project snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectCandidate {
@@ -54,6 +101,12 @@ pub struct ProjectCandidate {
     pub base_snapshot: SnapshotId,
     /// Selected semantic entity.
     pub entity: EntityId,
+    /// Stable semantic operation that created this candidate, when domain-known.
+    pub semantic_operation: Option<String>,
+    /// Exact semantic entity targeted by the operation, when domain-known.
+    pub semantic_target: Option<EntityId>,
+    /// Bounded typed semantic before/after changes for domain-aware review.
+    pub semantic_changes: Vec<SemanticCandidateChange>,
     /// Project-relative source path.
     pub path: String,
     /// Source bytes at candidate creation.
@@ -66,6 +119,21 @@ pub struct ProjectCandidate {
     pub validation: CandidateValidation,
     /// Most recent validation profile applied to this exact candidate.
     pub validation_profile: Option<String>,
+    /// Exact aggregate output bytes accepted by the most recent passing validation.
+    pub validation_digest: Option<[u8; 32]>,
+}
+
+/// Describes one typed semantic value changed by a durable candidate.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct SemanticCandidateChange {
+    /// Semantic entity whose value changed.
+    pub target: EntityId,
+    /// Stable domain property key, such as `cell.value`.
+    pub property: String,
+    /// Exact prior semantic value represented as JSON data.
+    pub before: serde_json::Value,
+    /// Proposed semantic value represented as JSON data.
+    pub after: serde_json::Value,
 }
 
 /// Describes a project-relative source change and its exact base precondition.
@@ -77,6 +145,11 @@ pub struct ProjectSourceEffect {
     pub kind: ProjectSourceEffectKind,
     /// Exact prior bytes for updates and deletes.
     pub old: Option<Vec<u8>>,
+    /// Exact live bytes required before materialization when rebasing an external edit.
+    ///
+    /// `None` uses `old`; a value preserves the canonical base in `old` while
+    /// independently binding the externally observed filesystem state.
+    pub observed: Option<Vec<u8>>,
     /// Proposed bytes for creates and updates.
     pub new: Option<Vec<u8>>,
 }
@@ -191,22 +264,30 @@ impl ProjectService {
         let new = text.into_bytes();
         let old = file.bytes;
         let path = file.relative_path;
+        let effect = ProjectSourceEffect {
+            path: path.clone(),
+            kind: ProjectSourceEffectKind::Update,
+            old: Some(old.clone()),
+            observed: None,
+            new: Some(new.clone()),
+        };
+        let validation_digest = matches!(&validation, super::CandidateValidation::Passed)
+            .then(|| candidate_validation_digest(std::slice::from_ref(&effect)));
         let candidate = ProjectCandidate {
             id,
             project,
             base_snapshot: workspace.snapshot,
             entity,
+            semantic_operation: None,
+            semantic_target: None,
+            semantic_changes: Vec::new(),
             path: path.clone(),
             old: old.clone(),
             new: new.clone(),
-            effects: vec![ProjectSourceEffect {
-                path,
-                kind: ProjectSourceEffectKind::Update,
-                old: Some(old),
-                new: Some(new),
-            }],
+            effects: vec![effect],
             validation,
             validation_profile: None,
+            validation_digest,
         };
         self.store
             .put_project_candidate(&candidate.record())
@@ -237,6 +318,51 @@ impl ProjectService {
             &self.project_path(record.project)?.join(&record.path),
         )?;
         Self::candidate_from_record(record).map(Some)
+    }
+
+    /// Reads durable aggregate and per-path materialization state for a candidate.
+    ///
+    /// # Parameters
+    /// - `id`: Stable candidate identity.
+    ///
+    /// # Returns
+    /// Recovery receipts when materialization has started, otherwise `None`.
+    ///
+    /// # Errors
+    /// Returns storage, candidate decoding, or project path validation errors.
+    pub fn materialization_receipt(
+        &self,
+        id: &str,
+    ) -> Result<Option<ProjectMaterializationReceipt>, ProjectError> {
+        if self.candidate(id)?.is_none() {
+            return Ok(None);
+        }
+        let aggregate = self
+            .store
+            .project_effect(id)
+            .map_err(crate::errors::storage_error)?;
+        let paths = self
+            .store
+            .project_effect_paths(id)
+            .map_err(crate::errors::storage_error)?;
+        if aggregate.is_none() && paths.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(ProjectMaterializationReceipt {
+            candidate: id.to_owned(),
+            state: aggregate
+                .as_ref()
+                .map_or_else(|| "unknown".to_owned(), |effect| effect.state.clone()),
+            diagnostic: aggregate.and_then(|effect| effect.diagnostic),
+            paths: paths
+                .into_iter()
+                .map(|receipt| ProjectMaterializationPath {
+                    path: receipt.path,
+                    state: receipt.state,
+                    diagnostic: receipt.diagnostic,
+                })
+                .collect(),
+        }))
     }
 
     /// Converts durable candidate storage data into a public candidate.

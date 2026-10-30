@@ -13,12 +13,14 @@ use scriberig_app::{
 };
 use scriberig_core::{EntityId, SnapshotId};
 use sr_projection::{
-    ProjectionAdapter, ProjectionCapabilities, ProjectionKind, ProjectionRef, ProjectionResult,
-    RenderRequest, RenderedProjection, StyleRef, StyleSourceKind, StyleValue,
+    FidelityAssessment, ProjectionAdapter, ProjectionAdapterIdentity, ProjectionCapabilities,
+    ProjectionKind, ProjectionRef, ProjectionResult, ProjectionSpecRef, ReconciliationBaseline,
+    RenderRequest, RenderedProjection, RendererVersion, RenderingContext, ResolvedStyle,
+    SemanticScopeRef, SemanticStateRef, StyleSourceKind, StyleValue,
 };
 use sr_projection_fs::{
     FileSystem as _, LocalFileSystem, MemorySyncStore, ProjectionLocation, ProjectionOwnership,
-    SyncCoordinator, SyncState, digest_bytes,
+    SyncCoordinator, SyncState,
 };
 
 use fixture::{RecordingBackend, context_for, fields, kind, service};
@@ -92,24 +94,35 @@ fn coordinator(
     ownership: ProjectionOwnership,
 ) -> SyncCoordinator<LocalFileSystem> {
     let mut states = MemorySyncStore::default();
-    states.put(SyncState {
-        projection: projection(),
-        specification: sr_projection::ProjectionSpecRef(EntityId::from_bytes([12; 16])),
-        scope: sr_projection::SemanticScopeRef {
+    let projection = projection();
+    let base = SemanticStateRef(SnapshotId::new([14; 32]));
+    let request = RenderRequest {
+        specification: ProjectionSpecRef(EntityId::from_bytes([12; 16])),
+        scope: SemanticScopeRef {
             entity: EntityId::from_bytes([13; 16]),
             revision: None,
         },
+        base_state: base,
         kind: kind(),
-        location: ProjectionLocation::new(path),
+        style: ResolvedStyle::inline(StyleValue::new(Vec::new())),
+        renderer: RendererVersion::new("test"),
+        context: RenderingContext::default(),
+    };
+    let baseline = ReconciliationBaseline::from_render(
+        &request,
+        Some(projection),
+        b"seed".to_vec(),
+        ProjectionAdapterIdentity::new("test-adapter", "1").expect("adapter identity"),
+        FidelityAssessment::lossless(),
+    );
+    states.put(SyncState::new(
+        projection,
+        baseline,
+        ProjectionLocation::new(path),
         ownership,
-        base: sr_projection::SemanticStateRef(SnapshotId::new([14; 32])),
-        current: sr_projection::SemanticStateRef(SnapshotId::new([15; 32])),
-        style: StyleRef::Value(StyleValue::new(Vec::new())),
-        renderer: sr_projection::RendererVersion::new("test"),
-        rendered: digest_bytes(b"seed"),
-        observed: None,
-        status: sr_projection::ProjectionStatus::Synchronized,
-    });
+        SemanticStateRef(SnapshotId::new([15; 32])),
+        sr_projection::ProjectionStatus::Synchronized,
+    ));
     SyncCoordinator::new(LocalFileSystem, states)
 }
 
@@ -228,11 +241,8 @@ fn materialization_writes_workspace_policy_bytes_to_disk() {
 
     let state = recorded_state(&coordinator);
     assert_eq!(adapter.calls.get(), 1, "exactly one render writes");
-    assert_eq!(
-        state.style,
-        StyleRef::Value(StyleValue::new(written.clone()))
-    );
-    assert_eq!(state.rendered, digest_bytes(&written));
+    assert_eq!(state.baseline.rendered.style.value().as_bytes(), written);
+    assert_eq!(state.baseline.rendered.bytes, written);
 }
 
 /// Verifies a second materialization under a different workspace policy rewrites
@@ -268,8 +278,13 @@ fn a_changed_workspace_policy_rewrites_the_materialized_bytes() {
         Some("tabs")
     );
     assert_eq!(
-        recorded_state(&coordinator).style,
-        StyleRef::Value(StyleValue::new(second)),
+        recorded_state(&coordinator)
+            .baseline
+            .rendered
+            .style
+            .value()
+            .as_bytes(),
+        second,
         "the recorded style must be the one the last render used"
     );
     assert_eq!(adapter.calls.get(), 2, "each materialization renders once");
@@ -364,8 +379,13 @@ fn materialization_refuses_an_unmanaged_location() {
         b"not a scriberig projection"
     );
     assert_eq!(
-        recorded_state(&coordinator).style,
-        StyleRef::Value(StyleValue::new(Vec::new())),
+        recorded_state(&coordinator)
+            .baseline
+            .rendered
+            .style
+            .value()
+            .as_bytes(),
+        Vec::<u8>::new().as_slice(),
         "a refused materialization must not record a style"
     );
 }

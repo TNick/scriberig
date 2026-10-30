@@ -1,7 +1,9 @@
 //! Defines filesystem projection ownership independently of runtime state.
 
+use serde::{Deserialize, Serialize};
+
 /// Declares who may write or import a projected file.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ProjectionOwnership {
     ManagedEditable,
     ManagedReadOnly,

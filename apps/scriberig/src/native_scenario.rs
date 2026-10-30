@@ -133,7 +133,26 @@ impl NativeScenario {
 /// # Returns
 /// An upstream repeating factory step.
 fn scenario_response_step(scenario: Arc<NativeScenario>, model: Model) -> FauxStep {
-    FauxStep::repeating_factory(move |context| scenario.respond(context, &model))
+    FauxStep::repeating_factory(move |context| {
+        let latest_tool = context
+            .messages
+            .iter()
+            .rev()
+            .find_map(|message| match message {
+                rpi_ai::types::Message::ToolResult(result) => {
+                    Some((result.tool_name.as_str(), result.is_error))
+                }
+                _ => None,
+            });
+        tracing::debug!(
+            target: "scriberig::deterministic_provider",
+            message_count = context.messages.len(),
+            latest_tool = latest_tool.map_or("none", |(name, _)| name),
+            latest_tool_error = latest_tool.is_some_and(|(_, is_error)| is_error),
+            "deterministic provider received a request"
+        );
+        scenario.respond(context, &model)
+    })
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 /** @file Creates and persists protocol-valid browser session identities. */
 
-import { newSessionId, type SessionId } from "@scriberig/protocol";
+import { newSessionId } from "@scriberig/model";
+import type { SessionId } from "@scriberig/protocol";
 
 const SESSION_STORAGE_KEY = "scriberig.agent.session";
 

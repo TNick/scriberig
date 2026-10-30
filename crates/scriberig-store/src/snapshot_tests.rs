@@ -1,6 +1,8 @@
 //! Tests private persistent snapshot representation invariants.
 
 use super::{Node, Snapshot, SnapshotDiff, SnapshotError};
+use crate::{SnapshotRelation, SnapshotRelationChange};
+use scriberig_core::TypeId;
 use scriberig_core::{EncodingError, EncodingVersion, EntityId, RevisionId};
 use std::sync::Arc;
 
@@ -76,5 +78,51 @@ fn semantic_diff_is_explicit_and_entity_ordered() {
                 revision: RevisionId::new([1; 32]),
             },
         ]
+    );
+}
+
+/// Confirms typed relations affect snapshot identity and entity deletion removes incident edges.
+#[test]
+fn relation_state_is_snapshot_bound_and_removed_with_entities() {
+    let from = EntityId::from_bytes([4; 16]);
+    let to = EntityId::from_bytes([5; 16]);
+    let relation = SnapshotRelation::new(
+        from,
+        TypeId::new("document.references").expect("relation type"),
+        to,
+    );
+    let base = Snapshot::from_entries(
+        [
+            (from, RevisionId::new([1; 32])),
+            (to, RevisionId::new([2; 32])),
+        ]
+        .into_iter()
+        .collect(),
+    );
+    let related = base.apply_relation_changes([SnapshotRelationChange::Add(relation.clone())]);
+
+    assert_eq!(Snapshot::empty().id(), Snapshot::empty().id());
+    assert_ne!(related.id(), base.id());
+    assert_eq!(
+        related.relations().cloned().collect::<Vec<_>>(),
+        vec![relation.clone()]
+    );
+    assert_eq!(related.without_entity(from).relations().count(), 0);
+    assert_eq!(
+        related
+            .apply([
+                super::SnapshotChange::Remove(from),
+                super::SnapshotChange::Set(from, RevisionId::new([1; 32])),
+            ])
+            .relations()
+            .cloned()
+            .collect::<Vec<_>>(),
+        vec![relation.clone()]
+    );
+    assert_eq!(
+        related
+            .apply_relation_changes([SnapshotRelationChange::Remove(relation)])
+            .id(),
+        base.id()
     );
 }

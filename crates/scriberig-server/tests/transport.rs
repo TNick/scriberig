@@ -12,6 +12,21 @@ use scriberig_protocol::{
 };
 use scriberig_server::{ApplicationService, InProcessTransport};
 
+#[path = "transport/artifact.rs"]
+mod artifact;
+#[path = "transport/cad_provider.rs"]
+mod cad_provider;
+#[path = "transport/document.rs"]
+mod document;
+#[path = "transport/geo.rs"]
+mod geo;
+#[path = "transport/geo_integration.rs"]
+mod geo_integration;
+#[path = "transport/projection_style.rs"]
+mod projection_style;
+#[path = "transport/spreadsheet.rs"]
+mod spreadsheet;
+
 /// Deterministic application fixture used by server/client tests.
 struct Fixture {
     entity: EntityId,

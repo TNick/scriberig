@@ -13,6 +13,17 @@ use scriberig_app::{
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use serde_json::Value;
 
+#[path = "http_artifact_tests.rs"]
+mod artifact_tests;
+#[path = "http_document_tests.rs"]
+mod document_tests;
+#[path = "http_dwg_tests.rs"]
+mod dwg_tests;
+#[path = "http_qgis_tests.rs"]
+mod qgis_tests;
+#[path = "http_spreadsheet_tests.rs"]
+mod spreadsheet_tests;
+
 /// Supplies one migration detail to the HTTP adapter test.
 struct Fixture;
 

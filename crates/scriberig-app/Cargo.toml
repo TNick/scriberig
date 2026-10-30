@@ -15,6 +15,11 @@ scriberig-graph = { path = "../scriberig-graph" }
 scriberig-migration = { path = "../scriberig-migration" }
 sr-projection = { path = "../sr-projection" }
 scriberig-query = { path = "../scriberig-query" }
+scriberig-project = { path = "../scriberig-project" }
+scriberig-domain-geo = { path = "../domains/scriberig-domain-geo" }
+scriberig-domain-cad = { path = "../domains/scriberig-domain-cad" }
+scriberig-domain-spreadsheet = { path = "../domains/scriberig-domain-spreadsheet" }
+scriberig-domain-xlsx = { path = "../domains/scriberig-domain-xlsx" }
 scriberig-session = { path = "../scriberig-session" }
 scriberig-store = { path = "../scriberig-store" }
 sr-change = { path = "../sr-change" }
@@ -26,12 +31,16 @@ rpi-extensions = { workspace = true }
 rpi-model-runtime = { workspace = true }
 
 [dev-dependencies]
+dxf = "=0.6.2"
 scriberig-domain-ecma = { path = "../domains/scriberig-domain-ecma" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
 scriberig-session-sqlite = { path = "../scriberig-session-sqlite", features = ["test-support"] }
 scriberig-style-sqlite = { path = "../scriberig-style-sqlite" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 tempfile = "3"
+rxls = { version = "=0.1.4", default-features = false, features = ["xlsx"] }
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+rusqlite = { version = "0.40.2", features = ["bundled", "serialize"] }
 
 [lints]
 workspace = true

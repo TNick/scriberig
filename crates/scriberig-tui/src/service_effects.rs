@@ -6,12 +6,14 @@ use super::{
     ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult,
     execute_operation_effect,
 };
-use crate::{action::Action, effect::Effect, inspector::InspectorModel, service::TuiService};
+use crate::{action::Action, effect::Effect, service::TuiService};
 use scriberig_core::EntityId;
 use scriberig_session::Session;
 
 #[path = "service_effects_recovery.rs"]
 mod recovery;
+#[path = "service_effects_rich.rs"]
+mod rich;
 
 /// Supplies shared application operations to semantic TUI views.
 pub trait TuiOperationService {
@@ -41,39 +43,11 @@ pub fn execute_effect<S: TuiService>(
     context: &ApplicationContext,
     effect: Effect,
 ) -> Action {
+    let effect = match rich::execute(service, context, effect) {
+        Ok(action) => return action,
+        Err(effect) => *effect,
+    };
     match effect {
-        Effect::InspectEntity {
-            request_id,
-            entity,
-            snapshot,
-        } => match service.inspect_entity(context, entity, snapshot) {
-            Ok(result) => Action::InspectSucceeded {
-                request_id,
-                model: InspectorModel::from_result(result),
-            },
-            Err(error) => Action::InspectFailed {
-                request_id,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            },
-        },
-        Effect::ListExplorer {
-            request_id,
-            entity,
-            snapshot,
-            continuation,
-        } => service
-            .list_explorer(context, entity, snapshot, continuation)
-            .map(|page| Action::ExplorerSucceeded {
-                request_id,
-                rows: page.rows,
-                next: page.next,
-            })
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
         Effect::RequestCapabilities => match service.runtime_capabilities(context) {
             Ok(capabilities) => Action::CapabilitiesLoaded(capabilities),
             Err(error) => Action::InspectFailed {
@@ -343,6 +317,7 @@ pub fn execute_effect<S: TuiService>(
             message: format!("semantic action is not available through this TUI service: {id}"),
         },
         Effect::None => Action::Noop,
+        _ => unreachable!("rich-domain effects are dispatched before this match"),
     }
 }
 

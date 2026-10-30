@@ -22,6 +22,8 @@ impl<B> Clone for ApplicationService<B> {
             extension_component_mailbox: self.extension_component_mailbox.clone(),
             presentation_preferences: std::sync::Arc::clone(&self.presentation_preferences),
             projection_style: self.projection_style.clone(),
+            project_service: self.project_service.clone(),
+            cad_provider_registry: std::sync::Arc::clone(&self.cad_provider_registry),
         }
     }
 }

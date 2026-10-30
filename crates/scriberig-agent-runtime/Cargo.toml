@@ -37,6 +37,7 @@ rpi-extensions = { workspace = true, optional = true }
 async-trait = "0.1"
 tokio = { version = "1", features = ["rt", "macros", "time", "net"] }
 tokio-util = { version = "0.7", features = ["rt"] }
+tracing = "0.1"
 
 [lints]
 workspace = true

@@ -24,6 +24,8 @@ pub struct MigrationReference {
     pub workspace: Option<String>,
     /// Accepted source change producing this result snapshot, when retained.
     pub source_change_id: Option<String>,
+    /// Semantic operation recorded by that source change, when available.
+    pub semantic_operation: Option<String>,
 }
 
 /// Describes one entity revision transition in history.
@@ -287,6 +289,7 @@ mod tests {
             deltas: Vec::new(),
             workspace: None,
             source_change_id: None,
+            semantic_operation: None,
         }
     }
 

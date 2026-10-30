@@ -1,41 +1,67 @@
 //! Coordinates filesystem observation, import scheduling, and resynchronization.
 
 use crate::{FailureStage, FileDigest, ProjectionLocation, ProjectionOwnership};
+use serde::{Deserialize, Serialize};
 use sr_projection::{
-    DiagnosticDetail, DiagnosticKind, DiagnosticStage, ProjectionDiagnostic, ProjectionKind,
-    ProjectionRef, ProjectionSpecRef, ProjectionStatus, RendererVersion, SemanticScopeRef,
-    SemanticStateRef, StyleRef,
+    DiagnosticDetail, DiagnosticKind, DiagnosticStage, ProjectionDiagnostic, ProjectionRef,
+    ProjectionStatus, ReconciliationBaseline, SemanticStateRef,
 };
 
+mod persistence;
+
 /// Runtime synchronization metadata for one filesystem projection.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SyncState {
     /// Projection instance.
     pub projection: ProjectionRef,
-    /// Persistent projection specification reference.
-    pub specification: ProjectionSpecRef,
-    /// Semantic scope represented by the projection.
-    pub scope: SemanticScopeRef,
-    /// Adapter-defined representation kind used for parsing and rendering.
-    pub kind: ProjectionKind,
+    /// Exact synchronized render inputs, output bytes, and fidelity evidence.
+    pub baseline: ReconciliationBaseline,
     /// Physical filesystem location.
     pub location: ProjectionLocation,
     /// Ownership policy for this location.
     pub ownership: ProjectionOwnership,
-    /// Last successfully synchronized semantic base.
-    pub base: SemanticStateRef,
     /// Current canonical semantic state when it differs from the base.
     pub current: SemanticStateRef,
-    /// Exact style input used for the synchronized render.
-    pub style: StyleRef,
-    /// Exact renderer version used for the synchronized render.
-    pub renderer: RendererVersion,
-    /// Last exact rendered-byte digest.
-    pub rendered: FileDigest,
     /// Last observed exact-byte digest, when an observation occurred.
     pub observed: Option<FileDigest>,
+    /// Exact digest of a committed agent write awaiting watcher observation.
+    pub self_write_digest: Option<FileDigest>,
     /// Current synchronization lifecycle status.
     pub status: ProjectionStatus,
+}
+
+impl SyncState {
+    /// Creates a synchronization record from one exact rendered baseline.
+    ///
+    /// - `projection`: Stable projection instance.
+    /// - `baseline`: Exact output and immutable inputs that produced it.
+    /// - `location`: Physical filesystem location.
+    /// - `ownership`: Write/import policy for the location.
+    /// - `current`: Current canonical semantic state.
+    /// - `status`: Initial synchronization lifecycle status.
+    ///
+    /// # Returns
+    /// Synchronization record with no pending observation or self-write suppression.
+    #[must_use]
+    pub fn new(
+        projection: ProjectionRef,
+        baseline: ReconciliationBaseline,
+        location: ProjectionLocation,
+        ownership: ProjectionOwnership,
+        current: SemanticStateRef,
+        status: ProjectionStatus,
+    ) -> Self {
+        Self {
+            projection,
+            baseline,
+            location,
+            ownership,
+            current,
+            observed: None,
+            self_write_digest: None,
+            status,
+        }
+    }
 }
 
 /// Exact three-way input scheduled for domain parsing and reconciliation.
@@ -43,14 +69,8 @@ pub struct SyncState {
 pub struct ImportRequest {
     /// Projection being imported.
     pub projection: ProjectionRef,
-    /// Persistent specification used by the projection.
-    pub specification: ProjectionSpecRef,
-    /// Semantic scope being reconciled.
-    pub scope: SemanticScopeRef,
-    /// Adapter-defined representation kind used for parsing.
-    pub kind: ProjectionKind,
-    /// Last synchronized semantic state.
-    pub base: SemanticStateRef,
+    /// Exact synchronized output and the inputs that produced it.
+    pub baseline: ReconciliationBaseline,
     /// Current canonical semantic state.
     pub current: SemanticStateRef,
     /// Exact external file bytes.
@@ -59,10 +79,6 @@ pub struct ImportRequest {
     pub digest: FileDigest,
     /// External location at observation time.
     pub location: ProjectionLocation,
-    /// Style used by the synchronized base.
-    pub style: StyleRef,
-    /// Renderer version used by the synchronized base.
-    pub renderer: RendererVersion,
 }
 
 /// Result returned by filesystem observation.
@@ -85,6 +101,8 @@ pub enum ImportCompletion {
         bytes: Vec<u8>,
         /// Semantic state that is now synchronized.
         base: SemanticStateRef,
+        /// Exact new output baseline established after successful synchronization.
+        baseline: ReconciliationBaseline,
     },
     /// A validated migration was committed and rendered.
     Committed {
@@ -94,6 +112,8 @@ pub enum ImportCompletion {
         bytes: Vec<u8>,
         /// Semantic state produced by the committed migration.
         base: SemanticStateRef,
+        /// Exact new output baseline established after successful synchronization.
+        baseline: ReconciliationBaseline,
     },
     /// Import failed while retaining retryable external evidence.
     Failed {
@@ -128,7 +148,7 @@ impl ImportCompletion {
             kind: DiagnosticKind::ParseFailure,
             stage: DiagnosticStage::Parse,
             projection: Some(request.projection),
-            scope: Some(request.scope),
+            scope: Some(request.baseline.rendered.cache_key.scope),
             detail: DiagnosticDetail {
                 code: "import-failed".to_owned(),
                 data: Vec::new(),
@@ -149,6 +169,7 @@ impl ImportCompletion {
 #[derive(Clone, Debug, Default)]
 pub struct MemorySyncStore {
     states: Vec<SyncState>,
+    persistence_path: Option<std::path::PathBuf>,
 }
 
 impl MemorySyncStore {

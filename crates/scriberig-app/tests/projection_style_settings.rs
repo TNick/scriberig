@@ -9,6 +9,7 @@ use scriberig_app::{
     ApplicationContext, ApplicationError, ApplicationService, CompatibilityStyleAdapter,
     InMemoryProjectionStyleStore, ProjectionStyleBackend, ProjectionStyleConfiguration,
     ProjectionStyleFidelityRequest, ProjectionStyleSchemaRequest, ProjectionStyleSettingRequest,
+    ProjectionStyleStore, StyleEntryKey, StyleScopeKind,
 };
 use sr_projection::{ProjectionFidelity, ResolvedStyle};
 
@@ -69,6 +70,19 @@ fn style_settings_require_a_trusted_personal_principal() {
     assert!(
         matches!(error, ApplicationError::PermissionDenied { action, .. } if action == "set projection style preference")
     );
+}
+
+/// Rejects a schema-invalid personal style before it reaches persistent settings.
+#[test]
+fn invalid_domain_style_is_rejected_before_storage() {
+    let (service, store, _probe) = service();
+    let invalid = set_style(&[("indentation", "spaces")]);
+    let error = service
+        .set_projection_style_user_preference(&context_for("alice"), &invalid)
+        .expect_err("the domain schema rejects unknown style properties");
+    assert!(matches!(error, ApplicationError::SchemaViolation { .. }));
+    let key = StyleEntryKey::new(StyleScopeKind::User, "alice", kind());
+    assert_eq!(store.read(&key).expect("read setting"), None);
 }
 
 /// Verifies a stale style revision is rejected as a conflict.

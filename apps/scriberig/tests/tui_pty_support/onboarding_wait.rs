@@ -69,9 +69,14 @@ pub(crate) fn wait_for_onboarding(tui: &mut TuiPty, session: scriberig_core::Ent
             .iter()
             .map(|branch| format!("{}:{:?}:{:?}", branch.title, branch.status, branch.outcome))
             .collect();
+        let debug_log = std::fs::read_to_string(tui.fixture_path().join("tui-debug.log"))
+            .unwrap_or_else(|error| format!("debug log unavailable: {error}"));
+        let agent_log = std::fs::read_to_string(tui.fixture_path().join("agent-trace.log"))
+            .unwrap_or_else(|error| format!("agent trace unavailable: {error}"));
         assert!(
             Instant::now() < deadline,
-            "onboarding branch did not complete: {branches:?}"
+            "onboarding branch did not complete: {branches:?}; TUI debug log: {debug_log}; agent trace: {agent_log}; {}",
+            tui.diagnostic()
         );
         std::thread::sleep(Duration::from_millis(50));
     }

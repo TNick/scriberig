@@ -291,7 +291,16 @@ fn validate_snapshots(
                 .push(IntegrityIssue::InvalidSnapshot(snapshot_id));
             continue;
         }
-        let rebuilt = Snapshot::from_entries(entries.clone());
+        let rebuilt = crate::snapshot_relations::attach_relations(
+            connection,
+            snapshot_id,
+            Snapshot::from_entries(entries.clone()),
+        )
+        .map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(format!(
+                "invalid snapshot relation state: {error:?}"
+            ))))
+        })?;
         if rebuilt.id() != snapshot_id {
             report
                 .corrupt

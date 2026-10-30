@@ -2,6 +2,7 @@
 
 pub mod detail;
 pub mod error;
+pub mod extension;
 pub mod find;
 mod graph_query;
 pub mod graph_service;
@@ -16,6 +17,7 @@ pub mod traverse;
 
 pub use detail::{DetailLevel, InformationCost};
 pub use error::{QueryError, ReadOperation};
+pub use extension::{DomainQueryExtension, DomainQueryRegistry, DomainQueryResult};
 pub use find::{FindHit, FindRequest, FindResult, FindService, FindStrategy};
 pub use graph_service::GraphReadService;
 pub use handle::{

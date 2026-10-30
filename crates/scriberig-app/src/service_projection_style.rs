@@ -1,5 +1,6 @@
 //! Implements shared projection style operations for every product surface.
 
+use crate::projection_style::resolver::style_error;
 use crate::projection_style::store::StyleScopeKind;
 use crate::projection_style::{
     EffectiveProjectionStyle, ProjectionStyleBackend, ProjectionStyleFidelityRequest,
@@ -240,7 +241,23 @@ impl<B> ApplicationService<B> {
         key: &StyleEntryKey,
         request: &ProjectionStyleSettingRequest,
     ) -> Result<Option<StoredStyle>, ApplicationError> {
-        match request.style.clone() {
+        let style = request.style.clone().map(|style_value| {
+            if self
+                .projection_style
+                .adapter
+                .style_schema(&key.projection_kind)
+                .is_some()
+            {
+                self.projection_style
+                    .adapter
+                    .normalize(&key.projection_kind, &style_value)
+                    .map_err(|diagnostic| style_error("set projection style", diagnostic))
+            } else {
+                Ok(style_value)
+            }
+        });
+        let style = style.transpose()?;
+        match style {
             Some(style_value) => self
                 .projection_style
                 .store

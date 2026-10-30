@@ -110,6 +110,16 @@ fn agent_capabilities_are_discoverable_before_submission() {
                 .any(|capability| capability.id == expected && capability.available)
         );
     }
+    assert_eq!(value.cad_providers.len(), 1);
+    assert_eq!(
+        value.cad_providers[0].availability,
+        scriberig_protocol::CadProviderAvailability::Unavailable
+    );
+    assert_eq!(
+        value.cad_providers[0].format,
+        scriberig_protocol::CadProviderFormat::Dwg
+    );
+    assert!(!value.cad_providers[0].can_write);
 }
 
 /// Verifies embedded and transport-backed agent results remain deterministic.

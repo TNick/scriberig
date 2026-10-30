@@ -16,8 +16,6 @@ use scriberig_store_sqlite::SqliteStore;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
-use crate::child_runtime::inspect_catalog;
-
 use super::{
     ToolRequest, UpstreamBranchExecution, UpstreamBranchExecutionFailure, broker, delegation,
 };
@@ -76,9 +74,9 @@ where
         ));
     };
 
-    let catalog = inspect_catalog();
-    let capabilities = context.capabilities.clone();
-    let descriptors = catalog.descriptors_for(&capabilities);
+    let projects = scriberig_project::ProjectService::new(Arc::clone(&project_store));
+    let (branch_context, catalog, capabilities, descriptors) =
+        super::selected_geo_scope::catalog_for_branch(&context, &scope, &project_store, &projects);
     let (sender, receiver) = mpsc::unbounded_channel();
     let evidence = Arc::new(Mutex::new(Vec::new()));
     let tools = build_tools(
@@ -92,7 +90,7 @@ where
     let tools = super::plugin_execution::append_plugin_tools(
         tools,
         service,
-        &context,
+        &branch_context,
         invocation.branch,
         &project_store,
         &invocation,
@@ -107,7 +105,7 @@ where
     let broker_evidence = Arc::clone(&evidence);
     let broker_run = broker::dispatch_tools(
         service,
-        &context,
+        &branch_context,
         session,
         scope.clone(),
         project_store,

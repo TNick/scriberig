@@ -66,7 +66,9 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             },
         ) as std::sync::Arc<crate::http::AgentExecutionHandler<&S>>
     });
+    let capabilities = trusted_project_capabilities(state, &request);
     let mut response = Dispatcher::for_principal(&state.service, state.principal.clone())
+        .with_capabilities(capabilities)
         .dispatch_with_runtime_handlers(
             scriberig_protocol::RequestEnvelope {
                 version: scriberig_protocol::ProtocolVersion::default(),
@@ -92,218 +94,86 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
     })
 }
 
-#[allow(
-    clippy::too_many_lines,
-    reason = "keeping the stable HTTP operation mapping in one audited match"
-)]
-/// Decodes one stable operation identifier into a protocol request variant.
+/// Grants local Inspect only when the requested project exists in the host catalog.
 ///
-/// - `operation`: Stable operation identifier from the URL.
-/// - `body`: JSON request payload.
+/// The HTTP server is a single-user local transport: callers cannot submit grants,
+/// and project access is resolved from the host-owned SQLite catalog.
 ///
-/// The corresponding typed protocol request.
+/// - state: Trusted local server state.
+/// - request: Typed request whose project scope may require Inspect.
 ///
-/// Returns a transport status and structured body when decoding fails.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-fn decode_request(
-    operation: &str,
-    body: &str,
-) -> Result<scriberig_protocol::Request, (u16, Value)> {
-    let invalid = |error: serde_json::Error| {
-        (
-            400,
-            json!({"code": "invalid_request", "message": error.to_string()}),
-        )
+/// Host-authorized project capability context, empty for all other cases.
+fn trusted_project_capabilities<S>(
+    state: &HttpState<S>,
+    request: &scriberig_protocol::Request,
+) -> scriberig_app::CapabilityContext {
+    let project = match request {
+        scriberig_protocol::Request::ArtifactInspect(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::ArtifactMembers(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::CadDrawingInspect(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::CadEntities(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::CadBoundsQuery(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::CadLineEdit(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::CadLayerChange(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::SpreadsheetCells(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::SpreadsheetCellInspect(request) => {
+            request.project.parse().ok()
+        }
+        scriberig_protocol::Request::SpreadsheetWorkbook(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::SpreadsheetCellFind(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::SpreadsheetEdit(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::SpreadsheetRangeEdit(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::SpreadsheetRename(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::DocumentParagraphEdit(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::DocumentTableCellEdit(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::DocumentParagraphInsert(request) => {
+            request.project.parse().ok()
+        }
+        scriberig_protocol::Request::DocumentInspect(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::DocumentParagraphFind(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::GeoFeatures(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::GeoFeatureQuery(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::QgisProject(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::QgisLayerRename(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::QgisLayerOrder(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::GeoGeometryEdit(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::GeoAttributeEdit(request) => request.project.parse().ok(),
+        scriberig_protocol::Request::GeoCatalog(request) => request.project.parse().ok(),
+        _ => None,
     };
-    let request = match operation {
-        "inspect" => {
-            scriberig_protocol::Request::Inspect(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "capabilities" => {
-            scriberig_protocol::Request::Capabilities(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "operation" | "operation_status" => scriberig_protocol::Request::OperationStatus(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "cancel" | "cancel_operation" => scriberig_protocol::Request::CancelOperation(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "subscribe" => {
-            scriberig_protocol::Request::Subscribe(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "query" => scriberig_protocol::Request::Query(serde_json::from_str(body).map_err(invalid)?),
-        "list" => scriberig_protocol::Request::List(serde_json::from_str(body).map_err(invalid)?),
-        "find" => scriberig_protocol::Request::Find(serde_json::from_str(body).map_err(invalid)?),
-        "command" => {
-            scriberig_protocol::Request::Command(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "agent_start" => {
-            scriberig_protocol::Request::AgentStart(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "agent_new_session" => scriberig_protocol::Request::AgentNewSession(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "agent_continue" => {
-            scriberig_protocol::Request::AgentContinue(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "agent_continue_at" => scriberig_protocol::Request::AgentContinueAt(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "session" | "session_read" => {
-            scriberig_protocol::Request::SessionRead(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_create" => {
-            scriberig_protocol::Request::PlanCreate(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_lifecycle" => {
-            scriberig_protocol::Request::PlanLifecycle(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_assignment" => scriberig_protocol::Request::PlanAssignment(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "plan_replan" => {
-            scriberig_protocol::Request::PlanReplan(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_mutation" => {
-            scriberig_protocol::Request::PlanMutation(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_attempts" => {
-            scriberig_protocol::Request::PlanAttempts(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_details" => {
-            scriberig_protocol::Request::PlanDetails(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_view" => {
-            scriberig_protocol::Request::PlanView(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "model_request_detail" => scriberig_protocol::Request::ModelRequestDetail(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "tool_result_detail" => scriberig_protocol::Request::ToolResultDetail(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "model_library" => {
-            scriberig_protocol::Request::ModelLibrary(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "agent_presentation_preferences" => {
-            scriberig_protocol::Request::AgentPresentationPreferencesRead(
-                serde_json::from_str(body).map_err(invalid)?,
-            )
-        }
-        "set_agent_presentation_preferences" => {
-            scriberig_protocol::Request::AgentPresentationPreferencesSet(
-                serde_json::from_str(body).map_err(invalid)?,
-            )
-        }
-        "session_model_selection" => scriberig_protocol::Request::SessionModelSelection(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "session_thinking_selection" => scriberig_protocol::Request::SessionThinkingSelection(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "legacy_execution_records" => scriberig_protocol::Request::LegacyExecutionRecords(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "legacy_execution_mapping" => scriberig_protocol::Request::LegacyExecutionMapping(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "legacy_plan_assignment_mapping" => {
-            scriberig_protocol::Request::LegacyPlanAssignmentMapping(
-                serde_json::from_str(body).map_err(invalid)?,
-            )
-        }
-        "project" => {
-            scriberig_protocol::Request::Project(serde_json::from_str(body).map_err(invalid)?)
-        }
-        _ => {
-            return Err((
-                404,
-                json!({
-                    "code": "unsupported_operation",
-                    "message": format!("unknown protocol operation: {operation}"),
-                }),
-            ));
-        }
+    let Some(project) = project else {
+        return scriberig_app::CapabilityContext::default();
     };
-    Ok(request)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::decode_request;
-
-    /// Verifies HTTP operations decode model-library and selection requests.
-    #[test]
-    fn model_library_and_selection_operations_decode() {
-        assert!(matches!(
-            decode_request("model_library", "{}"),
-            Ok(scriberig_protocol::Request::ModelLibrary(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "model_request_detail",
-                r#"{"session":{"id":"session-1"},"branch":{"id":"branch-1"},"invocation":"invocation-1"}"#
-            ),
-            Ok(scriberig_protocol::Request::ModelRequestDetail(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "tool_result_detail",
-                r#"{"session":{"id":"session-1"},"branch":{"id":"branch-1"},"result":"result-1"}"#
-            ),
-            Ok(scriberig_protocol::Request::ToolResultDetail(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "session_model_selection",
-                r#"{"session":{"id":"session-1"},"expected_revision":2,"provider_id":"provider-1","model_id":"model-1"}"#
-            ),
-            Ok(scriberig_protocol::Request::SessionModelSelection(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "session_thinking_selection",
-                r#"{"session":{"id":"session-1"},"expected_revision":3,"thinking_level":"deep-dive"}"#
-            ),
-            Ok(scriberig_protocol::Request::SessionThinkingSelection(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "legacy_execution_records",
-                r#"{"session":{"id":"session-1"}}"#
-            ),
-            Ok(scriberig_protocol::Request::LegacyExecutionRecords(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "legacy_execution_mapping",
-                r#"{"session":{"id":"session-1"},"expected_revision":3,"legacy_path":"/execution","provider_id":"provider-1","model_id":"model-1"}"#
-            ),
-            Ok(scriberig_protocol::Request::LegacyExecutionMapping(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "legacy_plan_assignment_mapping",
-                r#"{"session":{"id":"session-1"},"legacy_path":"/plans/0/nodes/0/assignment","expected_plan_revision":4,"provider_id":"provider-1","model_id":"model-1"}"#
-            ),
-            Ok(scriberig_protocol::Request::LegacyPlanAssignmentMapping(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "plan_attempts",
-                r#"{"session":{"id":"session-1"},"plan":"plan-1","node":"node-1","offset":5,"limit":10}"#
-            ),
-            Ok(scriberig_protocol::Request::PlanAttempts(_))
-        ));
-        assert!(matches!(
-            decode_request(
-                "plan_details",
-                r#"{"session":{"id":"session-1"},"plan":"plan-1","expected_revision":9,"gate_offset":0,"evidence_offset":10,"limit":25}"#
-            ),
-            Ok(scriberig_protocol::Request::PlanDetails(_))
-        ));
+    let Some(store) = &state.project_store else {
+        return scriberig_app::CapabilityContext::default();
+    };
+    if !matches!(store.project(project), Ok(Some(_))) {
+        return scriberig_app::CapabilityContext::default();
     }
+    let actions = match request {
+        scriberig_protocol::Request::SpreadsheetEdit(_)
+        | scriberig_protocol::Request::SpreadsheetRangeEdit(_)
+        | scriberig_protocol::Request::SpreadsheetRename(_)
+        | scriberig_protocol::Request::DocumentParagraphEdit(_)
+        | scriberig_protocol::Request::DocumentTableCellEdit(_)
+        | scriberig_protocol::Request::DocumentParagraphInsert(_)
+        | scriberig_protocol::Request::GeoGeometryEdit(_)
+        | scriberig_protocol::Request::GeoAttributeEdit(_)
+        | scriberig_protocol::Request::QgisLayerRename(_)
+        | scriberig_protocol::Request::QgisLayerOrder(_)
+        | scriberig_protocol::Request::CadLineEdit(_)
+        | scriberig_protocol::Request::CadLayerChange(_) => {
+            std::collections::BTreeSet::from([scriberig_app::CapabilityAction::Propose])
+        }
+        _ => std::collections::BTreeSet::from([scriberig_app::CapabilityAction::Inspect]),
+    };
+    scriberig_app::CapabilityContext::with_grants([scriberig_app::Capability {
+        scope: scriberig_app::CapabilityScope::Custom(format!("project:{project}")),
+        actions,
+        constraints: scriberig_app::CapabilityConstraints::unrestricted(),
+    }])
 }
+
+#[path = "http_protocol_decode.rs"]
+mod request_decoder;
+use request_decoder::decode_request;

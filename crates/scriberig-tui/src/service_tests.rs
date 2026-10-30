@@ -12,6 +12,121 @@ use scriberig_core::{EntityId, SnapshotId};
 struct Fixture;
 
 impl QueryService for Fixture {
+    /// Returns a deterministic empty member page for the shared TUI adapter test.
+    ///
+    /// # Parameters
+    /// - `self`: Query fixture.
+    /// - `_context`: Application request context.
+    /// - `project`: Stable owning project identity.
+    /// - `artifact`: Stable semantic artifact identity.
+    /// - `_offset`: Requested member offset.
+    /// - `_limit`: Maximum number of members.
+    ///
+    /// # Returns
+    /// Empty page with the requested owning identities.
+    ///
+    /// # Errors
+    /// This fixture does not fail member inspection.
+    fn inspect_artifact_members(
+        &self,
+        _context: &ApplicationContext,
+        project: scriberig_core::ProjectId,
+        artifact: EntityId,
+        _offset: usize,
+        _limit: usize,
+    ) -> Result<scriberig_app::ArtifactMembers, ApplicationError> {
+        Ok(scriberig_app::ArtifactMembers {
+            project,
+            artifact,
+            members: Vec::new(),
+            total: 0,
+            next_offset: None,
+        })
+    }
+
+    /// Returns a deterministic bounded artifact page for the TUI service test.
+    ///
+    /// # Parameters
+    /// - `self`: Query fixture.
+    /// - `_context`: Application request context.
+    /// - `project`: Stable project identity.
+    /// - `_offset`: Requested artifact offset.
+    /// - `_limit`: Maximum artifact count.
+    ///
+    /// # Returns
+    /// An empty artifact page for the requested project.
+    ///
+    /// # Errors
+    /// This fixture does not fail artifact inspection.
+    fn inspect_artifacts(
+        &self,
+        _context: &ApplicationContext,
+        project: scriberig_core::ProjectId,
+        _offset: usize,
+        _limit: usize,
+    ) -> Result<scriberig_app::ArtifactManifestPage, ApplicationError> {
+        Ok(scriberig_app::ArtifactManifestPage {
+            project,
+            artifacts: Vec::new(),
+            synchronization: Vec::new(),
+            total: 0,
+            next_offset: None,
+        })
+    }
+
+    /// Returns a deterministic formula page for a local/remote TUI parity test.
+    ///
+    /// # Parameters
+    /// - `self`: Query fixture.
+    /// - `_context`: Application request context.
+    /// - `request`: Exact project, snapshot, worksheet, range, and page bounds.
+    ///
+    /// # Returns
+    /// One snapshot-bound formula cell.
+    ///
+    /// # Errors
+    /// This fixture does not fail spreadsheet inspection.
+    fn read_spreadsheet_cells(
+        &self,
+        _context: &ApplicationContext,
+        request: &scriberig_app::SpreadsheetCellsQuery,
+    ) -> Result<scriberig_app::SpreadsheetCells, ApplicationError> {
+        let snapshot = request.snapshot;
+        let workbook = EntityId::from_bytes([101; 16]);
+        Ok(scriberig_app::SpreadsheetCells {
+            project: request.project,
+            snapshot,
+            page: scriberig_project::SpreadsheetCellPage {
+                snapshot,
+                worksheet: request.worksheet,
+                artifact_capability: None,
+                artifact_diagnostic: None,
+                cells: vec![scriberig_domain_spreadsheet::Cell {
+                    id: scriberig_domain_spreadsheet::CellId::new(
+                        workbook,
+                        request.worksheet,
+                        3,
+                        2,
+                    ),
+                    worksheet: request.worksheet,
+                    row: 3,
+                    column: 2,
+                    value: scriberig_domain_spreadsheet::CellValue::Formula(
+                        scriberig_domain_spreadsheet::Formula {
+                            expression: "=A3*2".to_owned(),
+                            cached_value: Some(Box::new(
+                                scriberig_domain_spreadsheet::CellValue::Number("20".to_owned()),
+                            )),
+                        },
+                    ),
+                    style: None,
+                }],
+                total: 1,
+                has_more: false,
+            },
+        })
+    }
+
     /// Returns a deterministic public inspection result.
     ///
     /// - `_context`: Application context for the inspection.
@@ -279,101 +394,12 @@ fn delegates_public_inspection_contract() {
     assert_eq!(result.snapshot, Some(snapshot));
 }
 
-/// Verifies control effects are translated into explicit reducer actions.
-#[test]
-fn translates_control_effects_without_silent_noops() {
-    let service = ApplicationAdapter::new(Fixture, Vec::new());
-    let context = ApplicationContext::empty();
-    assert_eq!(
-        execute_effect(&service, &context, Effect::RequestQuit),
-        Action::QuitRequested
-    );
-    assert_eq!(
-        execute_effect(&service, &context, Effect::RequestRefresh),
-        Action::RefreshRequested
-    );
-    assert!(matches!(
-        execute_effect(
-            &service,
-            &context,
-            Effect::RequestFind {
-                request_id: 1,
-                text: "term".to_owned(),
-                snapshot: SnapshotId::new([8; 32]),
-            }
-        ),
-        Action::OperationFailed { category, .. } if category == "unsupported_operation"
-    ));
-}
+#[path = "service_tests_plan.rs"]
+mod plan_tests;
 
-/// Verifies node assignment effects use the shared application backend.
-#[test]
-fn delegates_plan_node_assignment_to_shared_session_backend() {
-    let service = ApplicationAdapter::new(Fixture, Vec::new());
-    let session = EntityId::from_bytes([93; 16]);
-    let plan = EntityId::from_bytes([94; 16]);
-    let node = EntityId::from_bytes([95; 16]);
-    let action = execute_effect(
-        &service,
-        &ApplicationContext::empty(),
-        Effect::SetPlanNodeAssignment(scriberig_app::PlanAssignmentRequest {
-            session,
-            plan,
-            node,
-            expected_revision: 2,
-            assignment: None,
-        }),
-    );
-    assert!(matches!(action, Action::PlanUpdated(value) if value.id == plan));
-}
-
-/// Verifies replan effects use the shared application backend.
-#[test]
-fn delegates_structured_plan_revision_to_shared_session_backend() {
-    let service = ApplicationAdapter::new(Fixture, Vec::new());
-    let session = EntityId::from_bytes([97; 16]);
-    let plan = EntityId::from_bytes([98; 16]);
-    let action = execute_effect(
-        &service,
-        &ApplicationContext::empty(),
-        Effect::Replan(scriberig_app::PlanReplanRequest {
-            session,
-            plan,
-            expected_revision: 1,
-            additions: Vec::new(),
-            dependencies: Vec::new(),
-            removed_dependencies: Vec::new(),
-            superseded: Vec::new(),
-            assignment_changes: Vec::new(),
-            preserved_terminal_nodes: Vec::new(),
-            reason: "revise scope".to_owned(),
-        }),
-    );
-    assert!(matches!(action, Action::PlanUpdated(value) if value.id == plan));
-}
-
-/// Routes plan creation effects through the application service adapter.
-#[test]
-fn executes_plan_creation_through_shared_service() {
-    let service = ApplicationAdapter::new(Fixture, Vec::new());
-    let request = scriberig_app::PlanCreateRequest {
-        session: EntityId::from_bytes([92; 16]),
-        anchor: scriberig_session::ContinuationAnchor::BranchHead {
-            branch: EntityId::from_bytes([93; 16]),
-        },
-        goal: "Improve parser".to_owned(),
-        nodes: Vec::new(),
-        dependencies: Vec::new(),
-    };
-
-    let action = execute_effect(
-        &service,
-        &ApplicationContext::empty(),
-        Effect::CreatePlan(request),
-    );
-
-    assert!(matches!(
-        action,
-        Action::PlanUpdated(plan) if plan.goal == "Improve parser"
-    ));
-}
+#[path = "service_tests_artifact.rs"]
+mod artifact_tests;
+#[path = "service_tests_controls.rs"]
+mod control_tests;
+#[path = "service_tests_spreadsheet.rs"]
+mod spreadsheet_tests;

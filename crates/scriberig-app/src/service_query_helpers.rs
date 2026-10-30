@@ -52,6 +52,12 @@ pub(super) fn inspect_result(
             .into_iter()
             .map(|capability| capability.id)
             .chain(inspection.views.into_iter().map(|capability| capability.id))
+            .chain(
+                inspection
+                    .relations
+                    .into_iter()
+                    .map(|capability| capability.id),
+            )
             .collect(),
         trust: None,
     })

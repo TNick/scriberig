@@ -1,12 +1,50 @@
 //! Verifies plan-worker roles follow canonical session branch topology.
 
 use super::PlanWorkerContext;
-use crate::context::BranchRole;
+use crate::context::compact_branch_result;
+use crate::context::{BranchExecutionContext, BranchRole, ContextCompiler, ContextPolicy};
 use scriberig_core::EntityId;
 use scriberig_session::{
-    Branch, ContinuationAnchor, Plan, PlanNode, PlanNodeParent, PlanNodeStatus, Session,
-    WorkerClaim,
+    Branch, BranchResult, BranchStatus, ContinuationAnchor, Plan, PlanNode, PlanNodeParent,
+    PlanNodeStatus, Session, WorkerClaim,
 };
+
+/// Keeps oversized durable branch summaries bounded in compiled worker context.
+#[test]
+fn compiled_plan_context_compacts_large_branch_results() {
+    let result = BranchResult {
+        id: EntityId::from_bytes([41; 16]),
+        branch: EntityId::from_bytes([42; 16]),
+        status: BranchStatus::Completed,
+        summary: Some(format!("{}TAIL_SENTINEL", "x".repeat(4096))),
+        result_kind: Some("plan-worker".to_owned()),
+        candidate_context: None,
+        references: Vec::new(),
+        result_handles: (0..80)
+            .map(|index| match index % 2 {
+                0 => format!("spreadsheet-cell:{index}"),
+                _ => format!("geo-feature:{index}"),
+            })
+            .collect(),
+        touched: Vec::new(),
+        produced_changes: Vec::new(),
+        validations: Vec::new(),
+        unresolved_questions: Vec::new(),
+    };
+    let inputs = BranchExecutionContext::new("session", "worker", "purpose", "instruction")
+        .with_ancestor_result(compact_branch_result(&result));
+    let compiled = ContextCompiler::new(ContextPolicy::default()).compile(&inputs);
+
+    assert!(compiled.canonical.contains("[summary truncated]"));
+    assert!(!compiled.canonical.contains("TAIL_SENTINEL"));
+    assert_eq!(inputs.ancestor_results[0].semantic_handles.len(), 32);
+    assert!(compiled.canonical.contains("spreadsheet-cell:0"));
+    assert!(compiled.canonical.contains("geo-feature:1"));
+    assert!(!compiled.canonical.contains("spreadsheet-cell:78"));
+    assert!(!compiled.canonical.contains("geo-feature:79"));
+    assert!(result.summary.as_ref().unwrap().contains("TAIL_SENTINEL"));
+    assert!(compiled.canonical.chars().count() < 16_000);
+}
 
 #[test]
 #[expect(

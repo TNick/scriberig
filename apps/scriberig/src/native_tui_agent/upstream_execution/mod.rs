@@ -7,6 +7,7 @@ mod execution;
 mod lineage;
 #[cfg(feature = "isolated-plugin-worker")]
 mod plugin_execution;
+mod selected_geo_scope;
 pub(crate) use lineage::completed_root_context_fingerprint;
 use lineage::provider_context_fingerprint;
 #[cfg(feature = "isolated-plugin-worker")]

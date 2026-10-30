@@ -156,7 +156,10 @@ fn import_request_exposes_base_current_and_external() {
         .expect("known projection")
         .import
         .expect("import request");
-    assert_eq!(request.base, SemanticStateRef(SnapshotId::new([2; 32])));
+    assert_eq!(
+        request.baseline.rendered.base_state,
+        SemanticStateRef(SnapshotId::new([2; 32]))
+    );
     assert_eq!(request.current, SemanticStateRef(SnapshotId::new([5; 32])));
     assert_eq!(request.bytes, b"external");
     let _ = fs::remove_dir_all(root);
@@ -182,7 +185,10 @@ fn successful_rerender_establishes_a_new_base() {
         .find(&ProjectionLocation::new(&path))
         .expect("state");
     assert_eq!(state.status, ProjectionStatus::Synchronized);
-    assert_eq!(state.base, SemanticStateRef(SnapshotId::new([6; 32])));
+    assert_eq!(
+        state.baseline.rendered.base_state,
+        SemanticStateRef(SnapshotId::new([6; 32]))
+    );
     assert_eq!(LocalFileSystem.read(&path).expect("read"), b"canonical");
     let _ = fs::remove_dir_all(root);
 }
@@ -204,13 +210,16 @@ fn completed_import_resynchronizes_after_domain_acceptance() {
         .import
         .expect("import request");
     let projection = request.projection;
+    let base = SemanticStateRef(SnapshotId::new([7; 32]));
+    let baseline = request.baseline.with_output(b"canonical".to_vec(), base);
     coordinator
         .complete_import(
             projection,
             ImportCompletion::NoSemanticChange {
                 request,
                 bytes: b"canonical".to_vec(),
-                base: SemanticStateRef(SnapshotId::new([7; 32])),
+                base,
+                baseline,
             },
         )
         .expect("complete import");

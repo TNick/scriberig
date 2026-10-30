@@ -24,16 +24,54 @@ use super::{
 mod server_capabilities;
 use scriberig_protocol::{Event, Operation};
 use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryResult, QuerySpec};
-use server_capabilities::capabilities;
+use server_capabilities::{cad_provider_capability, capabilities};
 #[path = "server_event_cursor.rs"]
 mod server_event_cursor;
 use server_event_cursor::filter_events_after;
+
+#[macro_use]
+#[path = "server_application_spreadsheet.rs"]
+mod spreadsheet_methods;
+#[macro_use]
+#[path = "server_application_document.rs"]
+mod document_methods;
+#[macro_use]
+#[path = "server_application_geo.rs"]
+mod geo_methods;
+#[macro_use]
+#[path = "server_application_projection_style.rs"]
+mod projection_style_methods;
+#[macro_use]
+#[path = "server_application_rich_artifact_methods.rs"]
+mod rich_artifact_methods;
+
+#[macro_use]
+#[path = "server_application_query.rs"]
+mod query_methods;
 
 // Adapt the shared application façade to the protocol server boundary.
 impl<B> ApplicationService for scriberig_app::ApplicationService<B>
 where
     B: scriberig_app::ApplicationBackend,
 {
+    server_application_projection_style_methods!();
+    server_application_rich_artifact_methods!();
+
+    /// Creates a project service using providers configured on the application.
+    ///
+    /// # Parameters
+    /// - `store`: Durable project catalog and semantic store.
+    ///
+    /// # Returns
+    /// A project service carrying the exact host-injected provider registry.
+    fn project_service(
+        &self,
+        store: std::sync::Arc<scriberig_store_sqlite::SqliteStore>,
+    ) -> scriberig_project::ProjectService {
+        self.configured_project_service()
+            .unwrap_or_else(|| scriberig_project::ProjectService::new(store))
+    }
+
     /// Reads migration detail through the shared application façade.
     ///
     /// - `self`: Shared application service.
@@ -75,6 +113,10 @@ where
     ) -> Result<InspectResult, ApplicationError> {
         scriberig_app::QueryService::inspect(self, context, request)
     }
+
+    spreadsheet_methods!();
+    document_methods!();
+    geo_methods!();
 
     /// Reads a compact session tree through the shared session boundary.
     ///
@@ -220,87 +262,18 @@ where
         capabilities()
     }
 
-    /// Executes a structured query through the shared application backend.
-    /// - `context`: Argument named `context`.
-    /// - `request`: Argument named `request`.
+    /// Reports configured CAD providers from the shared application registry.
     ///
-    ///
-    /// Returns an error when the operation cannot complete.
     /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn query(
-        &self,
-        context: &ApplicationContext,
-        request: &QuerySpec,
-    ) -> Result<QueryResult, ApplicationError> {
-        match self.execute(
-            context,
-            &scriberig_app::ApplicationRequest::Query(request.clone()),
-        )? {
-            scriberig_app::ApplicationResult::Query(result) => Ok(result),
-            _ => Err(ApplicationError::Internal {
-                message: "query backend returned a different result kind".to_owned(),
-            }),
-        }
+    /// Provider-neutral status for each configured format and explicit DWG absence.
+    fn cad_provider_capabilities(&self) -> Vec<scriberig_protocol::CadProviderCapabilityInfo> {
+        self.cad_provider_statuses()
+            .into_iter()
+            .map(cad_provider_capability)
+            .collect()
     }
 
-    /// Executes a bounded collection listing through the shared application.
-    ///
-    /// - `context`: Trusted request context.
-    /// - `request`: Snapshot-bound list request.
-    ///
-    /// The application-owned list result.
-    ///
-    /// Returns the shared application failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn list(
-        &self,
-        context: &ApplicationContext,
-        request: &ListRequest,
-    ) -> Result<ListResult, ApplicationError> {
-        match self.execute(
-            context,
-            &scriberig_app::ApplicationRequest::List(request.clone()),
-        )? {
-            scriberig_app::ApplicationResult::List(result) => Ok(result),
-            _ => Err(ApplicationError::Internal {
-                message: "list backend returned a different result kind".to_owned(),
-            }),
-        }
-    }
-
-    /// Executes semantic discovery through the shared application.
-    ///
-    /// - `context`: Trusted request context.
-    /// - `request`: Snapshot-scoped discovery request.
-    ///
-    /// The application-owned discovery result.
-    ///
-    /// Returns the shared application failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn find(
-        &self,
-        context: &ApplicationContext,
-        request: &FindRequest,
-    ) -> Result<FindResult, ApplicationError> {
-        match self.execute(
-            context,
-            &scriberig_app::ApplicationRequest::Find(request.clone()),
-        )? {
-            scriberig_app::ApplicationResult::Find(result) => Ok(result),
-            _ => Err(ApplicationError::Internal {
-                message: "find backend returned a different result kind".to_owned(),
-            }),
-        }
-    }
+    server_application_query_methods!();
 
     /// Reads operation state from the shared application lifecycle registry.
     ///

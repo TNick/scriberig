@@ -19,8 +19,11 @@ mod roots;
 mod schema;
 mod snapshot;
 mod snapshot_integrity;
+mod snapshot_node_store;
+mod snapshot_relations;
 mod storage;
 mod workflow;
+mod workflow_candidates;
 
 use std::path::Path;
 use std::sync::Mutex;
@@ -35,7 +38,7 @@ pub struct SqliteStore {
     connection: Mutex<Connection>,
 }
 
-pub use project_files::{ProjectEntityRecord, ProjectFileRecord};
+pub use project_files::{ProjectEntityRecord, ProjectFileDescriptor, ProjectFileRecord};
 pub use projects::{ProjectRecord, ProjectStatus};
 pub use workflow::{
     ProjectCandidateRecord, ProjectEffectPathRecord, ProjectEffectRecord, ProjectSourceEffectRecord,

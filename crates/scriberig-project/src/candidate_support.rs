@@ -3,12 +3,24 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::atomic::{AtomicBool, Ordering};
-
-use scriberig_core::{EntityId, ProjectId, SnapshotId};
-use scriberig_store_sqlite::ProjectFileRecord;
+use std::sync::atomic::AtomicBool;
 
 use crate::{CandidateValidation, CandidateValidationProfile, ProjectError};
+use scriberig_core::{EntityId, ProjectId, SnapshotId};
+
+#[path = "candidate_support_docx.rs"]
+mod docx_validation;
+#[path = "candidate_support_dxf.rs"]
+mod dxf_validation;
+#[path = "candidate_support/effects_validation.rs"]
+mod effects_validation;
+#[path = "candidate_support_geopackage.rs"]
+mod geopackage_validation;
+#[path = "candidate_support_qgis.rs"]
+mod qgis_validation;
+#[path = "candidate_support_xlsx.rs"]
+mod xlsx_validation;
+pub(super) use effects_validation::validate_effects;
 
 #[path = "candidate_validation_process.rs"]
 mod validation_process;
@@ -174,103 +186,6 @@ fn copy_tree(
     Ok(())
 }
 
-/// Validates a source-effect set in an isolated tree reconstructed from base bytes.
-///
-/// - `files`: Exact project source manifest for the candidate base.
-/// - `effects`: Ordered candidate source effects.
-/// - `candidate_id`: Stable identity used to isolate the validation workspace.
-/// - `profile`: Validation commands and bounds selected for this project.
-/// - `cancelled`: Shared cancellation flag for the owning operation.
-/// - `super`: Parent candidate module visibility.
-///
-/// Candidate validation state with bounded process diagnostics.
-///
-/// Returns cancellation when validation was stopped by its owning operation.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-pub(super) fn validate_effects(
-    candidate_id: &str,
-    files: &[ProjectFileRecord],
-    effects: &[super::ProjectSourceEffect],
-    profile: CandidateValidationProfile,
-    cancelled: &AtomicBool,
-) -> Result<CandidateValidation, ProjectError> {
-    let _lock = match super::validation_lock::acquire(cancelled) {
-        Ok(guard) => guard,
-        Err(super::validation_lock::ValidationLockError::Cancelled) => {
-            return Err(ProjectError {
-                code: "operation_cancelled",
-                message: "candidate validation was cancelled".to_owned(),
-                diagnostics: Vec::new(),
-            });
-        }
-        Err(super::validation_lock::ValidationLockError::Failed(error)) => {
-            return Ok(CandidateValidation::Failed {
-                diagnostics: vec![error],
-            });
-        }
-    };
-    let workspace_id = blake3::hash(candidate_id.as_bytes()).to_hex().to_string();
-    let root = std::env::temp_dir().join(format!("scriberig-project-validation-{workspace_id}"));
-    let target = candidate_target(candidate_id);
-    let _ = fs::remove_dir_all(&root);
-    let result = (|| {
-        if cancelled.load(Ordering::Acquire) {
-            return Err(ProcessFailure::Cancelled);
-        }
-        fs::create_dir_all(&root).map_err(|error| ProcessFailure::Failed(error.to_string()))?;
-        for file in files {
-            if cancelled.load(Ordering::Acquire) {
-                return Err(ProcessFailure::Cancelled);
-            }
-            write_candidate_file(&root, &file.relative_path, &file.bytes)
-                .map_err(ProcessFailure::Failed)?;
-        }
-        for effect in effects {
-            if cancelled.load(Ordering::Acquire) {
-                return Err(ProcessFailure::Cancelled);
-            }
-            let path = safe_join(&root, &effect.path)
-                .map_err(|error| ProcessFailure::Failed(error.message))?;
-            match &effect.new {
-                Some(bytes) => write_candidate_file(&root, &effect.path, bytes)
-                    .map_err(ProcessFailure::Failed)?,
-                None => {
-                    if path.exists() {
-                        fs::remove_file(path)
-                            .map_err(|error| ProcessFailure::Failed(error.to_string()))?;
-                    }
-                }
-            }
-        }
-        run_candidate_cargo(&root, &target, profile, cancelled)
-    })();
-    let _ = fs::remove_dir_all(&root);
-    match result {
-        Ok(diagnostics) if diagnostics.is_empty() => Ok(CandidateValidation::Passed),
-        Ok(diagnostics) => {
-            let _ = fs::remove_dir_all(&target);
-            Ok(CandidateValidation::Failed { diagnostics })
-        }
-        Err(ProcessFailure::Cancelled) => {
-            let _ = fs::remove_dir_all(&target);
-            Err(ProjectError {
-                code: "operation_cancelled",
-                message: "candidate validation was cancelled".to_owned(),
-                diagnostics: Vec::new(),
-            })
-        }
-        Err(ProcessFailure::Failed(error)) => {
-            let _ = fs::remove_dir_all(&target);
-            Ok(CandidateValidation::Failed {
-                diagnostics: vec![error],
-            })
-        }
-    }
-}
-
 /// Runs one registered Cargo profile against an isolated candidate root.
 ///
 /// - `root`: Materialized candidate workspace root.
@@ -322,6 +237,14 @@ fn run_candidate_cargo(
             },
         )
         .env("CARGO_TARGET_DIR", target);
+    if matches!(
+        profile,
+        CandidateValidationProfile::PhpDomainFocused
+            | CandidateValidationProfile::ProjectImportFocused
+            | CandidateValidationProfile::ProjectIngestionE2e
+    ) {
+        command.args(["--", "--nocapture"]);
+    }
     #[cfg(windows)]
     command.env("CARGO_PROFILE_TEST_DEBUG", "0");
     if profile.allows_dependency_acquisition() {
@@ -333,12 +256,14 @@ fn run_candidate_cargo(
     if output.status.success() {
         return Ok(Vec::new());
     }
+    let mut diagnostics = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let diagnostics = if stderr.trim().is_empty() {
-        String::from_utf8_lossy(&output.stdout).into_owned()
-    } else {
-        stderr.into_owned()
-    };
+    if !stderr.trim().is_empty() {
+        if !diagnostics.trim().is_empty() {
+            diagnostics.push('\n');
+        }
+        diagnostics.push_str(&stderr);
+    }
     Ok(vec![bounded_tail(
         &diagnostics,
         MAX_CANDIDATE_DIAGNOSTIC_CHARS,

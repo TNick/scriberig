@@ -273,16 +273,19 @@ fn previous_workspace_selection<B: ApplicationBackend>(
     };
     let Some(handles) = saved.branches.iter().rev().find_map(|branch| {
         let handles = &branch.result.as_ref()?.result_handles;
-        ["project", "snapshot", "root"]
-            .iter()
-            .all(|kind| handle_value(handles, kind).is_some())
+        workspace_handle(handles, "project")
+            .is_some()
             .then_some(handles)
+            .filter(|handles| {
+                workspace_handle(handles, "snapshot").is_some()
+                    && workspace_handle(handles, "root").is_some()
+            })
     }) else {
         return Ok(None);
     };
-    let project = handle_value(handles, "project").expect("complete workspace handle set");
-    let snapshot = handle_value(handles, "snapshot").expect("complete workspace handle set");
-    let root = handle_value(handles, "root").expect("complete workspace handle set");
+    let project = workspace_handle(handles, "project").expect("complete workspace handle set");
+    let snapshot = workspace_handle(handles, "snapshot").expect("complete workspace handle set");
+    let root = workspace_handle(handles, "root").expect("complete workspace handle set");
     let entity = handle_value(handles, "entity").unwrap_or(root);
     Ok(Some(AgentSelection {
         project: Some(parse_workspace_handle("project", project)?),
@@ -290,6 +293,25 @@ fn previous_workspace_selection<B: ApplicationBackend>(
         entity: parse_workspace_handle("entity", entity)?,
         snapshot: parse_workspace_handle("snapshot", snapshot)?,
     }))
+}
+
+/// Finds one labeled workspace handle or a compatible legacy typed identity.
+///
+/// # Parameters
+/// - `handles`: Durable result handles recorded by an earlier agent turn.
+/// - `kind`: Label used by the current tagged handle format.
+///
+/// # Returns
+/// The exact labeled value, or the first legacy value with the requested ID type.
+fn workspace_handle<'a>(handles: &'a [String], kind: &str) -> Option<&'a str> {
+    handle_value(handles, kind).or_else(|| {
+        handles.iter().map(String::as_str).find(|value| match kind {
+            "project" => value.parse::<scriberig_core::ProjectId>().is_ok(),
+            "snapshot" => value.parse::<scriberig_core::SnapshotId>().is_ok(),
+            "root" | "entity" => value.parse::<scriberig_core::EntityId>().is_ok(),
+            _ => false,
+        })
+    })
 }
 
 /// Parses one typed identity retained by a prior agent branch.

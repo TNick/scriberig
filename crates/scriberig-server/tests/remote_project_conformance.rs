@@ -16,6 +16,8 @@ use scriberig_session_sqlite::SqliteSessionStore;
 
 #[path = "remote_project_conformance/candidate.rs"]
 mod candidate_support;
+#[path = "remote_project_conformance/rich_artifact.rs"]
+mod rich_artifact;
 use candidate_support::exercise_remote_aggregate_candidate;
 use scriberig_store_sqlite::SqliteStore;
 use serde_json::json;

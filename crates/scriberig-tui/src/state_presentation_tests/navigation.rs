@@ -51,6 +51,7 @@ fn diff_and_history_navigation_stay_read_only() {
                     entities: vec![(first, Some(before))],
                     workspace: None,
                     source_change_id: None,
+                    semantic_operation: None,
                 },
                 HistoryRow {
                     id: "migration-2".to_owned(),
@@ -59,6 +60,7 @@ fn diff_and_history_navigation_stay_read_only() {
                     entities: Vec::new(),
                     workspace: None,
                     source_change_id: None,
+                    semantic_operation: None,
                 },
             ],
         }),

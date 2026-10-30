@@ -106,6 +106,9 @@ pub struct DomainOperationCommand {
     pub revision: Option<String>,
     /// Optional named root branch.
     pub branch: Option<String>,
+    /// Optional bounded view-local anchor beside semantic identity.
+    #[serde(default, alias = "projectionAnchor")]
+    pub projection_anchor: Option<crate::ProjectionAnchor>,
     /// Typed scalar arguments encoded with the query value vocabulary.
     pub arguments: std::collections::BTreeMap<String, serde_json::Value>,
 }

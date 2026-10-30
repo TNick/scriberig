@@ -1,8 +1,8 @@
 //! Replays semantic migrations onto a new immutable snapshot line.
 
 use crate::{EntityDelta, Migration, MigrationError, Operation, Provenance};
-use scriberig_core::{EntityId, SnapshotId};
-use scriberig_store::Snapshot;
+use scriberig_core::{EntityId, SnapshotId, TypeId};
+use scriberig_store::{Snapshot, SnapshotRelation, SnapshotRelationChange};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[path = "replay_ops.rs"]
@@ -32,11 +32,59 @@ impl ReplayState {
     /// # Returns
     /// The operation result.
     pub fn from_snapshot(snapshot: Snapshot) -> Self {
+        let relations = snapshot
+            .relations()
+            .map(|relation| {
+                (
+                    relation.from,
+                    relation.relation_type.as_str().to_owned(),
+                    relation.to,
+                )
+            })
+            .collect();
         Self {
             snapshot,
-            relations: BTreeSet::new(),
+            relations,
             collections: BTreeMap::new(),
         }
+    }
+
+    /// Synchronizes replay relations into the exact immutable snapshot.
+    ///
+    /// The snapshot identity includes all replayed relations.
+    ///
+    /// # Returns
+    /// Unit after the exact snapshot contains the replayed relation set.
+    ///
+    /// # Errors
+    /// Returns an invalid-operation error when a relation name is empty or
+    /// snapshot storage rejects the relation changes.
+    fn sync_snapshot_relations(&mut self) -> Result<(), MigrationError> {
+        let desired = self
+            .relations
+            .iter()
+            .map(|(from, relation, to)| {
+                TypeId::new(relation.clone())
+                    .map(|relation_type| SnapshotRelation::new(*from, relation_type, *to))
+                    .map_err(|error| MigrationError::InvalidOperation {
+                        reason: format!("invalid relation type: {error}"),
+                    })
+            })
+            .collect::<Result<BTreeSet<_>, _>>()?;
+        let existing = self.snapshot.relations().cloned().collect::<BTreeSet<_>>();
+        let changes = existing
+            .difference(&desired)
+            .cloned()
+            .map(SnapshotRelationChange::Remove)
+            .chain(
+                desired
+                    .difference(&existing)
+                    .cloned()
+                    .map(SnapshotRelationChange::Add),
+            )
+            .collect::<Vec<_>>();
+        self.snapshot = self.snapshot.apply_relation_changes(changes);
+        Ok(())
     }
 }
 
@@ -236,6 +284,7 @@ pub fn rebase(
                 }
             }
             replay_ops::apply_operation_state(&mut current, operation);
+            current.sync_snapshot_relations()?;
         }
         if migration.operations.is_empty() {
             for delta in &migration.deltas {
@@ -247,6 +296,7 @@ pub fn rebase(
                 changes.push(delta.clone());
             }
         }
+        current.sync_snapshot_relations()?;
         let rebased = Migration::new(
             rebased_base,
             current.snapshot.id(),

@@ -13,6 +13,36 @@ use serde_json::json;
 
 use super::TestApplication;
 
+/// Verifies candidate review and validation return only bounded source metadata.
+///
+/// # Parameters
+/// - `client`: Public client used for project workflow operations.
+/// - `candidate`: Durable candidate identity to inspect and validate.
+fn assert_bounded_candidate_review(
+    client: &Client<InProcessProjectTransport<TestApplication>>,
+    candidate: &serde_json::Value,
+) {
+    let review = client
+        .project("candidate-summary", json!({"candidate": candidate}))
+        .expect("bounded candidate review summary");
+    assert_eq!(review["sourceBytesIncluded"], false);
+    assert_eq!(review["effectCount"], 2);
+    assert_eq!(
+        review["effects"].as_array().expect("bounded effects").len(),
+        2
+    );
+    assert!(review["effects"][0].get("oldBytes").is_none());
+    assert!(review["effects"][0].get("newBytes").is_none());
+    let validated = client
+        .project(
+            "validate-candidate-summary",
+            json!({"candidate": candidate}),
+        )
+        .expect("validate candidate and return bounded summary");
+    assert_eq!(validated["validation"], "passed");
+    assert_eq!(validated["sourceBytesIncluded"], false);
+}
+
 /// Verifies aggregate proposal, detail, and validation through the remote client.
 ///
 /// - `client`: Public project client.
@@ -56,6 +86,7 @@ pub(super) fn exercise_remote_aggregate_candidate(
     assert_eq!(aggregate["base"], snapshot.to_string());
     assert_eq!(aggregate["effects"].as_array().expect("effects").len(), 2);
     assert!(!root.join("src/generated.rs").exists());
+    assert_bounded_candidate_review(client, &aggregate["candidate"]);
     let inspected = client
         .project("candidate", json!({"candidate": aggregate["candidate"]}))
         .expect("durable candidate detail");

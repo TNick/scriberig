@@ -69,6 +69,7 @@ fn visit_directory(
             }
             let bytes = std::fs::read(&path)?;
             let adapter = adapter_for(&path, &bytes).to_owned();
+            let grouping_key = logical_grouping_key(&relative_path);
             files.push(ScanFile {
                 relative_path,
                 bytes,
@@ -78,10 +79,24 @@ fn visit_directory(
                     "ready".to_owned()
                 },
                 adapter,
+                grouping_key,
             });
         }
     }
     Ok(())
+}
+
+/// Nominates a stable logical group for a compound geospatial artifact.
+///
+/// # Parameters
+/// - `relative_path`: Project-relative source path.
+/// - `adapter`: Selected source adapter identifier.
+///
+/// # Returns
+/// Adapter-classified logical grouping key when the source is a Shapefile member.
+pub(crate) fn logical_grouping_key(relative_path: &str) -> Option<String> {
+    scriberig_domain_geo::shapefile_member_path(relative_path)
+        .map(|member| format!("shapefile:{}", member.normalized_stem))
 }
 
 /// Returns whether a project-relative path is excluded by default.
@@ -165,6 +180,13 @@ pub(crate) fn adapter_for(path: &Path, bytes: &[u8]) -> &'static str {
         Some("py" | "pyi" | "pyw") => "python",
         Some("rs") => "rust",
         Some("pdf") => "pdf",
+        Some("xlsx" | "xlsm") => "xlsx",
+        Some("dxf") => "dxf",
+        Some("dwg") => "dwg",
+        Some("docx") => "docx",
+        Some("qgs" | "qgz") => "qgis",
+        Some("gpkg") => "geopackage",
+        Some("shp") => "shapefile",
         Some(
             "sh" | "bash" | "zsh" | "fish" | "ps1" | "psm1" | "bat" | "cmd" | "mmd" | "mermaid"
             | "svg" | "txt" | "log" | "env" | "xml" | "ini" | "cfg" | "properties" | "csv" | "tsv"
@@ -178,7 +200,7 @@ pub(crate) fn adapter_for(path: &Path, bytes: &[u8]) -> &'static str {
         Some(
             "png" | "jpg" | "jpeg" | "gif" | "webp" | "ico" | "bmp" | "woff" | "woff2" | "ttf"
             | "otf" | "wasm" | "zip" | "gz" | "tar" | "7z" | "jar" | "exe" | "dll" | "o" | "a"
-            | "so",
+            | "so" | "shx" | "dbf" | "prj" | "cpg" | "qix",
         ) => "binary",
         _ if std::str::from_utf8(bytes).is_ok() => "text",
         _ => "binary",
