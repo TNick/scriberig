@@ -7734,8 +7734,15 @@ observed plan revision; the decomposition action creates a required child.
 <code>session-plan-evolution.test.ts</code> checks the exact transport payloads, and
 <code>plan-panel.test.tsx</code> checks the running-plan action is projected. Focused
 client/panel tests (7 total), full web build/typecheck, repository lint, and
-<code>git diff --check</code> pass. Web summary editing, gate creation, assignment, and
-plan-level actions still lack matching panel actions.</p>
+<code>git diff --check</code> pass. Web summary editing, gate creation, and plan-level
+actions still lack matching panel actions.</p>
+<p>Implementation update (2026-10-30): the web plan client now supports the
+revision-checked <code>plan_assignment</code> operation. The node detail panel loads safe
+model descriptors from the shared upstream model library and offers only
+advertised models and thinking levels, plus an option to inherit the default.
+The exact assignment request is covered by <code>session-plan-evolution.test.ts</code>;
+the focused client/panel tests, full web typecheck/build, repository lint, and
+<code>git diff --check</code> pass.</p>
 <p>Implementation update (2026-10-30): durable SQLite coverage now opens two
 independent repository handles, settles disjoint sibling claims from the same
 base revision, verifies the second writer receives an exact revision conflict,
@@ -8623,7 +8630,7 @@ The focused durable test passes.</p>
 <li>[x] TypeScript model/client understand new shared Plan/PlanNode views.</li>
 <li>[x] Web does not invent its own rollup algorithm.</li>
 <li>[x] Web retry/gate/evidence actions call shared application operations.</li>
-<li>[x] Web next-step and required decomposition actions call shared application operations with observed plan revisions; client wire payload and panel projection tests pass.</li>
+<li>[x] Web next-step, required decomposition, and assignment actions call shared application operations with observed plan revisions; client wire payload and panel projection tests pass.</li>
 </ul>
 <hr />
 <h1 id="16-phase-11-tui-integration-on-top-of-task-148">16. Phase 11 — TUI Integration on Top of Task 148<a class="headerlink" href="#16-phase-11-tui-integration-on-top-of-task-148" title="Permanent link">&para;</a></h1>
