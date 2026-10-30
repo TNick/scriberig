@@ -7673,9 +7673,11 @@ tests and full web typecheck pass.</p>
 <p>Remaining implementation gaps: server session projections consume
 snapshot-validated SQLite rollup rows through the shared application read
 boundary, with canonical plan evaluation as fallback for missing, stale, or
-invalid cache data. Each plan CAS still rebuilds all SQLite rollup rows from
-the reference evaluator; in-memory single-leaf updates now stage only affected
-rollups, adjacency rows, and ancestors.
+invalid cache data. Plan CAS stages sparse SQLite direct-node and rollup-row
+updates from their validated prior indexes and advances per-plan snapshot and
+completeness metadata in the root-promotion transaction. Missing/stale caches
+use a canonical reference rebuild. Ordinary reads rebuild indexes only after
+migration or pending claim recovery changes the canonical root.
 Migration coverage for stale runtime claims and some coordinator fields is
 incomplete; and web product surfaces do not yet present or invoke every plan
 operation. Task 148's upstream TUI
@@ -7749,8 +7751,11 @@ and row completeness before returning normalized values. Server session
 projection now requests these rollups through the shared application service
 and uses them to build plan views. Unavailable or invalid cache data falls
 back to canonical evaluation at the exact plan snapshot. An application
-regression compares cache-backed and canonical fallback results. Each write
-currently replaces the full table.</p>
+regression compares cache-backed and canonical fallback results. Plan CAS
+writes only changed rollup values and advances a per-plan
+snapshot/evaluator/node-count record; it uses full replacement when the cache
+is absent/stale or plan membership changes. Direct-node index rows are still
+replaced as a complete set on plan CAS.</p>
 <p>Implementation update (2026-10-30): <code>SessionStore</code> now has a default
 snapshot-bound rollup read, and SQLite overrides it with the validated
 normalized cache plus canonical fallback. The shared application read
@@ -7769,6 +7774,19 @@ recovered snapshot is promoted. The durable regression
 <code>legacy_plan_migration_recovers_stale_worker_and_coordinator_claims</code> passes.
 Claims imported at this boundary are treated as stale because legacy owner
 labels do not provide a process-liveness identity for safe validation.</p>
+<p>Implementation update (2026-10-30): the durable retry regression now includes
+a dependent node. It verifies a failed attempt leaves the dependency
+unfulfilled and the later successful attempt binds the edge to its exact
+result after reload (<code>semantic_retry_keeps_attempt_outcomes_across_reload</code>).
+It also records the root-selected immutable PlanNode revision through Planned,
+Ready, Running, Failed, Ready, Running, and Completed, verifying each direct
+transition selects a distinct revision. The focused SQLite regression passes.</p>
+<p>Implementation update (2026-10-30): gate coverage now verifies exact supporting
+validation evidence satisfies entry readiness, contradictory validation
+evidence fails the gate, and an explicitly waived gate remains visibly
+waived. A new completion regression confirms a pending completion gate keeps
+the plan Running and waiver allows completion. The <code>plan_semantic</code> target
+passes all 22 tests.</p>
 <p>Implementation update (2026-10-30): incremental rollup conformance now compares
 the cache against reference evaluation across all direct statuses, failed and
 running siblings, ignored and other abandoned descendants, completion-gate
@@ -8165,7 +8183,7 @@ writer succeeds and the competing writer receives <code>PromotionError::Root</co
 <p>Current plan mutability guards must allow safe ordinary evolution while running.</p>
 <ul>
 <li>[x] Coordinator/user can add a next step to a Running plan.</li>
-<li>[ ] Coordinator/authorized worker can add structural child work according to policy.</li>
+<li>[x] Coordinator/authorized worker can add structural child work according to policy.</li>
 <li>[x] New work increments mutation revision once.</li>
 <li>[x] Completed historical work is not rewritten.</li>
 </ul>
@@ -8192,7 +8210,7 @@ writer succeeds and the competing writer receives <code>PromotionError::Root</co
 <li>[x] PlanNode can reference a current summary.</li>
 <li>[x] Summary remains distinct from purpose and final result.</li>
 <li>[x] Generated summary can identify exact source dependencies/revisions.</li>
-<li>[ ] Child summaries are not mechanically concatenated as canonical parent summary.</li>
+<li>[x] Child summaries are not mechanically concatenated as canonical parent summary.</li>
 </ul>
 <h2 id="task-55-add-evidence-associations">Task 5.5 — Add evidence associations<a class="headerlink" href="#task-55-add-evidence-associations" title="Permanent link">&para;</a></h2>
 <p>Support evidence roles at least equivalent to:</p>
@@ -8346,6 +8364,12 @@ from plan, node, branch, and claim generation.</p>
 <li>[x] Effective status and direct-child counts are persisted as rebuildable
   derived rows with evaluator and snapshot identity.</li>
 <li>[x] Exact-snapshot rollup reads reject stale or incomplete cache rows.</li>
+<li>[x] Plan CAS writes changed rollup values and advances plan-level cache
+  metadata without rewriting unrelated rows. Verified 2026-10-30 by
+  <code>cargo test --locked --offline -p scriberig-session-sqlite --test durable
+  plan_cas_keeps_unrelated_sqlite_rollup_rows_untouched</code>; SQLite triggers reject
+  unrelated direct-node and rollup row updates/deletes while a leaf failure
+  advances exact cache snapshots and remains equivalent to reference evaluation.</li>
 </ul>
 <h2 id="task-76-optional-sqlite-triggers">Task 7.6 — Optional SQLite triggers<a class="headerlink" href="#task-76-optional-sqlite-triggers" title="Permanent link">&para;</a></h2>
 <p>Use triggers only if they simplify and harden transactional ancestor counter maintenance.</p>
@@ -8362,10 +8386,33 @@ from plan, node, branch, and claim generation.</p>
 the only specification of rollup semantics. SQLite stores its results as
 rebuildable, snapshot- and evaluator-version-bound rows in the session crate's
 architectural owner. Triggers would duplicate Rust gate/rollup semantics in
-SQL and complicate cache invalidation. The current implementation recomputes
-the reference values and replaces the rows transactionally. Sparse SQLite row
-updates remain a follow-up; in-memory incremental updates stage only affected
-rollup and adjacency rows.</p>
+SQL and complicate cache invalidation. When the exact prior cache is valid and
+membership is unchanged, Plan CAS stages only affected rollup and adjacency
+values and persists changed rows with plan-level snapshot metadata. Missing or
+stale caches and membership changes use a reference rebuild.</p>
+<p>Implementation update (2026-10-30): application coverage proves authorized
+running-plan evolution through both next-step addition and required
+decomposition. The next-step test preserves completed work and rejects a stale
+revision; decomposition creates structural children and a completion gate
+without adding dependency edges. Session semantic and application operation
+regressions pass.</p>
+<p>Implementation update (2026-10-30): a session semantic regression verifies a
+child summary remains separately addressable and is not mechanically folded
+into its parent's canonical summary (<code>child_summary_remains_distinct_from_parent_summary</code>).
+The <code>plan_semantic</code> target passes all 23 tests.</p>
+<p>Implementation update (2026-10-30): restart/reconnect criteria are covered by
+durable reopen, index rebuild, and fresh-client regressions. The SQLite plan
+reopen test restores plan nodes and fulfilled dependencies; the node-index
+test rebuilds the derived index; a new Rust client reloads the authoritative
+gate-mutated PlanView without event replay. Focused app, server, and SQLite
+tests pass.</p>
+<p>Implementation update (2026-10-30): SQLite plan CAS now stages sparse direct
+node-index writes alongside rollup writes. A plan-level snapshot/count marker
+tracks index completeness while unchanged node rows retain their prior
+materialization snapshot. The durable sparse-write regression installs SQLite
+triggers that reject updates and deletes of an unrelated direct-node or rollup
+row, then verifies the changed plan, metadata, and reference rollups after CAS.
+The focused durable test passes.</p>
 <hr />
 <h1 id="13-phase-8-scheduler-worker-settlement-and-coordinator-integration">13. Phase 8 — Scheduler, Worker Settlement, and Coordinator Integration<a class="headerlink" href="#13-phase-8-scheduler-worker-settlement-and-coordinator-integration" title="Permanent link">&para;</a></h1>
 <h2 id="task-81-refactor-readiness">Task 8.1 — Refactor readiness<a class="headerlink" href="#task-81-refactor-readiness" title="Permanent link">&para;</a></h2>
@@ -8442,6 +8489,15 @@ rollup and adjacency rows.</p>
 <li>[x] mutation_revision preserved.</li>
 <li>[x] coordinator generation/claim semantics preserved when safe.</li>
 <li>[x] stale runtime claims receive existing recovery treatment rather than being blindly revived.</li>
+<li>[x] An interrupted legacy import resumes claim recovery after restart.
+      Verified 2026-10-30 by
+      <code>cargo test --locked --offline -p scriberig-session-sqlite --test
+      durable interrupted_legacy_plan_migration_resumes_claim_recovery_after_reopen</code>.
+      The regression injects a root-promotion failure after an initial semantic
+      snapshot is imported, verifies the durable recovery marker remains, then
+      reopens the store and confirms the remaining history imports, stale worker
+      becomes Failed with its branch preserved, stale coordinator claim is
+      released, and the marker clears.</li>
 </ul>
 <h2 id="task-94-preserve-legacy-history">Task 9.4 — Preserve legacy history<a class="headerlink" href="#task-94-preserve-legacy-history" title="Permanent link">&para;</a></h2>
 <p>Audit actual historical <code>PlanRevision</code> data.</p>
@@ -8555,9 +8611,9 @@ rollup and adjacency rows.</p>
 <h1 id="17-phase-12-conformance-and-failure-tests">17. Phase 12 — Conformance and Failure Tests<a class="headerlink" href="#17-phase-12-conformance-and-failure-tests" title="Permanent link">&para;</a></h1>
 <h2 id="task-121-identityrevision-tests">Task 12.1 — Identity/revision tests<a class="headerlink" href="#task-121-identityrevision-tests" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Same PlanNode EntityId persists across Planned -&gt; Ready -&gt; Running -&gt; Failed -&gt; Ready -&gt; Running -&gt; Completed.</li>
-<li>[ ] Each canonical transition resolves to expected immutable revision.</li>
-<li>[ ] Descendant-only rollup change does not require a new ancestor PlanNode canonical revision.</li>
+<li>[x] Same PlanNode EntityId persists across Planned -&gt; Ready -&gt; Running -&gt; Failed -&gt; Ready -&gt; Running -&gt; Completed.</li>
+<li>[x] Each canonical transition resolves to expected immutable revision.</li>
+<li>[x] Descendant-only rollup change does not require a new ancestor PlanNode canonical revision.</li>
 </ul>
 <h2 id="task-122-rollup-tests">Task 12.2 — Rollup tests<a class="headerlink" href="#task-122-rollup-tests" title="Permanent link">&para;</a></h2>
 <p>Cover at least:</p>
@@ -8578,33 +8634,33 @@ rollup and adjacency rows.</p>
 </ul>
 <h2 id="task-123-gate-tests">Task 12.3 — Gate tests<a class="headerlink" href="#task-123-gate-tests" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Entry gate blocks readiness.</li>
-<li>[ ] Completion gate blocks completion.</li>
-<li>[ ] Exact supporting evidence satisfies gate.</li>
-<li>[ ] Contradicting/failed validation produces expected gate failure.</li>
-<li>[ ] Waiver satisfies while remaining visibly waived.</li>
+<li>[x] Entry gate blocks readiness.</li>
+<li>[x] Completion gate blocks completion.</li>
+<li>[x] Exact supporting evidence satisfies gate.</li>
+<li>[x] Contradicting/failed validation produces expected gate failure.</li>
+<li>[x] Waiver satisfies while remaining visibly waived.</li>
 </ul>
 <h2 id="task-124-retry-tests">Task 12.4 — Retry tests<a class="headerlink" href="#task-124-retry-tests" title="Permanent link">&para;</a></h2>
 <ul>
 <li>[x] Failed node can retry.</li>
 <li>[x] Previous failed attempt remains inspectable.</li>
 <li>[x] Failed result never fulfills success dependency.</li>
-<li>[ ] Later successful attempt fulfills dependency exactly once.</li>
+<li>[x] Later successful attempt fulfills dependency exactly once.</li>
 <li>[x] Stale retry/claim is rejected.</li>
 </ul>
 <h2 id="task-125-running-plan-evolution-tests">Task 12.5 — Running-plan evolution tests<a class="headerlink" href="#task-125-running-plan-evolution-tests" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Running plan accepts next step.</li>
-<li>[ ] Running plan accepts required decomposition.</li>
+<li>[x] Running plan accepts next step.</li>
+<li>[x] Running plan accepts required decomposition.</li>
 <li>[ ] Parent completion becomes blocked by new required child gate.</li>
-<li>[ ] Replan remains reserved for replacement/invalidation cases.</li>
+<li>[x] Replan remains reserved for replacement/invalidation cases.</li>
 </ul>
 <h2 id="task-126-restartreconnect-tests">Task 12.6 — Restart/reconnect tests<a class="headerlink" href="#task-126-restartreconnect-tests" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Semantic plan graph reloads after process restart.</li>
-<li>[ ] Derived rollup can be rebuilt from canonical state.</li>
+<li>[x] Semantic plan graph reloads after process restart.</li>
+<li>[x] Derived rollup can be rebuilt from canonical state.</li>
 <li>[x] Coordinator/claim recovery still behaves deterministically.</li>
-<li>[ ] Client reconnect gets equivalent PlanView without transient event replay.</li>
+<li>[x] Client reconnect gets equivalent PlanView without transient event replay.</li>
 </ul>
 <h2 id="task-127-cross-surface-conformance">Task 12.7 — Cross-surface conformance<a class="headerlink" href="#task-127-cross-surface-conformance" title="Permanent link">&para;</a></h2>
 <p>Using the same deterministic fixture/fake execution, compare:</p>

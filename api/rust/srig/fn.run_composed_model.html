@@ -3,9 +3,9 @@
     service: &amp;ApplicationService&lt;B&gt;,
     project_store: &amp;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;SqliteStore&gt;,
     context: &amp;ApplicationContext,
-    scope: &amp;<a class="struct" href="../scriberig_agent_runtime/struct.ChildExecutionScope.html" title="struct scriberig_agent_runtime::ChildExecutionScope">ChildExecutionScope</a>,
+    scope: &amp;ChildExecutionScope,
     cancellation: &amp;<a class="type" href="https://doc.rust-lang.org/1.99.1/core/sync/atomic/type.AtomicBool.html" title="type core::sync::atomic::AtomicBool">AtomicBool</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../scriberig_agent_runtime/struct.AgentResult.html" title="struct scriberig_agent_runtime::AgentResult">AgentResult</a>, <a class="struct" href="main_agent_execution/upstream/struct.ComposedAgentFailure.html" title="struct srig::main_agent_execution::upstream::ComposedAgentFailure">ComposedAgentFailure</a>&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Executes one branch using an upstream provider and semantic broker.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentResult, <a class="struct" href="main_agent_execution/upstream/struct.ComposedAgentFailure.html" title="struct srig::main_agent_execution::upstream::ComposedAgentFailure">ComposedAgentFailure</a>&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Executes one branch using an upstream provider and semantic broker.</p>
 <ul>
 <li><code>args</code>: Provider and prompt configuration.</li>
 <li><code>context</code>: Authorized application context for the runtime.</li>
