@@ -3,9 +3,9 @@
 use super::{
     AgentCommandRequest, AgentContinuationAccepted, AgentContinueAtRequest, ApplicationContext,
     ApplicationError, EntityId, NewSessionAgentRequest, NewSessionAgentStart, OperationId,
-    PlanAssignmentRequest, PlanCreateRequest, PlanDecomposeRequest, PlanLifecycleAction,
-    PlanLifecycleRequest, PlanNextStepRequest, PlanReplanRequest, PlanRetryRequest,
-    PlanSemanticMutationRequest, Session, SessionRequest,
+    PlanAssignmentRequest, PlanAttemptHistoryRequest, PlanCreateRequest, PlanDecomposeRequest,
+    PlanLifecycleAction, PlanLifecycleRequest, PlanNextStepRequest, PlanReplanRequest,
+    PlanRetryRequest, PlanSemanticMutationRequest, Session, SessionRequest,
 };
 
 /// Owns session and agent operations at the application boundary.
@@ -113,6 +113,26 @@ pub trait SessionBackend {
         context: &crate::ApplicationContext,
         request: &SessionRequest,
     ) -> Result<Session, crate::ApplicationError>;
+
+    /// Reads a bounded page of one node's attempt history at an exact snapshot.
+    ///
+    /// - `_context`: Authorized caller context.
+    /// - `_request`: Plan node, snapshot, and page range to resolve.
+    ///
+    /// The attempt page from semantic storage.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns authorization, not-found, or persistence failures.
+    fn read_plan_attempt_history(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanAttemptHistoryRequest,
+    ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan attempt history read".to_owned(),
+        })
+    }
 
     /// Persists a complete authorized session snapshot.
     ///

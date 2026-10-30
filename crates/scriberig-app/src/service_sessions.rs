@@ -14,6 +14,8 @@ mod service_local_sessions;
 mod agent_submission;
 #[path = "service_sessions/management.rs"]
 mod management;
+#[path = "service_sessions/plan_attempts.rs"]
+mod plan_attempts;
 #[path = "service_sessions/plan_store.rs"]
 mod plan_store;
 
@@ -141,6 +143,24 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
             }
             Err(error) => Err(error),
         }
+    }
+
+    /// Reads a bounded page of node attempts through the authorized semantic store.
+    ///
+    /// - `context`: Authorized request context.
+    /// - `request`: Node, exact snapshot, and page range to inspect.
+    ///
+    /// The requested attempts ordered by generation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns authorization, invalid-page, history, or persistence failures.
+    fn read_plan_attempt_history(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanAttemptHistoryRequest,
+    ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
+        plan_attempts::read(self, context, request)
     }
 
     /// Persists a complete changed session through the backend or local store.

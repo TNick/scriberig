@@ -84,10 +84,10 @@ pub use service_store::StoreInspectionBackend;
 pub use session::{
     AgentCommandRequest, AgentConsoleBackend, AgentContinuationAccepted, AgentContinueAtRequest,
     AgentResult, AgentSelection, CandidateChange, LocalAgentHandle, LocalChildAgentHandle,
-    NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanChildDraft,
-    PlanCreateRequest, PlanDecomposeRequest, PlanLifecycleAction, PlanLifecycleRequest,
-    PlanNextStepRequest, PlanNodeDraft, PlanNodeReference, PlanReplanRequest, PlanRetryRequest,
-    PlanSemanticMutation, PlanSemanticMutationRequest, SessionBackend,
+    NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanAttemptHistoryRequest,
+    PlanChildDraft, PlanCreateRequest, PlanDecomposeRequest, PlanLifecycleAction,
+    PlanLifecycleRequest, PlanNextStepRequest, PlanNodeDraft, PlanNodeReference, PlanReplanRequest,
+    PlanRetryRequest, PlanSemanticMutation, PlanSemanticMutationRequest, SessionBackend,
     SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
     ToolExecutionEvidence,
 };

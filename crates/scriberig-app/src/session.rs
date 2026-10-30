@@ -192,6 +192,23 @@ pub struct PlanRetryRequest {
     pub expected_revision: u64,
 }
 
+/// Requests a bounded page of worker attempts at an exact plan snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanAttemptHistoryRequest {
+    /// Owning session identity.
+    pub session: EntityId,
+    /// Stable plan identity.
+    pub plan: EntityId,
+    /// Stable plan-node identity.
+    pub node: EntityId,
+    /// Exact semantic snapshot to resolve.
+    pub snapshot: SnapshotId,
+    /// Number of matching attempts to skip in stable order.
+    pub offset: usize,
+    /// Maximum number of matching attempts to return.
+    pub limit: usize,
+}
+
 /// Selects a durable lifecycle transition for a plan.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PlanLifecycleAction {
