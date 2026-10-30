@@ -7809,6 +7809,11 @@ transaction and no longer rewrites <code>session_records.payload</code>. The dis
 settlement regression installs a trigger rejecting any session-payload update,
 then proves both sibling results survive conflict and retry. The complete
 <code>scriberig-session-sqlite</code> test target passes.</p>
+<p>Implementation update (2026-10-30): an agent-runtime integration regression
+corrupts snapshot-matching direct and effective status cache rows to <code>Ready</code>
+while a canonical entry gate remains pending. The cache-backed view reflects
+the corrupted values, but <code>PlanCoordinator</code> dispatches no worker and the
+executor is never invoked. The focused coordinator test passes.</p>
 <p>Implementation update (2026-10-30): incremental rollup conformance now compares
 the cache against reference evaluation across all direct statuses, failed and
 running siblings, ignored and other abandoned descendants, completion-gate
@@ -8282,7 +8287,7 @@ writer succeeds and the competing writer receives <code>PromotionError::Root</co
 <li>[x] Evaluation returns exact supporting evidence refs.</li>
 <li>[x] Entry gate affects readiness.</li>
 <li>[x] Completion gate affects completion.</li>
-<li>[ ] Stale gate cache cannot dispatch work.</li>
+<li>[x] Stale gate cache cannot dispatch work.</li>
 </ul>
 <hr />
 <h1 id="11-phase-6-recoverable-failure-and-attempt-provenance">11. Phase 6 — Recoverable Failure and Attempt Provenance<a class="headerlink" href="#11-phase-6-recoverable-failure-and-attempt-provenance" title="Permanent link">&para;</a></h1>
