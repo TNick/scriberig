@@ -10,6 +10,7 @@ import type {
 import { useScriberig } from "@scriberig/react";
 import { useEffect, useState, type ReactElement } from "react";
 import { PlanAssignmentForm } from "./plan-assignment-form";
+import { PlanNodeAuthoringForm } from "./plan-node-authoring-form";
 
 /** Displays plan nodes, exact-snapshot evidence, attempts, and recovery actions.
  * @param props Session and authoritative plan projection.
@@ -166,6 +167,12 @@ export function PlanPanel({
           <h3>{node.title}</h3>
           <p>{node.purpose}</p>
           <p>{node.summaryPreview ?? "No summary"}</p>
+          <PlanNodeAuthoringForm
+            sessionId={sessionId}
+            plan={plan}
+            node={node}
+            onPlanUpdated={onPlanUpdated}
+          />
           <PlanAssignmentForm
             sessionId={sessionId}
             plan={plan}

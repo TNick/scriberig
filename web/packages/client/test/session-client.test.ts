@@ -63,8 +63,30 @@ describe("session client projections", () => {
         },
       },
     ]);
-    await client.retryPlanNode("session-1" as never, "plan-1", "node-1", 3);
+    await client.mutatePlanSemantics("session-1" as never, "plan-1", 3, {
+      AddGate: {
+        owner: "node-1",
+        phase: "Entry",
+        requirement: { ValidationPassed: { profile: "default" } },
+      },
+    });
     expect(requests[1]).toEqual({
+      operation: "plan_semantic_mutation",
+      payload: {
+        session: { id: "session-1" },
+        plan: "plan-1",
+        expected_revision: 3,
+        mutation: {
+          AddGate: {
+            owner: "node-1",
+            phase: "Entry",
+            requirement: { ValidationPassed: { profile: "default" } },
+          },
+        },
+      },
+    });
+    await client.retryPlanNode("session-1" as never, "plan-1", "node-1", 3);
+    expect(requests[2]).toEqual({
       operation: "plan_retry",
       payload: {
         session: { id: "session-1" },
