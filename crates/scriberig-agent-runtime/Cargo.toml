@@ -35,6 +35,7 @@ tokio-util = { version = "0.7", features = ["rt"] }
 workspace = true
 
 [dev-dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 scriberig-store = { path = "../scriberig-store" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
 scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }

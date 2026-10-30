@@ -284,3 +284,5 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
 
 #[path = "coordinator_parts/additional.rs"]
 mod coordinator_additional;
+#[path = "coordinator_parts/stale_rollup_cache.rs"]
+mod stale_rollup_cache;

@@ -3099,6 +3099,7 @@ dependencies = [
  "rpi-ai",
  "rpi-extensions",
  "rpi-model-runtime",
+ "rusqlite",
  "scriberig-agent-core",
  "scriberig-app",
  "scriberig-core",
