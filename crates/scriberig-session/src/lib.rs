@@ -14,6 +14,8 @@ pub mod views;
 
 /// Defines the durable session repository boundary.
 pub mod repository {
+    use std::collections::BTreeMap;
+
     use crate::{Plan, PlanSemanticAttempt, PlanSemanticNodeDetails, PlanView, Session};
     use scriberig_core::{EntityId, SnapshotId};
 
@@ -107,6 +109,32 @@ pub mod repository {
             _snapshot: SnapshotId,
         ) -> Result<Option<PlanView>, String> {
             Err("compact plan snapshot reads are unsupported".to_owned())
+        }
+
+        /// Loads exact-snapshot node rollups, evaluating canonical state by default.
+        ///
+        /// - `session`: Owning durable session identity.
+        /// - `plan`: Stable plan identity.
+        /// - `snapshot`: Exact semantic snapshot to resolve.
+        ///
+        /// All node rollups, or `None` when the snapshot is outside plan history.
+        /// # Returns
+        /// Snapshot-bound effective status and subtree aggregates.
+        /// # Errors
+        /// Returns a bounded diagnostic when the plan or its rollups cannot be read.
+        fn load_plan_rollups_at_snapshot(
+            &self,
+            session: EntityId,
+            plan: EntityId,
+            snapshot: SnapshotId,
+        ) -> Result<Option<BTreeMap<EntityId, crate::PlanNodeRollup>>, String> {
+            self.load_plan_at_snapshot(session, plan, snapshot)?
+                .map(|value| {
+                    value
+                        .node_rollups()
+                        .map_err(|error| format!("plan rollup evaluation failed: {error:?}"))
+                })
+                .transpose()
         }
 
         /// Loads one page of worker attempts for a node at an exact snapshot.

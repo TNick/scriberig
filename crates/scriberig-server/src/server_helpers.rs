@@ -12,24 +12,44 @@ pub(super) mod session_plan;
 pub(crate) use session_plan::project as project_session_plan;
 pub(crate) use session_plan::project_details as project_session_plan_details;
 
+/// Projects a session using reference evaluation for isolated helper tests.
+///
+/// - `session`: Durable session value returned by the application boundary.
+///
+/// # Returns
+/// Session tree containing ordered activity and compact plan projections.
+///
+/// # Errors
+/// Returns a plan projection error when a shared view cannot be assembled.
+#[cfg(test)]
+pub(super) fn session_response(
+    session: scriberig_session::Session,
+) -> Result<scriberig_protocol::SessionReadResponse, scriberig_app::ApplicationError> {
+    session_response_with_rollups(session, &std::collections::BTreeMap::new())
+}
+
 pub(super) use event::event_from_application;
 
 #[cfg(test)]
 #[path = "server_helpers_session_tests.rs"]
 mod session_plan_tests;
 
-/// Converts a durable session into a compact provider-neutral response.
+/// Projects a session with shared exact-snapshot plan rollups.
 ///
-/// - `super`: Server protocol module namespace used by the response type.
 /// - `session`: Durable session value returned by the application boundary.
+/// - `rollups`: Per-plan node rollups read through the application store.
 ///
-/// Session tree containing ordered activity and compact result handles.
 /// # Returns
-/// The operation result.
+/// Session tree containing ordered activity and compact result handles.
+///
 /// # Errors
-/// Returns the plan projection error when a session plan is invalid.
-pub(super) fn session_response(
+/// Returns a plan projection error when a shared view cannot be assembled.
+pub(super) fn session_response_with_rollups(
     session: scriberig_session::Session,
+    rollups: &std::collections::BTreeMap<
+        scriberig_core::EntityId,
+        std::collections::BTreeMap<scriberig_core::EntityId, scriberig_session::PlanNodeRollup>,
+    >,
 ) -> Result<scriberig_protocol::SessionReadResponse, scriberig_app::ApplicationError> {
     let session_id = session.id;
     let execution = session.execution;
@@ -41,7 +61,10 @@ pub(super) fn session_response(
     let plans = session
         .plans
         .into_iter()
-        .map(|plan| session_plan::project(plan, Some(&results)))
+        .map(|plan| {
+            let plan_rollups = rollups.get(&plan.id);
+            session_plan::project_with_rollups(plan, Some(&results), plan_rollups)
+        })
         .collect::<Result<Vec<_>, _>>()?;
     let mut branches = session
         .branches

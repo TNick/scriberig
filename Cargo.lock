@@ -3121,6 +3121,7 @@ version = "0.1.0"
 dependencies = [
  "rpi-ai",
  "rpi-model-runtime",
+ "rusqlite",
  "scriberig-core",
  "scriberig-derive",
  "scriberig-graph",

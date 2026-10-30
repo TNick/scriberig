@@ -65,7 +65,7 @@ pub(super) fn authorize_agent_command(
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-pub(super) fn authorize_session_read(
+pub(crate) fn authorize_session_read(
     context: &ApplicationContext,
     request: &crate::SessionRequest,
 ) -> Result<(), ApplicationError> {

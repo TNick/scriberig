@@ -24,7 +24,7 @@ mod plan_store;
 
 #[path = "service_session_authorization.rs"]
 mod service_session_authorization;
-use service_session_authorization::authorize_session_read;
+pub(super) use service_session_authorization::authorize_session_read;
 pub(super) use service_session_authorization::{
     authorize_model_library_read, authorize_session_model_selection,
 };

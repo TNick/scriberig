@@ -16,6 +16,8 @@ use crate::{
 use scriberig_core::EntityId;
 use scriberig_session::Session;
 
+#[path = "service_sessions/plan_rollups.rs"]
+mod plan_rollups;
 #[path = "service_agent_console.rs"]
 mod service_agent_console;
 #[path = "service_configuration.rs"]

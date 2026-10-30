@@ -24,14 +24,42 @@ pub(crate) fn project(
     plan: Plan,
     results: Option<&[scriberig_session::BranchResult]>,
 ) -> Result<SessionPlan, scriberig_app::ApplicationError> {
+    project_with_rollups(plan, results, None)
+}
+
+/// Projects a plan using exact-snapshot rollups supplied by shared storage.
+///
+/// # Parameters
+/// - `plan`: Durable plan value from the shared session subsystem.
+/// - `results`: Exact durable branch results visible in the session snapshot.
+/// - `rollups`: Valid snapshot-bound cache, when the application supplied one.
+///
+/// # Returns
+/// Protocol-safe plan state with shared effective statuses.
+///
+/// # Errors
+/// Returns an application error when shared plan views cannot be assembled.
+pub(crate) fn project_with_rollups(
+    plan: Plan,
+    results: Option<&[scriberig_session::BranchResult]>,
+    rollups: Option<
+        &std::collections::BTreeMap<scriberig_core::EntityId, scriberig_session::PlanNodeRollup>,
+    >,
+) -> Result<SessionPlan, scriberig_app::ApplicationError> {
     let snapshot = plan.source_snapshot;
     let plan_view = plan.plan_view(snapshot).map_err(view_error)?;
-    let rollups = plan.node_rollups().map_err(view_error)?;
+    let evaluated_rollups;
+    let rollups = if let Some(rollups) = rollups {
+        rollups
+    } else {
+        evaluated_rollups = plan.node_rollups().map_err(view_error)?;
+        &evaluated_rollups
+    };
     let node_views = plan
         .nodes
         .iter()
         .map(|plan_node| {
-            plan.node_view(plan_node.id, snapshot, results, &rollups)
+            plan.node_view(plan_node.id, snapshot, results, rollups)
                 .map(|view| (plan_node.id, view))
                 .map_err(view_error)
         })

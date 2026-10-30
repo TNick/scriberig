@@ -356,5 +356,7 @@ mod plan_next_step;
 mod plan_node_details;
 #[path = "part2/plan_retry.rs"]
 mod plan_retry;
+#[path = "part2/plan_rollups.rs"]
+mod plan_rollups;
 #[path = "part2/plan_semantic_mutations.rs"]
 mod plan_semantic_mutations;

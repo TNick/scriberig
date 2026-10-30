@@ -6,10 +6,10 @@ mod selection_methods;
 #[macro_use]
 #[path = "server_application_presentation.rs"]
 mod presentation_methods;
+#[path = "server_application/plan_rollups.rs"]
+mod plan_rollups;
 use super::server_agent_console;
-use super::server_helpers::{
-    event_from_application, event_matches, operation_from_record, session_response,
-};
+use super::server_helpers::{event_from_application, event_matches, operation_from_record};
 use super::{
     ApplicationContext, ApplicationError, ApplicationService, InspectRequest, InspectResult,
     MigrationDetail, OperationId, RuntimeCapability,
@@ -100,7 +100,8 @@ where
                 session: session_id,
             },
         )?;
-        session_response(value)
+        let rollups = plan_rollups::read(self, context, &value)?;
+        super::server_helpers::session_response_with_rollups(value, &rollups)
     }
 
     /// Reads paged plan attempt history through the shared session boundary.
