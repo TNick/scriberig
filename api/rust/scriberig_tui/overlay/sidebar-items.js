@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Overlay"],"mod":["help","input","palette"],"struct":["ComposerState","ConfirmationState"]};
+window.SIDEBAR_ITEMS = {"enum":["Overlay"],"mod":["input","palette"],"struct":["ComposerState","ConfirmationState"]};

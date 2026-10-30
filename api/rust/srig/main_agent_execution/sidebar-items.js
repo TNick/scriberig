@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["execute_model"]};
+window.SIDEBAR_ITEMS = {"mod":["upstream"]};

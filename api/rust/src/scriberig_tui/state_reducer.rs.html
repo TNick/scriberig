@@ -3,22 +3,21 @@
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="attr">#![allow(clippy::wildcard_imports)]
 <a href=#4 id=4 data-nosnippet>4</a></span><span class="kw">use </span><span class="kw">super</span>::state_actions::activate_current;
 <a href=#5 id=5 data-nosnippet>5</a><span class="kw">use </span><span class="kw">super</span>::state_cursor_reducer::reduce_cursor;
-<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use </span><span class="kw">super</span>::state_cursor_reducer::reduce_focus;
-<a href=#7 id=7 data-nosnippet>7</a><span class="kw">use </span><span class="kw">super</span>::state_reducer_tail::reduce_tail;
-<a href=#8 id=8 data-nosnippet>8</a><span class="kw">use super</span>::<span class="kw-2">*</span>;
-<a href=#9 id=9 data-nosnippet>9</a><span class="kw">use crate</span>::{overlay::palette::PaletteState, state::ConnectionState};
-<a href=#10 id=10 data-nosnippet>10</a>
-<a href=#11 id=11 data-nosnippet>11</a><span class="attr">#[path = <span class="string">"state_input_reducer.rs"</span>]
-<a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">mod </span>state_input_reducer;
-<a href=#13 id=13 data-nosnippet>13</a><span class="kw">use </span>state_input_reducer::reduce_input;
-<a href=#14 id=14 data-nosnippet>14</a><span class="attr">#[path = <span class="string">"state_reducer_commit.rs"</span>]
-<a href=#15 id=15 data-nosnippet>15</a></span><span class="kw">mod </span>state_reducer_commit;
-<a href=#16 id=16 data-nosnippet>16</a><span class="kw">use </span>state_reducer_commit::commit_succeeded;
-<a href=#17 id=17 data-nosnippet>17</a><span class="attr">#[path = <span class="string">"state_reducer/run.rs"</span>]
-<a href=#18 id=18 data-nosnippet>18</a></span><span class="kw">mod </span>run;
-<a href=#19 id=19 data-nosnippet>19</a><span class="attr">#[path = <span class="string">"state_reducer_failure.rs"</span>]
-<a href=#20 id=20 data-nosnippet>20</a></span><span class="kw">mod </span>state_reducer_failure;
-<a href=#21 id=21 data-nosnippet>21</a><span class="attr">#[path = <span class="string">"state_reducer/tail_actions.rs"</span>]
-<a href=#22 id=22 data-nosnippet>22</a></span><span class="kw">mod </span>tail_actions;
-<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub use </span>run::reduce;
+<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use </span><span class="kw">super</span>::state_reducer_tail::reduce_tail;
+<a href=#7 id=7 data-nosnippet>7</a><span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#8 id=8 data-nosnippet>8</a><span class="kw">use crate</span>::{overlay::palette::PaletteState, state::ConnectionState};
+<a href=#9 id=9 data-nosnippet>9</a>
+<a href=#10 id=10 data-nosnippet>10</a><span class="attr">#[path = <span class="string">"state_input_reducer.rs"</span>]
+<a href=#11 id=11 data-nosnippet>11</a></span><span class="kw">mod </span>state_input_reducer;
+<a href=#12 id=12 data-nosnippet>12</a><span class="kw">use </span>state_input_reducer::reduce_input;
+<a href=#13 id=13 data-nosnippet>13</a><span class="attr">#[path = <span class="string">"state_reducer_commit.rs"</span>]
+<a href=#14 id=14 data-nosnippet>14</a></span><span class="kw">mod </span>state_reducer_commit;
+<a href=#15 id=15 data-nosnippet>15</a><span class="kw">use </span>state_reducer_commit::commit_succeeded;
+<a href=#16 id=16 data-nosnippet>16</a><span class="attr">#[path = <span class="string">"state_reducer/run.rs"</span>]
+<a href=#17 id=17 data-nosnippet>17</a></span><span class="kw">mod </span>run;
+<a href=#18 id=18 data-nosnippet>18</a><span class="attr">#[path = <span class="string">"state_reducer_failure.rs"</span>]
+<a href=#19 id=19 data-nosnippet>19</a></span><span class="kw">mod </span>state_reducer_failure;
+<a href=#20 id=20 data-nosnippet>20</a><span class="attr">#[path = <span class="string">"state_reducer/tail_actions.rs"</span>]
+<a href=#21 id=21 data-nosnippet>21</a></span><span class="kw">mod </span>tail_actions;
+<a href=#22 id=22 data-nosnippet>22</a><span class="kw">pub use </span>run::reduce;
 </code></pre></div></section></main></body></html>

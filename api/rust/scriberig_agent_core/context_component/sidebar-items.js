@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ContextActivationRule","ContextComponentKind"],"struct":["ContextComponentDescriptor","ContextComponentRevisionRef"]};

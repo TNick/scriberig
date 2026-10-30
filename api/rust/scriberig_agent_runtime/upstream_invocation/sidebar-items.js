@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["UpstreamBranchError"],"fn":["run_upstream_branch_invocation","run_upstream_branch_invocation_blocking","run_upstream_branch_invocation_with_continuation"],"struct":["UpstreamBranchFailure","UpstreamBranchInvocation","UpstreamBranchResult"]};

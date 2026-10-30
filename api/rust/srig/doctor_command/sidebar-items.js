@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["credential_failure_status","failure_guidance","print_report","report","run","run_provider_check","test_provider"]};
+window.SIDEBAR_ITEMS = {"enum":["DoctorFailure"],"fn":["credential_failure_status","failure_guidance","print_report","report","run","run_provider_check","test_provider"]};

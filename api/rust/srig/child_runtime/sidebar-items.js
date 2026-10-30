@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["with_child_context"],"mod":["capability_filter","catalog","construction","control_parameters","handles"],"struct":["LocalChildExecutor"]};
+window.SIDEBAR_ITEMS = {"mod":["capability_filter","catalog","control_parameters","handles"]};

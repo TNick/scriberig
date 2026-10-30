@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["resolve_selected_runtime_model","selected_runtime_model"]};
+window.SIDEBAR_ITEMS = {"fn":["resolve_selected_runtime_model_with_model","selected_runtime_model"],"struct":["ResolvedNativeModel"]};

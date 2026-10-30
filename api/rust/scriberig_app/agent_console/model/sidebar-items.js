@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["CredentialRef","ModelCapabilities","ModelDescriptor","ModelId","ModelProfile","ThinkingLevelDescriptor","ThinkingLevelId"]};

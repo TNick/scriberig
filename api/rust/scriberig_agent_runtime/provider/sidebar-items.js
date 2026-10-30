@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["FinishReason","MessageRole","ProviderError","ToolChoice"],"struct":["FakeProvider","ModelMessage","ModelRequest","ModelResponse","ProviderMetadata","ToolCall","ToolDefinition","Usage"],"trait":["ProviderAdapter"]};

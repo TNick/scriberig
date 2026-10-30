@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["capability","inspect","tool"]};
+window.SIDEBAR_ITEMS = {"mod":["capability","context_component","inspect","profile","tool"]};

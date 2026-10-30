@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MAX_TOOL_ARGUMENT_BYTES","MAX_TOOL_OUTPUT_TEXT_BYTES"],"fn":["execute_precompiled_branch","execute_root_branch_with_continuation","execute_root_branch_with_options"],"mod":["broker","delegation","evidence","execution","lineage"],"struct":["RootBranchRun","ToolRequest","UpstreamBranchExecution","UpstreamBranchExecutionFailure"]};

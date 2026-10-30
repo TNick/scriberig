@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Application semantics supplied to protocol dispatch."><title>ApplicationService in scriberig_server::server - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_server" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc trait"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">ApplicationService</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../scriberig_server/index.html">scriberig_<wbr>server</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Application<wbr>Service</a></h2><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.capabilities" title="capabilities">capabilities</a></li><li><a href="#tymethod.inspect" title="inspect">inspect</a></li><li><a href="#tymethod.operation_status" title="operation_status">operation_status</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.agent_continue_at" title="agent_continue_at">agent_continue_at</a></li><li><a href="#method.agent_new_session" title="agent_new_session">agent_new_session</a></li><li><a href="#method.agent_presentation_preferences" title="agent_presentation_preferences">agent_presentation_preferences</a></li><li><a href="#method.cancel_operation" title="cancel_operation">cancel_operation</a></li><li><a href="#method.command" title="command">command</a></li><li><a href="#method.events" title="events">events</a></li><li><a href="#method.events_after" title="events_after">events_after</a></li><li><a href="#method.find" title="find">find</a></li><li><a href="#method.list" title="list">list</a></li><li><a href="#method.migration_detail" title="migration_detail">migration_detail</a></li><li><a href="#method.model_library" title="model_library">model_library</a></li><li><a href="#method.model_request_detail" title="model_request_detail">model_request_detail</a></li><li><a href="#method.plan_operation" title="plan_operation">plan_operation</a></li><li><a href="#method.query" title="query">query</a></li><li><a href="#method.read_session" title="read_session">read_session</a></li><li><a href="#method.set_agent_presentation_preferences" title="set_agent_presentation_preferences">set_agent_presentation_preferences</a></li><li><a href="#method.set_session_model" title="set_session_model">set_session_model</a></li><li><a href="#method.set_session_thinking_level" title="set_session_thinking_level">set_session_thinking_level</a></li><li><a href="#method.tool_result_detail" title="tool_result_detail">tool_result_detail</a></li></ul><h3><a href="#foreign-impls">Implementations on Foreign Types</a></h3><ul class="block"><li><a href="#impl-ApplicationService-for-%26S" title="&#38;S">&#38;S</a></li><li><a href="#impl-ApplicationService-for-ApplicationService%3CB%3E" title="ApplicationService&#60;B&#62;">ApplicationService&#60;B&#62;</a></li></ul><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In scriberig_<wbr>server::<wbr>server</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">scriberig_server</a>::<wbr><a href="index.html">server</a></div><h1>Trait <span class="trait">Application<wbr>Service</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/scriberig_server/server.rs.html#31-368">Source</a> </span></div><pre class="rust item-decl"><code>pub trait ApplicationService {
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Application semantics supplied to protocol dispatch."><title>ApplicationService in scriberig_server::server - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_server" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc trait"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">ApplicationService</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../scriberig_server/index.html">scriberig_<wbr>server</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Application<wbr>Service</a></h2><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.capabilities" title="capabilities">capabilities</a></li><li><a href="#tymethod.inspect" title="inspect">inspect</a></li><li><a href="#tymethod.operation_status" title="operation_status">operation_status</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.agent_continue_at" title="agent_continue_at">agent_continue_at</a></li><li><a href="#method.agent_new_session" title="agent_new_session">agent_new_session</a></li><li><a href="#method.agent_presentation_preferences" title="agent_presentation_preferences">agent_presentation_preferences</a></li><li><a href="#method.cancel_operation" title="cancel_operation">cancel_operation</a></li><li><a href="#method.command" title="command">command</a></li><li><a href="#method.events" title="events">events</a></li><li><a href="#method.events_after" title="events_after">events_after</a></li><li><a href="#method.find" title="find">find</a></li><li><a href="#method.list" title="list">list</a></li><li><a href="#method.migration_detail" title="migration_detail">migration_detail</a></li><li><a href="#method.model_library" title="model_library">model_library</a></li><li><a href="#method.model_request_detail" title="model_request_detail">model_request_detail</a></li><li><a href="#method.plan_operation" title="plan_operation">plan_operation</a></li><li><a href="#method.query" title="query">query</a></li><li><a href="#method.read_session" title="read_session">read_session</a></li><li><a href="#method.set_agent_presentation_preferences" title="set_agent_presentation_preferences">set_agent_presentation_preferences</a></li><li><a href="#method.set_session_model" title="set_session_model">set_session_model</a></li><li><a href="#method.set_session_thinking_level" title="set_session_thinking_level">set_session_thinking_level</a></li><li><a href="#method.tool_result_detail" title="tool_result_detail">tool_result_detail</a></li></ul><h3><a href="#foreign-impls">Implementations on Foreign Types</a></h3><ul class="block"><li><a href="#impl-ApplicationService-for-%26S" title="&#38;S">&#38;S</a></li><li><a href="#impl-ApplicationService-for-ApplicationService%3CB%3E" title="ApplicationService&#60;B&#62;">ApplicationService&#60;B&#62;</a></li></ul><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In scriberig_<wbr>server::<wbr>server</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">scriberig_server</a>::<wbr><a href="index.html">server</a></div><h1>Trait <span class="trait">Application<wbr>Service</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/scriberig_server/server.rs.html#31-372">Source</a> </span></div><pre class="rust item-decl"><code>pub trait ApplicationService {
 <details class="toggle type-contents-toggle"><summary class="hideme"><span>Show 22 methods</span></summary>    // Required methods
     fn <a href="#tymethod.inspect" class="fn">inspect</a>(
         &amp;self,
@@ -43,6 +43,8 @@
         _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _invocation: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
+        _offset: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>&gt;,
+        _max_chars: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u32.html">u32</a>&gt;,
     ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelRequestDetailResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
         &amp;self,
@@ -133,7 +135,7 @@
 <p>Runtime capability descriptors.</p>
 <h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
 <p>The operation result.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="tymethod.operation_status" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#306">Source</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="tymethod.operation_status" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#310">Source</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns one operation status in protocol-independent form.</p>
@@ -221,18 +223,22 @@
 <p>The operation result.</p>
 <h5 id="errors-6"><a class="doc-anchor" href="#errors-6">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#181-191">Source</a><h4 class="code-header">fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#183-195">Source</a><h4 class="code-header">fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _invocation: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
+    _offset: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>&gt;,
+    _max_chars: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u32.html">u32</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelRequestDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads one captured safe request by session, branch, and invocation.</p>
 <ul>
 <li><code>_context</code>: Trusted request context.</li>
 <li><code>_session</code>: Stable session identity.</li>
 <li><code>_branch</code>: Stable branch identity.</li>
 <li><code>_invocation</code>: Durable model invocation identity.</li>
+<li><code>_offset</code>: Optional Unicode-scalar cursor for full detail paging.</li>
+<li><code>_max_chars</code>: Optional maximum page character count.</li>
 </ul>
 <p>Safe normalized request detail for the selected invocation.</p>
 <p>Returns unsupported-operation when detail reads are unavailable.</p>
@@ -240,7 +246,7 @@
 <p>The operation result.</p>
 <h5 id="errors-7"><a class="doc-anchor" href="#errors-7">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#207-217">Source</a><h4 class="code-header">fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#211-221">Source</a><h4 class="code-header">fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -259,7 +265,7 @@
 <p>The operation result.</p>
 <h5 id="errors-8"><a class="doc-anchor" href="#errors-8">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.model_library" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#230-237">Source</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.model_library" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#234-241">Source</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelLibraryResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads safe model descriptors and curated profiles.</p>
@@ -272,7 +278,7 @@
 <p>The operation result.</p>
 <h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#239">Source</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#243">Source</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads shared principal-scoped agent presentation defaults.</p>
@@ -285,7 +291,7 @@
 <p>The operation result.</p>
 <h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#239">Source</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#243">Source</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _request: &amp;AgentPresentationPreferencesSetRequest,
@@ -300,7 +306,7 @@
 <p>The operation result.</p>
 <h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_model" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#256-267">Source</a><h4 class="code-header">fn <a href="#method.set_session_model" class="fn">set_session_model</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_model" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#260-271">Source</a><h4 class="code-header">fn <a href="#method.set_session_model" class="fn">set_session_model</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -321,7 +327,7 @@
 <p>The operation result.</p>
 <h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_thinking_level" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#283-293">Source</a><h4 class="code-header">fn <a href="#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_thinking_level" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#287-297">Source</a><h4 class="code-header">fn <a href="#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -340,7 +346,7 @@
 <p>The operation result.</p>
 <h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#319-323">Source</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#323-327">Source</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Cancels one tracked operation when the application supports cancellation.</p>
@@ -353,7 +359,7 @@
 <p>The operation result.</p>
 <h5 id="errors-14"><a class="doc-anchor" href="#errors-14">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.events" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#337-341">Source</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.events" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#341-345">Source</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(
     &amp;self,
     _event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns currently buffered public events matching the requested kinds.</p>
@@ -369,7 +375,7 @@
 <p>The operation result.</p>
 <h5 id="errors-15"><a class="doc-anchor" href="#errors-15">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.events_after" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#355-365">Source</a><h4 class="code-header">fn <a href="#method.events_after" class="fn">events_after</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.events_after" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#359-369">Source</a><h4 class="code-header">fn <a href="#method.events_after" class="fn">events_after</a>(
     &amp;self,
     event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
     after: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
@@ -384,7 +390,7 @@
 <p>The operation result.</p>
 <h5 id="errors-16"><a class="doc-anchor" href="#errors-16">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.query" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#367">Source</a><h4 class="code-header">fn <a href="#method.query" class="fn">query</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.query" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#371">Source</a><h4 class="code-header">fn <a href="#method.query" class="fn">query</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _request: &amp;QuerySpec,
@@ -397,7 +403,7 @@
 <p>The structured query result.</p>
 <h5 id="errors-17"><a class="doc-anchor" href="#errors-17">§</a>Errors</h5>
 <p>Returns an error when query execution is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.list" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#367">Source</a><h4 class="code-header">fn <a href="#method.list" class="fn">list</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.list" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#371">Source</a><h4 class="code-header">fn <a href="#method.list" class="fn">list</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _request: &amp;ListRequest,
@@ -412,7 +418,7 @@
 <p>The operation result.</p>
 <h5 id="errors-18"><a class="doc-anchor" href="#errors-18">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.find" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#367">Source</a><h4 class="code-header">fn <a href="#method.find" class="fn">find</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.find" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#371">Source</a><h4 class="code-header">fn <a href="#method.find" class="fn">find</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _request: &amp;FindRequest,
@@ -427,7 +433,7 @@
 <p>The operation result.</p>
 <h5 id="errors-19"><a class="doc-anchor" href="#errors-19">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.command" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#367">Source</a><h4 class="code-header">fn <a href="#method.command" class="fn">command</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.command" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#371">Source</a><h4 class="code-header">fn <a href="#method.command" class="fn">command</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _kind: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -443,7 +449,7 @@
 <p>The operation result.</p>
 <h5 id="errors-20"><a class="doc-anchor" href="#errors-20">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait <b>is</b> <a href="https://doc.rust-lang.org/1.99.1/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety".</i></p></div><h2 id="foreign-impls" class="section-header">Implementations on Foreign Types<a href="#foreign-impls" class="anchor">§</a></h2><details class="toggle implementors-toggle"><summary><section id="impl-ApplicationService-for-ApplicationService%3CB%3E" class="impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#27-352">Source</a><a href="#impl-ApplicationService-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="trait" href="trait.ApplicationService.html" title="trait scriberig_server::server::ApplicationService">ApplicationService</a> for ApplicationService&lt;B&gt;<div class="where">where
+</div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait <b>is</b> <a href="https://doc.rust-lang.org/1.99.1/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety".</i></p></div><h2 id="foreign-impls" class="section-header">Implementations on Foreign Types<a href="#foreign-impls" class="anchor">§</a></h2><details class="toggle implementors-toggle"><summary><section id="impl-ApplicationService-for-ApplicationService%3CB%3E" class="impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#27-358">Source</a><a href="#impl-ApplicationService-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="trait" href="trait.ApplicationService.html" title="trait scriberig_server::server::ApplicationService">ApplicationService</a> for ApplicationService&lt;B&gt;<div class="where">where
     B: ApplicationBackend,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.migration_detail-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#44-50">Source</a><a href="#method.migration_detail-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.migration_detail" class="fn">migration_detail</a>(
     &amp;self,
     context: &amp;ApplicationContext,
@@ -491,18 +497,22 @@
 <p>The operation result.</p>
 <h5 id="errors-23"><a class="doc-anchor" href="#errors-23">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#120-128">Source</a><a href="#method.model_request_detail-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#122-134">Source</a><a href="#method.model_request_detail-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     invocation: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
+    offset: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>&gt;,
+    max_chars: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u32.html">u32</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelRequestDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads a previously captured model request from an authorized session.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>session</code>: Serialized session identity.</li>
 <li><code>branch</code>: Serialized branch identity.</li>
 <li><code>invocation</code>: Serialized model invocation identity.</li>
+<li><code>offset</code>: Optional Unicode-scalar cursor for full detail paging.</li>
+<li><code>max_chars</code>: Optional maximum page character count.</li>
 </ul>
 <p>Bounded safe request detail captured before provider serialization.</p>
 <p>Returns invalid-request or not-found errors for unavailable records.</p>
@@ -510,7 +520,7 @@
 <p>The operation result.</p>
 <h5 id="errors-24"><a class="doc-anchor" href="#errors-24">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#144-152">Source</a><a href="#method.tool_result_detail-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#150-158">Source</a><a href="#method.tool_result_detail-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -529,20 +539,21 @@
 <p>The operation result.</p>
 <h5 id="errors-25"><a class="doc-anchor" href="#errors-25">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.model_library-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#154">Source</a><a href="#method.model_library-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.model_library-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#160">Source</a><a href="#method.model_library-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelLibraryResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads safe model descriptors and curated profiles.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelLibraryResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads safe model descriptors and preserves the legacy profiles
+field.</p>
 <ul>
 <li><code>context</code>: Trusted capability context.</li>
 </ul>
-<p>Credential-safe public model library.</p>
+<p>Credential-safe public model response with no local profiles.</p>
 <p>Returns authorization or configuration failures.</p>
 <h5 id="returns-27"><a class="doc-anchor" href="#returns-27">§</a>Returns</h5>
 <p>The operation result.</p>
 <h5 id="errors-26"><a class="doc-anchor" href="#errors-26">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#154">Source</a><a href="#method.agent_presentation_preferences-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#160">Source</a><a href="#method.agent_presentation_preferences-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
     &amp;self,
     context: &amp;ApplicationContext,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads shared principal-scoped agent presentation defaults.</p>
@@ -555,7 +566,7 @@
 <p>The operation result.</p>
 <h5 id="errors-27"><a class="doc-anchor" href="#errors-27">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#154">Source</a><a href="#method.set_agent_presentation_preferences-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#160">Source</a><a href="#method.set_agent_presentation_preferences-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;AgentPresentationPreferencesSetRequest,
@@ -570,7 +581,7 @@
 <p>The operation result.</p>
 <h5 id="errors-28"><a class="doc-anchor" href="#errors-28">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_new_session-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#155">Source</a><a href="#method.agent_new_session-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_new_session" class="fn">agent_new_session</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_new_session-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#161">Source</a><a href="#method.agent_new_session-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_new_session" class="fn">agent_new_session</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;AgentNewSessionRequest,
@@ -584,7 +595,7 @@
 <p>The operation result.</p>
 <h5 id="errors-29"><a class="doc-anchor" href="#errors-29">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_continue_at-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#155">Source</a><a href="#method.agent_continue_at-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_continue_at" class="fn">agent_continue_at</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_continue_at-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#161">Source</a><a href="#method.agent_continue_at-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_continue_at" class="fn">agent_continue_at</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;AgentContinueAtRequest,
@@ -598,7 +609,7 @@
 <p>The operation result.</p>
 <h5 id="errors-30"><a class="doc-anchor" href="#errors-30">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_operation-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#156">Source</a><a href="#method.plan_operation-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.plan_operation" class="fn">plan_operation</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_operation-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#162">Source</a><a href="#method.plan_operation-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.plan_operation" class="fn">plan_operation</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;Request,
@@ -612,7 +623,7 @@
 <p>The operation result.</p>
 <h5 id="errors-31"><a class="doc-anchor" href="#errors-31">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_model-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#158">Source</a><a href="#method.set_session_model-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_session_model" class="fn">set_session_model</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_model-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#164">Source</a><a href="#method.set_session_model-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_session_model" class="fn">set_session_model</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -633,7 +644,7 @@
 <p>The operation result.</p>
 <h5 id="errors-32"><a class="doc-anchor" href="#errors-32">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_thinking_level-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#158">Source</a><a href="#method.set_session_thinking_level-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_thinking_level-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#164">Source</a><a href="#method.set_session_thinking_level-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -652,11 +663,11 @@
 <p>The operation result.</p>
 <h5 id="errors-33"><a class="doc-anchor" href="#errors-33">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.capabilities" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#165-167">Source</a><a href="#method.capabilities" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.capabilities" class="fn">capabilities</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;RuntimeCapability&gt;</h4></section></summary><div class="docblock"><p>Advertises the generic inspect capability supplied by this façade.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.capabilities" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#171-173">Source</a><a href="#method.capabilities" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.capabilities" class="fn">capabilities</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;RuntimeCapability&gt;</h4></section></summary><div class="docblock"><p>Advertises the generic inspect capability supplied by this façade.</p>
 <p>One available inspect capability.</p>
 <h5 id="returns-35"><a class="doc-anchor" href="#returns-35">§</a>Returns</h5>
 <p>The operation result.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.query-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#179-193">Source</a><a href="#method.query-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.query" class="fn">query</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.query-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#185-199">Source</a><a href="#method.query-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.query" class="fn">query</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;QuerySpec,
@@ -670,7 +681,7 @@
 <p>The operation result.</p>
 <h5 id="errors-34"><a class="doc-anchor" href="#errors-34">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.list-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#207-221">Source</a><a href="#method.list-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.list" class="fn">list</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.list-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#213-227">Source</a><a href="#method.list-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.list" class="fn">list</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;ListRequest,
@@ -685,7 +696,7 @@
 <p>The operation result.</p>
 <h5 id="errors-35"><a class="doc-anchor" href="#errors-35">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.find-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#235-249">Source</a><a href="#method.find-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.find" class="fn">find</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.find-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#241-255">Source</a><a href="#method.find-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.find" class="fn">find</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;FindRequest,
@@ -700,7 +711,7 @@
 <p>The operation result.</p>
 <h5 id="errors-36"><a class="doc-anchor" href="#errors-36">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#261-268">Source</a><a href="#method.operation_status" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#267-274">Source</a><a href="#method.operation_status" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads operation state from the shared application lifecycle registry.</p>
@@ -713,7 +724,7 @@
 <p>The operation result.</p>
 <h5 id="errors-37"><a class="doc-anchor" href="#errors-37">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#279-286">Source</a><a href="#method.cancel_operation-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#285-292">Source</a><a href="#method.cancel_operation-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Cancels operation state through the shared application lifecycle registry.</p>
@@ -725,7 +736,7 @@
 <p>The operation result.</p>
 <h5 id="errors-38"><a class="doc-anchor" href="#errors-38">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.events-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#297-309">Source</a><a href="#method.events-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(&amp;self, event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>]) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Exposes buffered lifecycle events as stable protocol envelopes.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.events-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#303-315">Source</a><a href="#method.events-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(&amp;self, event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>]) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Exposes buffered lifecycle events as stable protocol envelopes.</p>
 <ul>
 <li><code>event_kinds</code>: Argument named <code>event_kinds</code>.</li>
 </ul>
@@ -734,7 +745,7 @@
 <p>The operation result.</p>
 <h5 id="errors-39"><a class="doc-anchor" href="#errors-39">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.events_after-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#323-329">Source</a><a href="#method.events_after-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events_after" class="fn">events_after</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.events_after-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#329-335">Source</a><a href="#method.events_after-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events_after" class="fn">events_after</a>(
     &amp;self,
     event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
     after: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
@@ -749,7 +760,7 @@
 <p>The operation result.</p>
 <h5 id="errors-40"><a class="doc-anchor" href="#errors-40">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.command-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#344-351">Source</a><a href="#method.command-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.command" class="fn">command</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.command-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#350-357">Source</a><a href="#method.command-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.command" class="fn">command</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     kind: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -766,7 +777,7 @@
 <p>The operation result.</p>
 <h5 id="errors-41"><a class="doc-anchor" href="#errors-41">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-ApplicationService-for-%26S" class="impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#10-365">Source</a><a href="#impl-ApplicationService-for-%26S" class="anchor">§</a><h3 class="code-header">impl&lt;S: <a class="trait" href="trait.ApplicationService.html" title="trait scriberig_server::server::ApplicationService">ApplicationService</a> + ?<a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>&gt; <a class="trait" href="trait.ApplicationService.html" title="trait scriberig_server::server::ApplicationService">ApplicationService</a> for <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.reference.html">&amp;S</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.migration_detail-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#23-29">Source</a><a href="#method.migration_detail-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.migration_detail" class="fn">migration_detail</a>(
+</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-ApplicationService-for-%26S" class="impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#10-369">Source</a><a href="#impl-ApplicationService-for-%26S" class="anchor">§</a><h3 class="code-header">impl&lt;S: <a class="trait" href="trait.ApplicationService.html" title="trait scriberig_server::server::ApplicationService">ApplicationService</a> + ?<a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>&gt; <a class="trait" href="trait.ApplicationService.html" title="trait scriberig_server::server::ApplicationService">ApplicationService</a> for <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.reference.html">&amp;S</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.migration_detail-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#23-29">Source</a><a href="#method.migration_detail-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.migration_detail" class="fn">migration_detail</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     migration_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -813,18 +824,22 @@
 <p>The operation result.</p>
 <h5 id="errors-44"><a class="doc-anchor" href="#errors-44">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#90-98">Source</a><a href="#method.model_request_detail-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.model_request_detail-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#92-102">Source</a><a href="#method.model_request_detail-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     invocation: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
+    offset: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>&gt;,
+    max_chars: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u32.html">u32</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelRequestDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates model request detail reads to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>session</code>: Stable session identity.</li>
 <li><code>branch</code>: Stable branch identity.</li>
 <li><code>invocation</code>: Stable model invocation identity.</li>
+<li><code>offset</code>: Optional Unicode-scalar cursor for full detail paging.</li>
+<li><code>max_chars</code>: Optional maximum page character count.</li>
 </ul>
 <p>Safe normalized request detail.</p>
 <p>Returns the service’s structured failure.</p>
@@ -832,7 +847,7 @@
 <p>The operation result.</p>
 <h5 id="errors-45"><a class="doc-anchor" href="#errors-45">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#114-122">Source</a><a href="#method.tool_result_detail-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#118-126">Source</a><a href="#method.tool_result_detail-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -851,7 +866,7 @@
 <p>The operation result.</p>
 <h5 id="errors-46"><a class="doc-anchor" href="#errors-46">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.model_library-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#135-140">Source</a><a href="#method.model_library-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.model_library-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#139-144">Source</a><a href="#method.model_library-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
     &amp;self,
     context: &amp;ApplicationContext,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelLibraryResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates model-library reads to the borrowed service.</p>
@@ -864,7 +879,7 @@
 <p>The operation result.</p>
 <h5 id="errors-47"><a class="doc-anchor" href="#errors-47">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#153-158">Source</a><a href="#method.agent_presentation_preferences-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#157-162">Source</a><a href="#method.agent_presentation_preferences-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
     &amp;self,
     context: &amp;ApplicationContext,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates shared presentation reads to the borrowed service.</p>
@@ -877,7 +892,7 @@
 <p>The operation result.</p>
 <h5 id="errors-48"><a class="doc-anchor" href="#errors-48">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#172-178">Source</a><a href="#method.set_agent_presentation_preferences-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#176-182">Source</a><a href="#method.set_agent_presentation_preferences-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;AgentPresentationPreferencesSetRequest,
@@ -892,7 +907,7 @@
 <p>The operation result.</p>
 <h5 id="errors-49"><a class="doc-anchor" href="#errors-49">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_model-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#195-204">Source</a><a href="#method.set_session_model-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_session_model" class="fn">set_session_model</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_model-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#199-208">Source</a><a href="#method.set_session_model-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_session_model" class="fn">set_session_model</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -913,7 +928,7 @@
 <p>The operation result.</p>
 <h5 id="errors-50"><a class="doc-anchor" href="#errors-50">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_thinking_level-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#220-228">Source</a><a href="#method.set_session_thinking_level-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_thinking_level-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#224-232">Source</a><a href="#method.set_session_thinking_level-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -932,7 +947,7 @@
 <p>The operation result.</p>
 <h5 id="errors-51"><a class="doc-anchor" href="#errors-51">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#239-241">Source</a><a href="#method.operation_status-1" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#243-245">Source</a><a href="#method.operation_status-1" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates operation status to the borrowed application service.</p>
@@ -944,7 +959,7 @@
 <p>The operation result.</p>
 <h5 id="errors-52"><a class="doc-anchor" href="#errors-52">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#252-254">Source</a><a href="#method.cancel_operation-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#256-258">Source</a><a href="#method.cancel_operation-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates operation cancellation to the borrowed application service.</p>
@@ -956,7 +971,7 @@
 <p>The operation result.</p>
 <h5 id="errors-53"><a class="doc-anchor" href="#errors-53">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.events-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#265-267">Source</a><a href="#method.events-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(&amp;self, event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>]) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates event observation to the borrowed application service.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.events-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#269-271">Source</a><a href="#method.events-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(&amp;self, event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>]) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates event observation to the borrowed application service.</p>
 <ul>
 <li><code>event_kinds</code>: Argument named <code>event_kinds</code>.</li>
 </ul>
@@ -965,7 +980,7 @@
 <p>The operation result.</p>
 <h5 id="errors-54"><a class="doc-anchor" href="#errors-54">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.events_after-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#280-286">Source</a><a href="#method.events_after-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events_after" class="fn">events_after</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.events_after-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#284-290">Source</a><a href="#method.events_after-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events_after" class="fn">events_after</a>(
     &amp;self,
     event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
     after: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
@@ -980,7 +995,7 @@
 <p>The operation result.</p>
 <h5 id="errors-55"><a class="doc-anchor" href="#errors-55">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.find-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#300-306">Source</a><a href="#method.find-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.find" class="fn">find</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.find-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#304-310">Source</a><a href="#method.find-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.find" class="fn">find</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;FindRequest,
@@ -995,7 +1010,7 @@
 <p>The operation result.</p>
 <h5 id="errors-56"><a class="doc-anchor" href="#errors-56">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.list-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#320-326">Source</a><a href="#method.list-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.list" class="fn">list</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.list-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#324-330">Source</a><a href="#method.list-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.list" class="fn">list</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;ListRequest,
@@ -1010,7 +1025,7 @@
 <p>The operation result.</p>
 <h5 id="errors-57"><a class="doc-anchor" href="#errors-57">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.query-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#338-344">Source</a><a href="#method.query-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.query" class="fn">query</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.query-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#342-348">Source</a><a href="#method.query-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.query" class="fn">query</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;QuerySpec,
@@ -1024,7 +1039,7 @@
 <p>The operation result.</p>
 <h5 id="errors-58"><a class="doc-anchor" href="#errors-58">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.command-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#357-364">Source</a><a href="#method.command-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.command" class="fn">command</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.command-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#361-368">Source</a><a href="#method.command-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.command" class="fn">command</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     kind: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,

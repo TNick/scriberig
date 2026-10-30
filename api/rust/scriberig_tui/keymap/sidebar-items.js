@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ActionId","Context"],"fn":["action_for","bindings","hints","key_label","metadata"],"struct":["ActionMetadata","Binding","KeyChord"]};

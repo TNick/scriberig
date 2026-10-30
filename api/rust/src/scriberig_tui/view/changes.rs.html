@@ -98,129 +98,131 @@
 <a href=#98 id=98 data-nosnippet>98</a></span><span class="kw">pub struct </span>ConfirmedCommit {
 <a href=#99 id=99 data-nosnippet>99</a>    <span class="doccomment">/// Exact reviewed base snapshot.
 <a href=#100 id=100 data-nosnippet>100</a>    </span><span class="kw">pub </span>base_snapshot: SnapshotId,
-<a href=#101 id=101 data-nosnippet>101</a>    <span class="doccomment">/// Stable change identity.
-<a href=#102 id=102 data-nosnippet>102</a>    </span><span class="kw">pub </span>change: String,
-<a href=#103 id=103 data-nosnippet>103</a>    <span class="doccomment">/// Reviewed branch context.
-<a href=#104 id=104 data-nosnippet>104</a>    </span><span class="kw">pub </span>branch: <span class="prelude-ty">Option</span>&lt;RootName&gt;,
-<a href=#105 id=105 data-nosnippet>105</a>}
-<a href=#106 id=106 data-nosnippet>106</a>
-<a href=#107 id=107 data-nosnippet>107</a><span class="attr">#[cfg(test)]
-<a href=#108 id=108 data-nosnippet>108</a></span><span class="kw">mod </span>tests {
-<a href=#109 id=109 data-nosnippet>109</a>    <span class="kw">use super</span>::{ChangeReviewModel, ReviewValidation};
-<a href=#110 id=110 data-nosnippet>110</a>    <span class="kw">use </span>scriberig_app::{OperationSummary, ValidationStatus};
-<a href=#111 id=111 data-nosnippet>111</a>    <span class="kw">use </span>scriberig_core::{EntityId, RevisionId, SnapshotId};
-<a href=#112 id=112 data-nosnippet>112</a>
-<a href=#113 id=113 data-nosnippet>113</a>    <span class="doccomment">/// Verifies review status remains unknown without application evidence.
-<a href=#114 id=114 data-nosnippet>114</a>    </span><span class="attr">#[test]
-<a href=#115 id=115 data-nosnippet>115</a>    </span><span class="kw">fn </span>review_preserves_validation_and_conflict_evidence() {
-<a href=#116 id=116 data-nosnippet>116</a>        <span class="kw">let </span>summary = OperationSummary {
-<a href=#117 id=117 data-nosnippet>117</a>            handle: <span class="string">"candidate"</span>.to_owned(),
-<a href=#118 id=118 data-nosnippet>118</a>            snapshot: <span class="prelude-val">None</span>,
-<a href=#119 id=119 data-nosnippet>119</a>            revision: <span class="prelude-val">None</span>,
-<a href=#120 id=120 data-nosnippet>120</a>            branch: <span class="prelude-val">None</span>,
-<a href=#121 id=121 data-nosnippet>121</a>            diff: <span class="prelude-val">None</span>,
-<a href=#122 id=122 data-nosnippet>122</a>            history: <span class="prelude-val">None</span>,
-<a href=#123 id=123 data-nosnippet>123</a>            rendered: <span class="prelude-val">None</span>,
-<a href=#124 id=124 data-nosnippet>124</a>            validation: <span class="prelude-val">Some</span>(ValidationStatus::Failed),
-<a href=#125 id=125 data-nosnippet>125</a>            validation_profile: <span class="prelude-val">Some</span>(<span class="string">"rust-workspace"</span>.to_owned()),
-<a href=#126 id=126 data-nosnippet>126</a>            validation_diagnostics: <span class="macro">vec!</span>[<span class="string">"invalid relation"</span>.to_owned()],
-<a href=#127 id=127 data-nosnippet>127</a>            review_details: Vec::new(),
-<a href=#128 id=128 data-nosnippet>128</a>            conflicts: <span class="macro">vec!</span>[<span class="string">"entity conflict"</span>.to_owned()],
-<a href=#129 id=129 data-nosnippet>129</a>        };
-<a href=#130 id=130 data-nosnippet>130</a>        <span class="kw">let </span>model =
-<a href=#131 id=131 data-nosnippet>131</a>            ChangeReviewModel::from_summary(SnapshotId::new([<span class="number">1</span>; <span class="number">32</span>]), <span class="string">"candidate"</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>summary);
-<a href=#132 id=132 data-nosnippet>132</a>        <span class="macro">assert_eq!</span>(
-<a href=#133 id=133 data-nosnippet>133</a>            model.validation,
-<a href=#134 id=134 data-nosnippet>134</a>            ReviewValidation::Failed(<span class="string">"invalid relation"</span>.to_owned())
-<a href=#135 id=135 data-nosnippet>135</a>        );
-<a href=#136 id=136 data-nosnippet>136</a>        <span class="macro">assert_eq!</span>(model.validation_profile.as_deref(), <span class="prelude-val">Some</span>(<span class="string">"rust-workspace"</span>));
-<a href=#137 id=137 data-nosnippet>137</a>        <span class="macro">assert_eq!</span>(model.conflicts, <span class="macro">vec!</span>[<span class="string">"entity conflict"</span>]);
-<a href=#138 id=138 data-nosnippet>138</a>    }
-<a href=#139 id=139 data-nosnippet>139</a>
-<a href=#140 id=140 data-nosnippet>140</a>    <span class="doccomment">/// Verifies the exact candidate snapshot survives adaptation for review.
-<a href=#141 id=141 data-nosnippet>141</a>    </span><span class="attr">#[test]
-<a href=#142 id=142 data-nosnippet>142</a>    </span><span class="kw">fn </span>review_preserves_candidate_snapshot_identity() {
-<a href=#143 id=143 data-nosnippet>143</a>        <span class="kw">let </span>candidate = SnapshotId::new([<span class="number">2</span>; <span class="number">32</span>]);
-<a href=#144 id=144 data-nosnippet>144</a>        <span class="kw">let </span>summary = OperationSummary {
-<a href=#145 id=145 data-nosnippet>145</a>            handle: <span class="string">"candidate"</span>.to_owned(),
-<a href=#146 id=146 data-nosnippet>146</a>            snapshot: <span class="prelude-val">Some</span>(candidate),
-<a href=#147 id=147 data-nosnippet>147</a>            revision: <span class="prelude-val">None</span>,
-<a href=#148 id=148 data-nosnippet>148</a>            branch: <span class="prelude-val">None</span>,
-<a href=#149 id=149 data-nosnippet>149</a>            diff: <span class="prelude-val">None</span>,
-<a href=#150 id=150 data-nosnippet>150</a>            history: <span class="prelude-val">None</span>,
-<a href=#151 id=151 data-nosnippet>151</a>            rendered: <span class="prelude-val">None</span>,
-<a href=#152 id=152 data-nosnippet>152</a>            validation: <span class="prelude-val">Some</span>(ValidationStatus::Passed),
-<a href=#153 id=153 data-nosnippet>153</a>            validation_profile: <span class="prelude-val">None</span>,
-<a href=#154 id=154 data-nosnippet>154</a>            validation_diagnostics: Vec::new(),
-<a href=#155 id=155 data-nosnippet>155</a>            review_details: Vec::new(),
-<a href=#156 id=156 data-nosnippet>156</a>            conflicts: Vec::new(),
-<a href=#157 id=157 data-nosnippet>157</a>        };
-<a href=#158 id=158 data-nosnippet>158</a>        <span class="kw">let </span>model =
-<a href=#159 id=159 data-nosnippet>159</a>            ChangeReviewModel::from_summary(SnapshotId::new([<span class="number">1</span>; <span class="number">32</span>]), <span class="string">"candidate"</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>summary);
-<a href=#160 id=160 data-nosnippet>160</a>
-<a href=#161 id=161 data-nosnippet>161</a>        <span class="macro">assert_eq!</span>(model.candidate_snapshot, <span class="prelude-val">Some</span>(candidate));
-<a href=#162 id=162 data-nosnippet>162</a>    }
-<a href=#163 id=163 data-nosnippet>163</a>
-<a href=#164 id=164 data-nosnippet>164</a>    <span class="doccomment">/// Verifies exact shared before/after revision references survive review.
-<a href=#165 id=165 data-nosnippet>165</a>    </span><span class="attr">#[test]
-<a href=#166 id=166 data-nosnippet>166</a>    </span><span class="kw">fn </span>review_preserves_semantic_revision_deltas() {
-<a href=#167 id=167 data-nosnippet>167</a>        <span class="kw">let </span>base = SnapshotId::new([<span class="number">3</span>; <span class="number">32</span>]);
-<a href=#168 id=168 data-nosnippet>168</a>        <span class="kw">let </span>candidate = SnapshotId::new([<span class="number">4</span>; <span class="number">32</span>]);
-<a href=#169 id=169 data-nosnippet>169</a>        <span class="kw">let </span>entity = EntityId::from_bytes([<span class="number">5</span>; <span class="number">16</span>]);
-<a href=#170 id=170 data-nosnippet>170</a>        <span class="kw">let </span>before = RevisionId::new([<span class="number">6</span>; <span class="number">32</span>]);
-<a href=#171 id=171 data-nosnippet>171</a>        <span class="kw">let </span>after = RevisionId::new([<span class="number">7</span>; <span class="number">32</span>]);
-<a href=#172 id=172 data-nosnippet>172</a>        <span class="kw">let </span>summary = OperationSummary {
-<a href=#173 id=173 data-nosnippet>173</a>            handle: <span class="string">"candidate"</span>.to_owned(),
-<a href=#174 id=174 data-nosnippet>174</a>            snapshot: <span class="prelude-val">Some</span>(candidate),
-<a href=#175 id=175 data-nosnippet>175</a>            revision: <span class="prelude-val">None</span>,
-<a href=#176 id=176 data-nosnippet>176</a>            branch: <span class="prelude-val">None</span>,
-<a href=#177 id=177 data-nosnippet>177</a>            diff: <span class="prelude-val">Some</span>(sr_change::SemanticDiff::new(
-<a href=#178 id=178 data-nosnippet>178</a>                base,
-<a href=#179 id=179 data-nosnippet>179</a>                candidate,
-<a href=#180 id=180 data-nosnippet>180</a>                <span class="macro">vec!</span>[
-<a href=#181 id=181 data-nosnippet>181</a>                    sr_change::EntityDelta::new(entity, <span class="prelude-val">Some</span>(before), <span class="prelude-val">Some</span>(after))
-<a href=#182 id=182 data-nosnippet>182</a>                        .expect(<span class="string">"changed revision"</span>),
-<a href=#183 id=183 data-nosnippet>183</a>                ],
-<a href=#184 id=184 data-nosnippet>184</a>            )),
-<a href=#185 id=185 data-nosnippet>185</a>            history: <span class="prelude-val">None</span>,
-<a href=#186 id=186 data-nosnippet>186</a>            rendered: <span class="prelude-val">None</span>,
-<a href=#187 id=187 data-nosnippet>187</a>            validation: <span class="prelude-val">Some</span>(ValidationStatus::Passed),
-<a href=#188 id=188 data-nosnippet>188</a>            validation_profile: <span class="prelude-val">None</span>,
-<a href=#189 id=189 data-nosnippet>189</a>            validation_diagnostics: Vec::new(),
-<a href=#190 id=190 data-nosnippet>190</a>            review_details: Vec::new(),
-<a href=#191 id=191 data-nosnippet>191</a>            conflicts: Vec::new(),
-<a href=#192 id=192 data-nosnippet>192</a>        };
-<a href=#193 id=193 data-nosnippet>193</a>        <span class="kw">let </span>model = ChangeReviewModel::from_summary(base, <span class="string">"candidate"</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>summary);
-<a href=#194 id=194 data-nosnippet>194</a>
-<a href=#195 id=195 data-nosnippet>195</a>        <span class="macro">assert_eq!</span>(model.deltas.len(), <span class="number">1</span>);
-<a href=#196 id=196 data-nosnippet>196</a>        <span class="macro">assert_eq!</span>(model.deltas[<span class="number">0</span>].entity, entity);
-<a href=#197 id=197 data-nosnippet>197</a>        <span class="macro">assert_eq!</span>(model.deltas[<span class="number">0</span>].before, <span class="prelude-val">Some</span>(before));
-<a href=#198 id=198 data-nosnippet>198</a>        <span class="macro">assert_eq!</span>(model.deltas[<span class="number">0</span>].after, <span class="prelude-val">Some</span>(after));
-<a href=#199 id=199 data-nosnippet>199</a>    }
-<a href=#200 id=200 data-nosnippet>200</a>
-<a href=#201 id=201 data-nosnippet>201</a>    <span class="doccomment">/// Keeps candidate presentation details separate from blocking conflicts.
-<a href=#202 id=202 data-nosnippet>202</a>    </span><span class="attr">#[test]
-<a href=#203 id=203 data-nosnippet>203</a>    </span><span class="kw">fn </span>review_details_do_not_block_explicit_confirmation() {
-<a href=#204 id=204 data-nosnippet>204</a>        <span class="kw">let </span>summary = OperationSummary {
-<a href=#205 id=205 data-nosnippet>205</a>            handle: <span class="string">"candidate"</span>.to_owned(),
-<a href=#206 id=206 data-nosnippet>206</a>            snapshot: <span class="prelude-val">None</span>,
-<a href=#207 id=207 data-nosnippet>207</a>            revision: <span class="prelude-val">None</span>,
-<a href=#208 id=208 data-nosnippet>208</a>            branch: <span class="prelude-val">None</span>,
-<a href=#209 id=209 data-nosnippet>209</a>            diff: <span class="prelude-val">None</span>,
-<a href=#210 id=210 data-nosnippet>210</a>            history: <span class="prelude-val">None</span>,
-<a href=#211 id=211 data-nosnippet>211</a>            rendered: <span class="prelude-val">None</span>,
-<a href=#212 id=212 data-nosnippet>212</a>            validation: <span class="prelude-val">Some</span>(ValidationStatus::Passed),
-<a href=#213 id=213 data-nosnippet>213</a>            validation_profile: <span class="prelude-val">None</span>,
-<a href=#214 id=214 data-nosnippet>214</a>            validation_diagnostics: Vec::new(),
-<a href=#215 id=215 data-nosnippet>215</a>            review_details: <span class="macro">vec!</span>[<span class="string">"materialized src/lib.rs"</span>.to_owned()],
-<a href=#216 id=216 data-nosnippet>216</a>            conflicts: Vec::new(),
-<a href=#217 id=217 data-nosnippet>217</a>        };
-<a href=#218 id=218 data-nosnippet>218</a>
-<a href=#219 id=219 data-nosnippet>219</a>        <span class="kw">let </span>model =
-<a href=#220 id=220 data-nosnippet>220</a>            ChangeReviewModel::from_summary(SnapshotId::new([<span class="number">8</span>; <span class="number">32</span>]), <span class="string">"candidate"</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>summary);
-<a href=#221 id=221 data-nosnippet>221</a>
-<a href=#222 id=222 data-nosnippet>222</a>        <span class="macro">assert_eq!</span>(model.details, <span class="macro">vec!</span>[<span class="string">"materialized src/lib.rs"</span>]);
-<a href=#223 id=223 data-nosnippet>223</a>        <span class="macro">assert_eq!</span>(model.conflicts, Vec::&lt;String&gt;::new());
-<a href=#224 id=224 data-nosnippet>224</a>    }
-<a href=#225 id=225 data-nosnippet>225</a>}
+<a href=#101 id=101 data-nosnippet>101</a>    <span class="doccomment">/// Exact candidate result snapshot shown during review.
+<a href=#102 id=102 data-nosnippet>102</a>    </span><span class="kw">pub </span>candidate_snapshot: SnapshotId,
+<a href=#103 id=103 data-nosnippet>103</a>    <span class="doccomment">/// Stable change identity.
+<a href=#104 id=104 data-nosnippet>104</a>    </span><span class="kw">pub </span>change: String,
+<a href=#105 id=105 data-nosnippet>105</a>    <span class="doccomment">/// Reviewed branch context.
+<a href=#106 id=106 data-nosnippet>106</a>    </span><span class="kw">pub </span>branch: <span class="prelude-ty">Option</span>&lt;RootName&gt;,
+<a href=#107 id=107 data-nosnippet>107</a>}
+<a href=#108 id=108 data-nosnippet>108</a>
+<a href=#109 id=109 data-nosnippet>109</a><span class="attr">#[cfg(test)]
+<a href=#110 id=110 data-nosnippet>110</a></span><span class="kw">mod </span>tests {
+<a href=#111 id=111 data-nosnippet>111</a>    <span class="kw">use super</span>::{ChangeReviewModel, ReviewValidation};
+<a href=#112 id=112 data-nosnippet>112</a>    <span class="kw">use </span>scriberig_app::{OperationSummary, ValidationStatus};
+<a href=#113 id=113 data-nosnippet>113</a>    <span class="kw">use </span>scriberig_core::{EntityId, RevisionId, SnapshotId};
+<a href=#114 id=114 data-nosnippet>114</a>
+<a href=#115 id=115 data-nosnippet>115</a>    <span class="doccomment">/// Verifies review status remains unknown without application evidence.
+<a href=#116 id=116 data-nosnippet>116</a>    </span><span class="attr">#[test]
+<a href=#117 id=117 data-nosnippet>117</a>    </span><span class="kw">fn </span>review_preserves_validation_and_conflict_evidence() {
+<a href=#118 id=118 data-nosnippet>118</a>        <span class="kw">let </span>summary = OperationSummary {
+<a href=#119 id=119 data-nosnippet>119</a>            handle: <span class="string">"candidate"</span>.to_owned(),
+<a href=#120 id=120 data-nosnippet>120</a>            snapshot: <span class="prelude-val">None</span>,
+<a href=#121 id=121 data-nosnippet>121</a>            revision: <span class="prelude-val">None</span>,
+<a href=#122 id=122 data-nosnippet>122</a>            branch: <span class="prelude-val">None</span>,
+<a href=#123 id=123 data-nosnippet>123</a>            diff: <span class="prelude-val">None</span>,
+<a href=#124 id=124 data-nosnippet>124</a>            history: <span class="prelude-val">None</span>,
+<a href=#125 id=125 data-nosnippet>125</a>            rendered: <span class="prelude-val">None</span>,
+<a href=#126 id=126 data-nosnippet>126</a>            validation: <span class="prelude-val">Some</span>(ValidationStatus::Failed),
+<a href=#127 id=127 data-nosnippet>127</a>            validation_profile: <span class="prelude-val">Some</span>(<span class="string">"rust-workspace"</span>.to_owned()),
+<a href=#128 id=128 data-nosnippet>128</a>            validation_diagnostics: <span class="macro">vec!</span>[<span class="string">"invalid relation"</span>.to_owned()],
+<a href=#129 id=129 data-nosnippet>129</a>            review_details: Vec::new(),
+<a href=#130 id=130 data-nosnippet>130</a>            conflicts: <span class="macro">vec!</span>[<span class="string">"entity conflict"</span>.to_owned()],
+<a href=#131 id=131 data-nosnippet>131</a>        };
+<a href=#132 id=132 data-nosnippet>132</a>        <span class="kw">let </span>model =
+<a href=#133 id=133 data-nosnippet>133</a>            ChangeReviewModel::from_summary(SnapshotId::new([<span class="number">1</span>; <span class="number">32</span>]), <span class="string">"candidate"</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>summary);
+<a href=#134 id=134 data-nosnippet>134</a>        <span class="macro">assert_eq!</span>(
+<a href=#135 id=135 data-nosnippet>135</a>            model.validation,
+<a href=#136 id=136 data-nosnippet>136</a>            ReviewValidation::Failed(<span class="string">"invalid relation"</span>.to_owned())
+<a href=#137 id=137 data-nosnippet>137</a>        );
+<a href=#138 id=138 data-nosnippet>138</a>        <span class="macro">assert_eq!</span>(model.validation_profile.as_deref(), <span class="prelude-val">Some</span>(<span class="string">"rust-workspace"</span>));
+<a href=#139 id=139 data-nosnippet>139</a>        <span class="macro">assert_eq!</span>(model.conflicts, <span class="macro">vec!</span>[<span class="string">"entity conflict"</span>]);
+<a href=#140 id=140 data-nosnippet>140</a>    }
+<a href=#141 id=141 data-nosnippet>141</a>
+<a href=#142 id=142 data-nosnippet>142</a>    <span class="doccomment">/// Verifies the exact candidate snapshot survives adaptation for review.
+<a href=#143 id=143 data-nosnippet>143</a>    </span><span class="attr">#[test]
+<a href=#144 id=144 data-nosnippet>144</a>    </span><span class="kw">fn </span>review_preserves_candidate_snapshot_identity() {
+<a href=#145 id=145 data-nosnippet>145</a>        <span class="kw">let </span>candidate = SnapshotId::new([<span class="number">2</span>; <span class="number">32</span>]);
+<a href=#146 id=146 data-nosnippet>146</a>        <span class="kw">let </span>summary = OperationSummary {
+<a href=#147 id=147 data-nosnippet>147</a>            handle: <span class="string">"candidate"</span>.to_owned(),
+<a href=#148 id=148 data-nosnippet>148</a>            snapshot: <span class="prelude-val">Some</span>(candidate),
+<a href=#149 id=149 data-nosnippet>149</a>            revision: <span class="prelude-val">None</span>,
+<a href=#150 id=150 data-nosnippet>150</a>            branch: <span class="prelude-val">None</span>,
+<a href=#151 id=151 data-nosnippet>151</a>            diff: <span class="prelude-val">None</span>,
+<a href=#152 id=152 data-nosnippet>152</a>            history: <span class="prelude-val">None</span>,
+<a href=#153 id=153 data-nosnippet>153</a>            rendered: <span class="prelude-val">None</span>,
+<a href=#154 id=154 data-nosnippet>154</a>            validation: <span class="prelude-val">Some</span>(ValidationStatus::Passed),
+<a href=#155 id=155 data-nosnippet>155</a>            validation_profile: <span class="prelude-val">None</span>,
+<a href=#156 id=156 data-nosnippet>156</a>            validation_diagnostics: Vec::new(),
+<a href=#157 id=157 data-nosnippet>157</a>            review_details: Vec::new(),
+<a href=#158 id=158 data-nosnippet>158</a>            conflicts: Vec::new(),
+<a href=#159 id=159 data-nosnippet>159</a>        };
+<a href=#160 id=160 data-nosnippet>160</a>        <span class="kw">let </span>model =
+<a href=#161 id=161 data-nosnippet>161</a>            ChangeReviewModel::from_summary(SnapshotId::new([<span class="number">1</span>; <span class="number">32</span>]), <span class="string">"candidate"</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>summary);
+<a href=#162 id=162 data-nosnippet>162</a>
+<a href=#163 id=163 data-nosnippet>163</a>        <span class="macro">assert_eq!</span>(model.candidate_snapshot, <span class="prelude-val">Some</span>(candidate));
+<a href=#164 id=164 data-nosnippet>164</a>    }
+<a href=#165 id=165 data-nosnippet>165</a>
+<a href=#166 id=166 data-nosnippet>166</a>    <span class="doccomment">/// Verifies exact shared before/after revision references survive review.
+<a href=#167 id=167 data-nosnippet>167</a>    </span><span class="attr">#[test]
+<a href=#168 id=168 data-nosnippet>168</a>    </span><span class="kw">fn </span>review_preserves_semantic_revision_deltas() {
+<a href=#169 id=169 data-nosnippet>169</a>        <span class="kw">let </span>base = SnapshotId::new([<span class="number">3</span>; <span class="number">32</span>]);
+<a href=#170 id=170 data-nosnippet>170</a>        <span class="kw">let </span>candidate = SnapshotId::new([<span class="number">4</span>; <span class="number">32</span>]);
+<a href=#171 id=171 data-nosnippet>171</a>        <span class="kw">let </span>entity = EntityId::from_bytes([<span class="number">5</span>; <span class="number">16</span>]);
+<a href=#172 id=172 data-nosnippet>172</a>        <span class="kw">let </span>before = RevisionId::new([<span class="number">6</span>; <span class="number">32</span>]);
+<a href=#173 id=173 data-nosnippet>173</a>        <span class="kw">let </span>after = RevisionId::new([<span class="number">7</span>; <span class="number">32</span>]);
+<a href=#174 id=174 data-nosnippet>174</a>        <span class="kw">let </span>summary = OperationSummary {
+<a href=#175 id=175 data-nosnippet>175</a>            handle: <span class="string">"candidate"</span>.to_owned(),
+<a href=#176 id=176 data-nosnippet>176</a>            snapshot: <span class="prelude-val">Some</span>(candidate),
+<a href=#177 id=177 data-nosnippet>177</a>            revision: <span class="prelude-val">None</span>,
+<a href=#178 id=178 data-nosnippet>178</a>            branch: <span class="prelude-val">None</span>,
+<a href=#179 id=179 data-nosnippet>179</a>            diff: <span class="prelude-val">Some</span>(sr_change::SemanticDiff::new(
+<a href=#180 id=180 data-nosnippet>180</a>                base,
+<a href=#181 id=181 data-nosnippet>181</a>                candidate,
+<a href=#182 id=182 data-nosnippet>182</a>                <span class="macro">vec!</span>[
+<a href=#183 id=183 data-nosnippet>183</a>                    sr_change::EntityDelta::new(entity, <span class="prelude-val">Some</span>(before), <span class="prelude-val">Some</span>(after))
+<a href=#184 id=184 data-nosnippet>184</a>                        .expect(<span class="string">"changed revision"</span>),
+<a href=#185 id=185 data-nosnippet>185</a>                ],
+<a href=#186 id=186 data-nosnippet>186</a>            )),
+<a href=#187 id=187 data-nosnippet>187</a>            history: <span class="prelude-val">None</span>,
+<a href=#188 id=188 data-nosnippet>188</a>            rendered: <span class="prelude-val">None</span>,
+<a href=#189 id=189 data-nosnippet>189</a>            validation: <span class="prelude-val">Some</span>(ValidationStatus::Passed),
+<a href=#190 id=190 data-nosnippet>190</a>            validation_profile: <span class="prelude-val">None</span>,
+<a href=#191 id=191 data-nosnippet>191</a>            validation_diagnostics: Vec::new(),
+<a href=#192 id=192 data-nosnippet>192</a>            review_details: Vec::new(),
+<a href=#193 id=193 data-nosnippet>193</a>            conflicts: Vec::new(),
+<a href=#194 id=194 data-nosnippet>194</a>        };
+<a href=#195 id=195 data-nosnippet>195</a>        <span class="kw">let </span>model = ChangeReviewModel::from_summary(base, <span class="string">"candidate"</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>summary);
+<a href=#196 id=196 data-nosnippet>196</a>
+<a href=#197 id=197 data-nosnippet>197</a>        <span class="macro">assert_eq!</span>(model.deltas.len(), <span class="number">1</span>);
+<a href=#198 id=198 data-nosnippet>198</a>        <span class="macro">assert_eq!</span>(model.deltas[<span class="number">0</span>].entity, entity);
+<a href=#199 id=199 data-nosnippet>199</a>        <span class="macro">assert_eq!</span>(model.deltas[<span class="number">0</span>].before, <span class="prelude-val">Some</span>(before));
+<a href=#200 id=200 data-nosnippet>200</a>        <span class="macro">assert_eq!</span>(model.deltas[<span class="number">0</span>].after, <span class="prelude-val">Some</span>(after));
+<a href=#201 id=201 data-nosnippet>201</a>    }
+<a href=#202 id=202 data-nosnippet>202</a>
+<a href=#203 id=203 data-nosnippet>203</a>    <span class="doccomment">/// Keeps candidate presentation details separate from blocking conflicts.
+<a href=#204 id=204 data-nosnippet>204</a>    </span><span class="attr">#[test]
+<a href=#205 id=205 data-nosnippet>205</a>    </span><span class="kw">fn </span>review_details_do_not_block_explicit_confirmation() {
+<a href=#206 id=206 data-nosnippet>206</a>        <span class="kw">let </span>summary = OperationSummary {
+<a href=#207 id=207 data-nosnippet>207</a>            handle: <span class="string">"candidate"</span>.to_owned(),
+<a href=#208 id=208 data-nosnippet>208</a>            snapshot: <span class="prelude-val">None</span>,
+<a href=#209 id=209 data-nosnippet>209</a>            revision: <span class="prelude-val">None</span>,
+<a href=#210 id=210 data-nosnippet>210</a>            branch: <span class="prelude-val">None</span>,
+<a href=#211 id=211 data-nosnippet>211</a>            diff: <span class="prelude-val">None</span>,
+<a href=#212 id=212 data-nosnippet>212</a>            history: <span class="prelude-val">None</span>,
+<a href=#213 id=213 data-nosnippet>213</a>            rendered: <span class="prelude-val">None</span>,
+<a href=#214 id=214 data-nosnippet>214</a>            validation: <span class="prelude-val">Some</span>(ValidationStatus::Passed),
+<a href=#215 id=215 data-nosnippet>215</a>            validation_profile: <span class="prelude-val">None</span>,
+<a href=#216 id=216 data-nosnippet>216</a>            validation_diagnostics: Vec::new(),
+<a href=#217 id=217 data-nosnippet>217</a>            review_details: <span class="macro">vec!</span>[<span class="string">"materialized src/lib.rs"</span>.to_owned()],
+<a href=#218 id=218 data-nosnippet>218</a>            conflicts: Vec::new(),
+<a href=#219 id=219 data-nosnippet>219</a>        };
+<a href=#220 id=220 data-nosnippet>220</a>
+<a href=#221 id=221 data-nosnippet>221</a>        <span class="kw">let </span>model =
+<a href=#222 id=222 data-nosnippet>222</a>            ChangeReviewModel::from_summary(SnapshotId::new([<span class="number">8</span>; <span class="number">32</span>]), <span class="string">"candidate"</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>summary);
+<a href=#223 id=223 data-nosnippet>223</a>
+<a href=#224 id=224 data-nosnippet>224</a>        <span class="macro">assert_eq!</span>(model.details, <span class="macro">vec!</span>[<span class="string">"materialized src/lib.rs"</span>]);
+<a href=#225 id=225 data-nosnippet>225</a>        <span class="macro">assert_eq!</span>(model.conflicts, Vec::&lt;String&gt;::new());
+<a href=#226 id=226 data-nosnippet>226</a>    }
+<a href=#227 id=227 data-nosnippet>227</a>}
 </code></pre></div></section></main></body></html>

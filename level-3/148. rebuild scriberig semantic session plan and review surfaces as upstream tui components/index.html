@@ -27,7 +27,7 @@
     
     
       
-        <title>Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components - Scriberig</title>
+        <title>Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components - Scriberig</title>
       
     
     
@@ -104,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
+              Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
             
           </span>
         </div>
@@ -231,7 +231,7 @@
   <span class="md-ellipsis">
     
   
-    Scriberig
+    ScribeRig
   
 
     
@@ -7056,7 +7056,7 @@
   <span class="md-ellipsis">
     
   
-    Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
+    Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
   
 
     
@@ -7074,7 +7074,7 @@
   <span class="md-ellipsis">
     
   
-    Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
+    Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
   
 
     
@@ -7987,8 +7987,16 @@
   
 
 
-<h1 id="rebuild-scriberig-semantic-session-plan-and-review-surfaces-as-upstream-tui-components">Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components<a class="headerlink" href="#rebuild-scriberig-semantic-session-plan-and-review-surfaces-as-upstream-tui-components" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] Not Started</strong></p>
+<h1 id="rebuild-scriberig-semantic-session-plan-and-review-surfaces-as-upstream-tui-components">Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components<a class="headerlink" href="#rebuild-scriberig-semantic-session-plan-and-review-surfaces-as-upstream-tui-components" title="Permanent link">&para;</a></h1>
+<p><strong>Status: [ ] In Progress</strong></p>
+<p>Current dependency note (2026-10-21, late revalidation): ScribeRig pins
+controlled fork commit <code>ebcf8d5e75d20fa3a6cc7cc76cbcdcec4cc36eb8</code>, based on
+official upstream 0.7.1 main <code>281dfddfa39ac063d86de57b75370974c4d75e6c</code>. The
+merged upstream changes do not alter the <code>rpi-tui</code> component APIs used by these
+semantic surfaces. The pin adds public key-type reexports, tree row caching,
+<code>TreeList::{items,replace_items}</code>, host tick callbacks, and theme metadata.
+Earlier checks passed at an older pin; visible and behavior acceptance remains
+open.</p>
 <h2 id="1-objective">1. Objective<a class="headerlink" href="#1-objective" title="Permanent link">&para;</a></h2>
 <p>After task 147 makes upstream <code>rpi-tui</code> the active terminal product framework, port the Scriberig-specific terminal surfaces onto upstream component/layout/focus/overlay/scroll/theme contracts.</p>
 <p>These views remain Scriberig-specific because their data and interaction semantics depend on Scriberig architecture. Their terminal implementation must nevertheless be entirely on top of upstream UI primitives.</p>
@@ -7996,12 +8004,12 @@
 <hr />
 <h2 id="2-read-before-editing">2. Read Before Editing<a class="headerlink" href="#2-read-before-editing" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Read root and <code>design/AGENTS.md</code>.</li>
+<li>[x] Read root and <code>design/AGENTS.md</code>.</li>
 <li>[ ] Read Level-1 documents 009, 010, 015, 017, 018, 019, 020, 022.</li>
 <li>[ ] Read Level-2 documents 010, 021, 022, 024, 025, 032.</li>
 <li>[ ] Read completed tasks 144–147.</li>
-<li>[ ] Read nearest instructions for TUI, session, plan, app, change/projection, and protocol code touched.</li>
-<li>[ ] Inspect upstream component/layout/scroll/tree/list/table primitives available at the pinned revision.</li>
+<li>[x] Read nearest instructions for TUI, session, plan, app, change/projection, and protocol code touched.</li>
+<li>[x] Inspect upstream component/layout/scroll/tree/list/table primitives available at the pinned revision.</li>
 </ul>
 <hr />
 <h2 id="3-checklist-discipline">3. Checklist Discipline<a class="headerlink" href="#3-checklist-discipline" title="Permanent link">&para;</a></h2>
@@ -8076,6 +8084,72 @@
 <li>[ ] Branch activation does not move reply anchor unless the explicit Scriberig action does so.</li>
 <li>[ ] Generic tree navigation/virtualization comes from upstream or an upstream contribution.</li>
 </ul>
+<p>TreeList and SelectList integration (2026-10-21): this audit was initially
+performed at fork commit <code>3f3a0b2db91eb87f5c5b68485b1c4c3394a240a9</code> and
+rechecked against the previous active pin <code>6e65635a2ac2336a86847d85e2c3bb771a945c87</code>.
+The active pin descends from <code>15a68ef2d69a312122c09c1eccfa0fbd454c48b5</code>,
+which adds application-registered keybindings with shared help/footer
+enumeration, and merges official upstream <code>pi-rust</code> 0.7.1. The <code>rpi-tui</code>
+component APIs used by these semantic views remain available at the active
+pin:
+<code>semantic_views.rs</code> composes the adapter from <code>semantic_views/tree.rs</code>,
+<code>semantic_views/selection.rs</code>, and <code>semantic_views/details.rs</code>. The tree module
+builds <code>rpi_tui::TreeList</code> items from the already-filtered ScribeRig
+<code>ConversationModel.rows</code> and <code>SessionModel.rows</code>. Namespaced stable source IDs
+map selection back to ScribeRig conversation identity or the existing session
+cursor. Session selection is retained as <code>SessionRowIdentity</code> (row kind plus
+semantic reference) in <code>TuiState.session_cursor</code>; an authoritative session
+refresh resolves that identity into the new row order before updating the
+numeric reducer cursor.
+Pending branch focus takes precedence, and missing rows fall back to the first
+available session row rather than activating whichever row inherited the old
+index. Up/Down movement is applied by TreeList, then forwarded through the
+ScribeRig cursor reducer, which updates both the numeric cursor and stable row
+identity. The ScribeRig projection and reducer remain the sole
+owners of <code>expanded_branches</code>; TreeList expands only rows present in the
+projection. The selection module builds upstream <code>SelectList</code> items for ready
+Explorer, History, Find, Diff, and Operations projections. Their source IDs
+derive from semantic row references, and Up/Down is forwarded as the existing
+cursor action; Enter remains the existing <code>Activated</code> action.
+<code>TuiState.semantic_row_cursor</code> retains typed identities for these views.
+Authoritative refreshes resolve the identity into the new row order before
+updating the numeric reducer cursor; missing rows fall back to the nearest
+valid position. The
+details module supplies bounded selected-row/context content to upstream
+Markdown. Overview and Projection remain Markdown because each presents one
+selected entity/document rather than a selectable row set. Changes remains
+Markdown because its cursor spans validation detail rows while activation
+confirms the current candidate as a whole. These adapters compiled, but no
+tests were run and Task 148 acceptance items remain unchecked pending
+behavioral verification.</p>
+<p>Reusable TreeList updates (2026-10-21, uncommitted upstream worktree): the
+controlled fork branch <code>codex/scriberig-upstream-ownership</code> now carries
+<code>TreeList::items()</code> and <code>TreeList::replace_items(Vec&lt;TreeItem&gt;)</code> in
+<code>crates/rpi-tui/src/tree_list.rs</code>. <code>replace_items</code> validates the complete item
+set first (unique non-empty IDs, resolved parents, acyclic depth); keeps
+selection when the selected ID survives and falls back to the first new item
+when it is removed (clearing selection for an empty set); keeps expansion only
+for surviving parents with children and expands newly added parents; and
+rebuilds item/child/depth indexes plus cached visible rows and viewport bounds.
+Invalid replacement leaves the previous items and selection unchanged.
+ScribeRig retains one <code>Mutex&lt;Option&lt;TreeList&gt;&gt;</code> in
+<code>crates/scriberig-tui/src/runtime/upstream/semantic_views.rs</code> and only calls
+<code>replace_items</code> when projected <code>TreeItem</code> values change.
+<code>semantic_views/projection.rs</code> owns <code>TreeProjection</code>, initial expansion, reuse,
+and selection synchronization; <code>semantic_views/tree.rs::projection</code> and
+<code>semantic_views/plan.rs::projection</code> produce items/selection/details without
+constructing a component. <code>handle_tree_movement</code> moves the retained tree and
+derives the semantic direction from projected item order instead of building a
+temporary tree per keypress. Plan rows still take <code>parent_id</code> only from
+<code>PlanNodeParent</code>; <code>PlanDependency</code> edges remain Markdown detail rows, so the
+dependency DAG is not folded into tree parentage.</p>
+<p>Remaining gaps: the update API exists only in the upstream working tree, not a
+committed/pinned fork revision; the Cargo pin remains
+<code>bad1c5b4aa6f26cc231168d75a09165e990de39a</code> and was not changed. No
+compile/test/PTY verification was run, so the upstream contribution and the
+ScribeRig reuse path remain unverified. The §6 acceptance items for stable row
+identity, independent dependency edges, reply-anchor behavior, and upstream
+tree navigation remain unchecked pending that verification.</p>
 <hr />
 <h2 id="7-plan-component">7. Plan Component<a class="headerlink" href="#7-plan-component" title="Permanent link">&para;</a></h2>
 <p>Render durable Scriberig plans and the separate dependency DAG without confusing it with the session tree.</p>
@@ -8143,10 +8217,10 @@
 </code></pre></div>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Projection bytes/text are untrusted data to upstream safe renderer.</li>
-<li>[ ] Projection editing/reconciliation routes through Scriberig semantic change operations.</li>
-<li>[ ] No component performs direct live file writes for understood domains.</li>
-<li>[ ] Generic code/Markdown scrolling/rendering is upstream-owned.</li>
+<li>[x] Projection bytes/text are untrusted data to upstream safe renderer.</li>
+<li>[x] Projection editing/reconciliation routes through Scriberig semantic change operations.</li>
+<li>[x] No component performs direct live file writes for understood domains.</li>
+<li>[x] Generic code/Markdown scrolling/rendering is upstream-owned.</li>
 </ul>
 <hr />
 <h2 id="11-candidate-review-and-validation-component">11. Candidate Review and Validation Component<a class="headerlink" href="#11-candidate-review-and-validation-component" title="Permanent link">&para;</a></h2>
@@ -8167,6 +8241,25 @@
 <li>[ ] Confirmation is upstream overlay/UI mechanics around a Scriberig intent.</li>
 <li>[ ] Promotion uses shared Scriberig application semantics.</li>
 </ul>
+<p>Task 147 migrated the reachable <code>/edit</code> input dialog and change-review
+confirmation to upstream <code>Editor</code>, <code>Dialog</code>, and overlay mechanics. The Changes
+view now exposes base and result snapshots, validation status and diagnostic,
+validation profile, conflicts, review details, affected semantic entities,
+and exact entity revision transitions through upstream Markdown. It explains
+when the result identity is unavailable. The
+upstream dialog displays the exact result snapshot held in the confirmation
+intent. <code>CommitConfirmed</code> checks base, result, change, and branch against the
+current passed, conflict-free review before it emits the shared application
+commit operation. Focused projection and stale-result reducer tests were
+added; test targets were compile-checked but tests were not executed. The
+acceptance criteria remain unchecked pending behavioral test execution and
+interactive review.</p>
+<p>Visible PTY coverage was extended to reach Plans from the upstream searchable
+palette, select a durable plan node, change to Conversation, and confirm that
+the same node remains selected when Plans is reopened. The golden candidate
+flow now asserts the reviewed base and candidate-result labels in the upstream
+confirmation overlay. These PTY assertions were not executed and do not mark
+the view acceptance complete.</p>
 <hr />
 <h2 id="12-operations-component">12. Operations Component<a class="headerlink" href="#12-operations-component" title="Permanent link">&para;</a></h2>
 <p>Render shared Scriberig operation lifecycle using upstream components.</p>
@@ -8189,8 +8282,8 @@
 <ul>
 <li>[ ] Full prompt shows the complete safe Scriberig effective request, not raw provider HTTP payload.</li>
 <li>[ ] Reasoning preserves provider-visible invocation-local ordering.</li>
-<li>[ ] Hidden private chain-of-thought remains unavailable.</li>
-<li>[ ] Visibility changes rerender stored activity only and do not execute provider/tool work.</li>
+<li>[x] Hidden private chain-of-thought remains unavailable.</li>
+<li>[x] Visibility changes rerender stored activity only and do not execute provider/tool work.</li>
 </ul>
 <hr />
 <h2 id="14-slash-commands-and-upstream-plugin-commands">14. Slash Commands and Upstream Plugin Commands<a class="headerlink" href="#14-slash-commands-and-upstream-plugin-commands" title="Permanent link">&para;</a></h2>
@@ -8240,10 +8333,10 @@
 <p>Use upstream safe rendering APIs and structured styles; never concatenate model-generated raw ANSI/OSC into terminal control output.</p>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Hostile control-sequence corpus passes through conversation and auxiliary components.</li>
-<li>[ ] Projection/tool/error content cannot inject terminal controls through normal APIs.</li>
+<li>[x] Hostile control-sequence corpus passes through conversation and auxiliary components.</li>
+<li>[x] Projection/tool/error content cannot inject terminal controls through normal APIs.</li>
 <li>[ ] Clipboard/image behavior follows upstream product policy and Scriberig capability policy.</li>
-<li>[ ] No Scriberig component adds a <code>raw_ansi(external_string)</code> path.</li>
+<li>[x] No Scriberig component adds a <code>raw_ansi(external_string)</code> path.</li>
 </ul>
 <hr />
 <h2 id="18-focused-end-to-end-scenarios">18. Focused End-to-End Scenarios<a class="headerlink" href="#18-focused-end-to-end-scenarios" title="Permanent link">&para;</a></h2>
@@ -8293,6 +8386,190 @@
 </code></pre></div>
 <h2 id="21-implementation-notes">21. Implementation Notes<a class="headerlink" href="#21-implementation-notes" title="Permanent link">&para;</a></h2>
 <p>Record which upstream components each Scriberig semantic surface uses and any upstream generic UI contributions required during the port.</p>
+<p>The active <code>PrimaryView</code> renders its ScribeRig-owned semantic read models
+through upstream components in
+<code>crates/scriberig-tui/src/runtime/upstream/semantic_views.rs</code> and its focused
+modules. Conversation and Session use <code>rpi_tui::TreeList</code>;
+ready Explorer, History, Find, Diff, and Operations rows use
+<code>rpi_tui::SelectList</code>; supplementary details and single-document/single-entity
+views use <code>rpi_tui::Markdown</code>. Values are terminal-sanitized, Markdown-escaped,
+bounded per value, and row-bounded. The conversation view keeps the recursive
+session projection and separately renders durable plan status, structural parents,
+execution assignments, BranchResult identities, coordinator state, and
+explicit dependency edges from the canonical session snapshot. Prompt detail
+and safe activity summaries follow the existing presentation visibility
+settings. Candidate confirmation now displays and validates the exact result
+snapshot against the current review alongside its base snapshot before it
+issues the shared commit intent. The upstream command palette reaches
+conversation, overview, semantic explorer, find, history, diff, projection,
+candidate review, session, and operation views. Choosing the semantic explorer
+sets the ScribeRig presentation focus and resets its cursor; the upstream
+composer routes F7 browse mode's Up/Down/Enter actions through the ScribeRig
+reducer, and Escape returns to editing. In the recursive conversation view,
+F7 also enters ScribeRig conversation-browse mode, Enter pins the selected
+reply cursor through <code>ConversationPinCursor</code>, and Left/Right toggles the
+selected branch's presentation expansion through <code>ConversationToggleExpansion</code>.
+These actions retain stable semantic identity and remain independent of the
+plan coordinator cursor. The ScribeRig cursor reducer remains the identity and
+activation owner: upstream row movement is translated to its existing cursor
+action, and Enter is still reduced as ScribeRig <code>Activated</code>. List selection
+uses typed stable semantic identities across authoritative refreshes; session
+selection uses <code>SessionRowIdentity</code> to survive authoritative row reorder. Overview and
+Projection are single-document/single-entity views, and Changes activation
+confirms the candidate as a whole, so these remain Markdown. This remains
+incomplete: stable identity activation for every row, all
+view-specific actions, richer focus/layout behavior, PTY scenarios, and
+behavioral verification remain outstanding. Task 147's visible PTY gate also
+remains unchecked; no tests were run.</p>
+<p>Plan projection (2026-10-21): the dedicated Plans view uses upstream
+<code>rpi_tui::TreeList</code> for plan and structural plan-node rows, plus upstream
+<code>Markdown</code> for the selected plan/node details. <code>PlanSelection</code> retains the
+stable <code>(plan, optional node)</code> identity separately from the conversation
+cursor and <code>coordinator_cursor</code>. Tree parent IDs come only from
+<code>PlanNodeParent</code>; dependency edges remain explicit <code>PlanDependency</code> values
+rendered as edge rows in the details section, including their <code>fulfilled_by</code>
+result. Node detail shows lifecycle status, branch, BranchResult, safe model
+assignment, worker claim, and expected result. The existing <code>/plan</code> lifecycle
+and <code>/assign</code> commands still issue shared application effects; from the Plans
+view they resolve their target from <code>PlanSelection</code> instead of changing the
+conversation or coordinator cursor. The available upstream TreeList and
+Markdown APIs cover this read-only view; no ScribeRig generic graph or widget
+framework was added. Upstream <code>TreeList</code> models structural hierarchy but does
+not provide a reusable dependency-DAG graph component. The current view exposes
+canonical edges through upstream Markdown; any graphical DAG component should
+be contributed to <code>rpi-tui</code> before ScribeRig adopts it. Focused projection
+tests were added and compiled with
+<code>cargo check --offline -p scriberig-tui --tests</code>; the tests were not executed.
+The task remains incomplete pending behavioral execution and interactive
+verification.</p>
+<p>Adapter audit (2026-10-21): ScribeRig semantic views use upstream <code>TreeList</code>,
+<code>SelectList</code>, and <code>Markdown</code>; status uses upstream <code>FooterComponent</code>; property
+editing uses upstream <code>PropertyEditor</code> and <code>Editor</code>; confirmations use
+upstream <code>Dialog</code>; and overlays/lifecycle use <code>TuiAltScreen</code>. <code>SemanticViewPanel</code>
+is retained because it projects canonical session/plan/semantic identities
+into upstream rows and maps navigation back to ScribeRig reducer actions.
+<code>ConfirmationOverlayAdapter</code>, <code>ModalOverlayController</code>, and input/property
+adapters retain ScribeRig review identity, validation, and reducer routing.
+The <code>SelectorAdapter</code> is a temporary generic bridge because upstream selector
+components expose <code>handle_key</code> but lack <code>Component::handle_event</code> and, for
+plain <code>SelectList</code>, <code>Focusable</code>. <code>VStack</code> likewise does not forward input to
+focused children. Their removal gate is reusable normalized-input/focus
+routing in <code>rpi-tui</code>, plus an upstream global key hook to avoid duplicating
+Ctrl-C interception. The upstream CLI's selector router is private to
+<code>rpi-cli</code>, so it is not consumed as a library API. Provider, model, and
+thinking controls are built with upstream selector components; this TUI slice
+does not alter catalog/service data ownership. No checklist items were changed
+to complete because these gaps and the unrun behavior checks remain open.</p>
+<p>Renderer deletion follow-up (2026-10-21): removed the test-only Ratatui
+renderer and <code>scriberig-tui-kit</code>. Its semantic activity identity/redaction,
+hostile-value sanitization, projection metadata, and visibility assertions
+were retained in semantic model or upstream component projection tests. The
+former layout, width, and style assertions exercised only the retired
+renderer. TUI and PTY test targets compile-checked after the deletion; none of
+the tests or PTY scenarios have been executed. All acceptance checkboxes stay
+unchecked until their required behavior and visible terminal checks are run.</p>
+<p>Event/focus extraction follow-up (2026-10-21): the fork worktree adds reusable
+<code>Component::set_focus_state</code>, selector typed-event dispatch, <code>VStack</code> focused
+child dispatch, <code>TuiAltScreen::set_global_input_handler</code>, automatic focus
+transfer, and generic <code>Dialog</code> callbacks. ScribeRig removes its selector and
+confirmation wrappers and its property editor event/focus wrappers; semantic
+input headings and stable confirmation identities remain ScribeRig-owned.
+The upstream branch is pending central controlled-fork integration, so the
+consumer has not yet been compile-checked. No tests were run, and no checklist
+items are newly checked. This follow-up supersedes the earlier adapter audit's
+temporary selector/global-key bridge conclusions.</p>
+<p>Safe-rendering and projection-identity follow-up (2026-10-21): the shared
+semantic-view value formatter in
+<code>crates/scriberig-tui/src/runtime/upstream/semantic_views/common.rs</code> now escapes
+terminal control characters as visible <code>\u{...}</code> text, escapes Markdown inline
+punctuation including links and ordered-list markers, and leaves exact
+identities such as <code>ent_...</code> and <code>sna_...</code> literal so users can still copy and
+compare them. The previous blanket escaping changed those identifiers and
+silently broke the
+expected evidence in conversation, session, plan, changes, and projection
+views. The Projection view now also renders the projection identity, the
+adapter-supplied source path, and synchronization state when present, instead
+of dropping that metadata. Added focused tests for identity preservation and
+the hostile terminal corpus. <code>cargo test --offline -p scriberig-tui --lib
+semantic_views</code> passes 10/10. The full <code>scriberig-tui</code> library target still
+has 8 failures in <code>state</code>, palette, and model-selection tests that belong to
+task 147's in-flight migration in this working tree; those files were not
+modified here. PTY acceptance execution remains outstanding.</p>
+<p>Verification update (2026-10-21): <code>cargo clippy --offline -p scriberig-tui
+--all-targets -- -D warnings</code> passes. The full PTY acceptance suite
+(<code>cargo test --offline -p scriberig --test tui_pty</code>, 28 scenarios) was executed
+and every scenario failed while the task 147 migration is still in flight; a
+single re-run of <code>tui_pty_starts_without_a_project</code> also failed, so this is not
+specific to the semantic-view changes. Section 18 scenarios therefore remain
+unchecked.</p>
+<p>Semantic list search adapter (2026-10-21): ScribeRig's stable row key remains
+the upstream <code>SelectItem.value</code>, while its already-sanitized label and
+description are combined with upstream <code>SelectItem::with_search_text</code>. This
+lets the upstream <code>SelectList</code> fuzzy filter match semantic kind, exact entity
+and snapshot references, migration base/result, preview, and operation status
+without replacing the activation identity with display text. The pinned
+<code>rpi-tui</code> implementation uses <code>search_key()</code> for fuzzy filtering and falls
+back to <code>value</code> when no search text is provided. No tests were run and no
+acceptance checkbox was changed.</p>
+<p>Plan selection consistency follow-up (2026-10-21): the Plans adapter now
+resolves a single stable <code>PlanSelection</code> from the retained semantic cursor,
+numeric cursor fallback, or first available row and uses it for both the
+upstream <code>TreeList</code> highlight and the selected Markdown details. This prevents
+the no-identity fallback from highlighting a later node while showing details
+for the first plan row. A focused regression test covers that cursor fallback;
+tests were not run per task execution constraints, so no feature acceptance
+checkboxes were changed.</p>
+<p>Stable selection and coordinator-presentation follow-up (2026-10-21):
+<code>semantic_views/tree.rs</code> now retains a matching semantic row identity without
+falling back to an unrelated numeric row when that identity disappears; a
+numeric fallback remains only when no semantic identity exists.
+<code>semantic_views/plan.rs</code> separately labels the durable plan node at
+<code>coordinator_cursor</code>, without changing user navigation or <code>PlanSelection</code>.
+Both files use upstream <code>TreeList</code> for generic row rendering/navigation.
+Exact-file formatting and scoped diff checks passed; no tests/builds or PTY
+scenarios were run, so behavior and all related acceptance remain unchecked.</p>
+<p>Semantic coverage audit (2026-10-21): source inspection confirms that visible
+tree/list rendering is delegated to upstream <code>rpi_tui::TreeList</code>,
+<code>rpi_tui::SelectList</code>, and <code>rpi_tui::Markdown</code> through
+<code>crates/scriberig-tui/src/runtime/upstream/semantic_views.rs</code> and its
+<code>semantic_views/tree.rs</code>, <code>plan.rs</code>, <code>selection.rs</code>, and <code>details.rs</code> modules.
+The ScribeRig <code>Component</code> adapter <code>SemanticViewPanel</code> still owns the composition
+and maps upstream input to ScribeRig reducer actions; thus rendering primitives
+and generic tree/list navigation are upstream-owned, while semantic projection,
+focus policy, and activation routing remain local adapters.</p>
+<p>Recursive session identity is represented by <code>SessionRowIdentity</code> in
+<code>crates/scriberig-tui/src/view/session.rs</code> (row kind plus semantic reference),
+and <code>SessionModel::from_session</code> traverses nested branches with a visited-ID
+set, preserving <code>BranchResult</code> rows and presentation-only expansion state.
+<code>semantic_views/tree.rs</code> namespaces session row IDs and conversation source IDs
+before building <code>TreeItem</code>s; <code>TuiState.session_cursor</code> and the conversation
+cursor are reconciled against these identities. <code>conversation_structure.rs</code>
+keeps continuation anchors and plan worker branch placement explicit. Plans
+remain a separate projection: <code>semantic_views/plan.rs</code> builds structural
+parents from <code>PlanNodeParent</code> only, while dependency edges are rendered in
+<code>plan/details.rs</code> from <code>Plan.dependencies</code>. This is good evidence for
+identity/DAG separation, but currently the plan tree shows structural
+parentage/status/IDs and details carry the dependencies; the focused PTY
+scenario only proves durable node selection survives switching views, not a
+plan with dependencies or an interaction across reorder/resize.</p>
+<p>Candidate/review projection is in
+<code>semantic_views/model_views.rs::changes</code>: it renders candidate/base/result
+snapshots, validation/profile, conflicts, diagnostics, and entity revision
+transitions through Markdown. The actual confirmation guard is reducer logic
+(<code>CommitConfirmed</code>) that compares the confirmation intent with the current
+passed, conflict-free review before emitting the shared commit operation. This
+is stronger evidence than display alone, but acceptance still lacks executed
+behavioral/PTY evidence for stale-base/conflict rejection and exact-candidate
+validation binding. The currently documented PTY assertion for base/result
+labels checks visible copy only.</p>
+<p>Remaining executable acceptance gaps: execute deterministic PTY scenarios for
+nested branch collapse/expand and historical reply anchoring, plan dependency
+display and node identity under authoritative reorder/resize, semantic
+explorer/review activation, and candidate stale/conflict confirmation rejection;
+exercise bounded visible-row behavior on a large/deep tree and resize/scroll
+selection preservation; then update only the relevant checkboxes with the
+results. No tests or PTY commands were run for this audit, so no acceptance
+checkboxes were changed.</p>
 
 
 

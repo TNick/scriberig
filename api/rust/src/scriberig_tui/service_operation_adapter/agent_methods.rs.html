@@ -2,11 +2,11 @@
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="macro">macro_rules!</span> operation_agent_methods {
 <a href=#4 id=4 data-nosnippet>4</a>    () =&gt; {
-<a href=#5 id=5 data-nosnippet>5</a>        <span class="doccomment">/// Reads the credential-safe model library through the shared application.
+<a href=#5 id=5 data-nosnippet>5</a>        <span class="doccomment">/// Reads upstream safe model snapshots through the shared application.
 <a href=#6 id=6 data-nosnippet>6</a>        ///
 <a href=#7 id=7 data-nosnippet>7</a>        /// - `context`: Authorized caller context.
 <a href=#8 id=8 data-nosnippet>8</a>        ///
-<a href=#9 id=9 data-nosnippet>9</a>        /// Public model and profile descriptors without provider credentials.
+<a href=#9 id=9 data-nosnippet>9</a>        /// Upstream model display rows without provider credentials.
 <a href=#10 id=10 data-nosnippet>10</a>        ///
 <a href=#11 id=11 data-nosnippet>11</a>        /// Returns an authorization or model-library configuration error.
 <a href=#12 id=12 data-nosnippet>12</a>        /// # Returns
@@ -17,11 +17,11 @@
 <a href=#17 id=17 data-nosnippet>17</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#18 id=18 data-nosnippet>18</a>            context: <span class="kw-2">&amp;</span>ApplicationContext,
 <a href=#19 id=19 data-nosnippet>19</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;scriberig_protocol::ModelLibraryResponse, ApplicationError&gt; {
-<a href=#20 id=20 data-nosnippet>20</a>            <span class="kw">let </span>library =
+<a href=#20 id=20 data-nosnippet>20</a>            <span class="kw">let </span>models =
 <a href=#21 id=21 data-nosnippet>21</a>                scriberig_app::AgentConsoleBackend::agent_model_library(<span class="kw-2">&amp;</span><span class="self">self</span>.service, context)<span class="question-mark">?</span>;
-<a href=#22 id=22 data-nosnippet>22</a>            <span class="prelude-val">Ok</span>(<span class="kw">super</span>::service_application::query::model_library_response(
-<a href=#23 id=23 data-nosnippet>23</a>                library,
-<a href=#24 id=24 data-nosnippet>24</a>            ))
+<a href=#22 id=22 data-nosnippet>22</a>            <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="kw">super</span>::service_application::query::model_library_response(models);
+<a href=#23 id=23 data-nosnippet>23</a>            response.provider_readiness = <span class="self">self</span>.agent_runner.provider_readiness();
+<a href=#24 id=24 data-nosnippet>24</a>            <span class="prelude-val">Ok</span>(response)
 <a href=#25 id=25 data-nosnippet>25</a>        }
 <a href=#26 id=26 data-nosnippet>26</a>
 <a href=#27 id=27 data-nosnippet>27</a>        <span class="doccomment">/// Updates the selected session model through the shared application.

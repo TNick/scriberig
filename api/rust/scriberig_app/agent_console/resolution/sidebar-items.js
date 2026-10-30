@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["resolve_execution_selection","resolve_plan_node_execution","resolve_plan_node_execution_with_sources"],"struct":["ExecutionSelectionSources","ResolvedPlanExecution"]};
+window.SIDEBAR_ITEMS = {"fn":["resolve_execution_selection","resolve_execution_selection_typed","resolve_execution_selection_with_profile_preference","resolve_plan_node_execution","resolve_plan_node_execution_with_profile_preference","resolve_plan_node_execution_with_sources"],"struct":["ExecutionSelectionSources","ResolvedPlanExecution"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["BranchPhase"],"struct":["BranchRuntimeState","CancellationTree","RuntimeLimits"]};
+window.SIDEBAR_ITEMS = {"struct":["RuntimeLimits"]};

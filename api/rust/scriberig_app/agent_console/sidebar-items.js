@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["configuration","detail","library","model","preferences","resolution"]};
+window.SIDEBAR_ITEMS = {"mod":["detail","preferences","request_page","resolution"]};

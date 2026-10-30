@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["credential_source_for_model","request_secret_for_model"]};

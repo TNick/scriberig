@@ -77,31 +77,35 @@
 <a href=#77 id=77 data-nosnippet>77</a>        scriberig_protocol::EventKind::AgentActivity =&gt; {
 <a href=#78 id=78 data-nosnippet>78</a>            <span class="kw">let </span>branch = metadata_value(event, <span class="string">"branch"</span>)<span class="question-mark">?</span>;
 <a href=#79 id=79 data-nosnippet>79</a>            <span class="kw">let </span>summary = metadata_value(event, <span class="string">"summary"</span>)<span class="question-mark">?</span>;
-<a href=#80 id=80 data-nosnippet>80</a>            <span class="prelude-val">Some</span>(scriberig_app::ApplicationEvent::AgentActivity {
-<a href=#81 id=81 data-nosnippet>81</a>                operation,
-<a href=#82 id=82 data-nosnippet>82</a>                branch,
-<a href=#83 id=83 data-nosnippet>83</a>                activity_kind: <span class="kw-2">*</span>event.activity_kind.as_ref()<span class="question-mark">?</span>,
-<a href=#84 id=84 data-nosnippet>84</a>                state: <span class="kw-2">*</span>event.activity_state.as_ref()<span class="question-mark">?</span>,
-<a href=#85 id=85 data-nosnippet>85</a>                summary,
-<a href=#86 id=86 data-nosnippet>86</a>            })
-<a href=#87 id=87 data-nosnippet>87</a>        }
-<a href=#88 id=88 data-nosnippet>88</a>        <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-<a href=#89 id=89 data-nosnippet>89</a>    }
-<a href=#90 id=90 data-nosnippet>90</a>}
-<a href=#91 id=91 data-nosnippet>91</a>
-<a href=#92 id=92 data-nosnippet>92</a><span class="doccomment">/// Reads one string value from safe event metadata.
-<a href=#93 id=93 data-nosnippet>93</a>///
-<a href=#94 id=94 data-nosnippet>94</a>/// - `event`: Protocol event containing the metadata.
-<a href=#95 id=95 data-nosnippet>95</a>/// - `key`: Stable metadata key.
-<a href=#96 id=96 data-nosnippet>96</a>///
-<a href=#97 id=97 data-nosnippet>97</a>/// The metadata value when present.
-<a href=#98 id=98 data-nosnippet>98</a>/// # Returns
-<a href=#99 id=99 data-nosnippet>99</a>/// The operation result.
-<a href=#100 id=100 data-nosnippet>100</a></span><span class="kw">fn </span>metadata_value(event: <span class="kw-2">&amp;</span>scriberig_protocol::Event, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
-<a href=#101 id=101 data-nosnippet>101</a>    event
-<a href=#102 id=102 data-nosnippet>102</a>        .metadata
-<a href=#103 id=103 data-nosnippet>103</a>        .iter()
-<a href=#104 id=104 data-nosnippet>104</a>        .find(|(name, <span class="kw">_</span>)| name == key)
-<a href=#105 id=105 data-nosnippet>105</a>        .map(|(<span class="kw">_</span>, value)| value.clone())
-<a href=#106 id=106 data-nosnippet>106</a>}
+<a href=#80 id=80 data-nosnippet>80</a>            <span class="kw">let </span>ordinal = metadata_value(event, <span class="string">"ordinal"</span>)
+<a href=#81 id=81 data-nosnippet>81</a>                .and_then(|value| value.parse().ok())
+<a href=#82 id=82 data-nosnippet>82</a>                .unwrap_or_default();
+<a href=#83 id=83 data-nosnippet>83</a>            <span class="prelude-val">Some</span>(scriberig_app::ApplicationEvent::AgentActivity {
+<a href=#84 id=84 data-nosnippet>84</a>                operation,
+<a href=#85 id=85 data-nosnippet>85</a>                branch,
+<a href=#86 id=86 data-nosnippet>86</a>                activity_kind: <span class="kw-2">*</span>event.activity_kind.as_ref()<span class="question-mark">?</span>,
+<a href=#87 id=87 data-nosnippet>87</a>                state: <span class="kw-2">*</span>event.activity_state.as_ref()<span class="question-mark">?</span>,
+<a href=#88 id=88 data-nosnippet>88</a>                summary,
+<a href=#89 id=89 data-nosnippet>89</a>                ordinal,
+<a href=#90 id=90 data-nosnippet>90</a>            })
+<a href=#91 id=91 data-nosnippet>91</a>        }
+<a href=#92 id=92 data-nosnippet>92</a>        <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#93 id=93 data-nosnippet>93</a>    }
+<a href=#94 id=94 data-nosnippet>94</a>}
+<a href=#95 id=95 data-nosnippet>95</a>
+<a href=#96 id=96 data-nosnippet>96</a><span class="doccomment">/// Reads one string value from safe event metadata.
+<a href=#97 id=97 data-nosnippet>97</a>///
+<a href=#98 id=98 data-nosnippet>98</a>/// - `event`: Protocol event containing the metadata.
+<a href=#99 id=99 data-nosnippet>99</a>/// - `key`: Stable metadata key.
+<a href=#100 id=100 data-nosnippet>100</a>///
+<a href=#101 id=101 data-nosnippet>101</a>/// The metadata value when present.
+<a href=#102 id=102 data-nosnippet>102</a>/// # Returns
+<a href=#103 id=103 data-nosnippet>103</a>/// The operation result.
+<a href=#104 id=104 data-nosnippet>104</a></span><span class="kw">fn </span>metadata_value(event: <span class="kw-2">&amp;</span>scriberig_protocol::Event, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
+<a href=#105 id=105 data-nosnippet>105</a>    event
+<a href=#106 id=106 data-nosnippet>106</a>        .metadata
+<a href=#107 id=107 data-nosnippet>107</a>        .iter()
+<a href=#108 id=108 data-nosnippet>108</a>        .find(|(name, <span class="kw">_</span>)| name == key)
+<a href=#109 id=109 data-nosnippet>109</a>        .map(|(<span class="kw">_</span>, value)| value.clone())
+<a href=#110 id=110 data-nosnippet>110</a>}
 </code></pre></div></section></main></body></html>

@@ -231,7 +231,7 @@
   <span class="md-ellipsis">
     
   
-    Scriberig
+    ScribeRig
   
 
     
@@ -7047,7 +7047,7 @@
   <span class="md-ellipsis">
     
   
-    Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
+    Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
   
 
     
@@ -7614,22 +7614,155 @@
 
 
 <h1 id="migrate-durable-plans-to-semantic-entities-gates-evidence-rollups-and-recoverable-failure">Migrate Durable Plans to Semantic Entities, Gates, Evidence, Rollups, and Recoverable Failure<a class="headerlink" href="#migrate-durable-plans-to-semantic-entities-gates-evidence-rollups-and-recoverable-failure" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] Not Started</strong></p>
+<p><strong>Status: [ ] In Progress</strong></p>
+<p>Implementation note (2026-10-22): task 150 was authored on a commit chain not
+present in the active <code>design/adopt-rpi-tui</code> tree. Its governing Level-1 023
+and Level-2 033 documents were restored from that same chain alongside this
+task. Task 148/TUI implementation remains deferred until its upstream-first
+component path is available in this implementation branch.</p>
+<p>Baseline inventory (2026-10-22): <code>scriberig-session/src/planning.rs</code> and its
+<code>planning/</code> modules own aggregate <code>Plan</code>, <code>PlanNode</code>, dependency, claim, and
+plan-history domain behavior. <code>scriberig-session::SessionStore</code> exposes a
+whole-session save plus plan-local CAS. <code>scriberig-session-sqlite</code> currently
+encodes complete plans inside the <code>session_records.payload</code> and performs plan
+CAS by replacing that nested plan in a transaction. <code>scriberig-app</code> owns plan
+operations and delegates CAS to the session repository. <code>scriberig-agent-runtime</code>
+owns scheduling/coordinator orchestration. <code>scriberig-protocol</code>, server,
+client, web, and TUI expose plan projections; none is an authority for canonical
+plan mutation. Universal immutable revision/snapshot APIs live in
+<code>scriberig-store</code> and its backends, but plan writes do not currently use them.</p>
+<p>Implementation update (2026-10-22): <code>scriberig-session::PlanSemanticSnapshot</code>
+now encodes Plan, PlanNode, membership, structural, dependency, and mutation
+metadata as independent universal revisions. <code>SqliteSessionStore</code> stores each
+plan under a deterministic session/plan root in <code>scriberig-store-sqlite</code>;
+plan-local CAS promotes that root and reads hydrate the aggregate compatibility
+projection from the root. Snapshot ancestry reconstructs historical plan
+states, while separate revision metadata retains safe mutation reasons. Legacy
+aggregate plans are imported as an ordered snapshot chain on first read. The
+SQLite session JSON still carries a compatibility projection and branch/session
+records; it no longer accepts plan mutations when a semantic root exists.</p>
+<p>Implementation update (2026-10-30): exact plan snapshot reads now reject
+snapshots outside the plan root's ancestry and preserve historical membership.
+Plan-attempt outcomes are independently revisioned semantic objects. Plan
+semantic promotion and compatibility session/branch projection updates now use
+one SQLite connection and one transaction, so a failed root CAS rolls back the
+projection write as well. The regression
+<code>plan_cas_rolls_back_session_projection_on_semantic_conflict</code> proves rollback;
+<code>plan_dependencies_and_assignments_survive_reopen</code> proves stale callers still
+receive a structured revision conflict. Structural cycle validation now runs
+before semantic promotion. Focused session and SQLite tests pass, including 20
+consecutive runs of <code>execution_selection_compare_and_swap_is_atomic</code> after its
+competing proposals were made to carry consistent history.</p>
+<p>Implementation update (2026-10-30): the session store now exposes a compact
+snapshot-bound PlanView read. SQLite selects plan, node, membership, and
+structure revisions using revision type metadata and does not load detailed
+evidence, gate, summary, attempt, or history payloads. A corruption regression
+proves compact inspection remains available while the full read correctly
+reports a damaged evidence object. The TypeScript protocol/client now preserve
+the shared plan/node view fields and call the shared semantic-mutation and
+retry operations. Focused Rust semantic/SQLite tests and the web client tests
+pass; <code>pnpm --dir web typecheck</code> passes.</p>
+<p>Implementation update (2026-10-30): root promotion now starts with an
+immediate SQLite transaction so independent connections serialize before
+reading and promoting the named root. The regression
+<code>independent_handles_serialize_root_compare_and_swap</code> verifies exactly one
+writer succeeds and the other receives a structured root conflict. The focused
+store suite and the plan-related Rust suites pass across session, SQLite,
+application, agent runtime, protocol, client, and server packages; web client
+tests and full web typecheck pass.</p>
+<p>Remaining implementation gaps: bounded per-node detail and separate attempt /
+evidence history reads are incomplete; SQLite does not persist a normalized
+rollup index; migration equivalence coverage for every historical plan and
+coordinator field is incomplete; and web product surfaces do not yet present
+or invoke every plan operation. Task 148's upstream TUI implementation is
+still In Progress, so task 150's TUI integration remains deferred under the
+dependency rule below. These gaps must be resolved or explicitly deferred by
+the governing design before task 150 can be completed.</p>
+<p>Implementation update (2026-10-30): scheduler settlement now sends successful
+and failed branch results, execution activity, evidence, and terminal Plan
+state through one plan CAS. SQLite derives newly settled worker branches from
+the prior and proposed semantic Plan and applies their result projections in
+the same transaction as root promotion. The application fallback performs the
+equivalent projection under its session lock. The regression
+<code>plan_cas_rolls_back_session_projection_on_semantic_conflict</code> injects a root
+promotion failure after projection work and proves neither the branch result
+nor terminal node state is visible; <code>plan_settlement_commits_existing_branch_result_with_semantic_state</code>
+proves both views appear after one successful CAS. Durable retry coverage
+proves failure outcomes survive reload and a later retry can complete. Focused
+session, SQLite, application, and runtime suites, Clippy, formatting, and
+repository lint pass. SQLite still stores the compatibility session and
+branch projection together, so this does not satisfy the independent
+disjoint-node storage requirement in Task 8.6.</p>
+<p>Implementation update (2026-10-30): scheduler readiness and claiming criteria
+were re-audited against focused regressions. <code>plan_dependencies_require_results_and_remain_acyclic</code>
+and <code>contradictory_validation_evidence_fails_entry_gate</code> cover exact
+dependency results and failed entry gates; <code>incremental_rollup_rejects_a_stale_base_snapshot</code>
+covers stale derived-index rejection. <code>concurrent_plan_coordinator_claims_have_one_winner</code>
+proves CAS permits one competing claim, while
+<code>sibling_workers_execute_concurrently_with_distinct_assignments</code> proves
+independent ready siblings remain concurrent. The separate mutation-cost
+criterion remains unverified.</p>
+<p>Implementation update (2026-10-22): focused SQLite recovery coverage exposed
+that a node's retained latest failure reference was incorrectly copied onto a
+later successful attempt. Attempt-history projection now associates failure
+evidence only with the exact branch named by that reference. A persistence
+regression exercises failure, retry, successful completion, and reload through
+the semantic snapshot ancestry (<code>cargo test -p scriberig-session-sqlite --test
+durable semantic_retry_keeps_attempt_outcomes_across_reload</code>). The
+<code>PlanRetryRequest</code> application operation now reloads exact branch results,
+validates the expected plan revision, routes through the plan domain retry,
+and persists with plan CAS. Its focused stale-revision and retained-failure
+regression passes (<code>cargo test -p scriberig-app --test session_runtime
+application_retry_is_revision_checked_and_preserves_failure</code>). A session
+domain regression also proves a failed prerequisite and pending entry gate
+block retry, exact successful prerequisite evidence plus supporting gate
+evidence permit retry, and an attached stale worker claim blocks retry
+(<code>cargo test -p scriberig-session --test plan_recovery
+retry_requires_satisfied_dependencies_gates_and_no_claim</code>).
+Retry is also available through a typed protocol request, the HTTP route, and
+Rust client method. These focused checks pass:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cargo test -p scriberig-protocol --lib references_and_requests_round_trip
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cargo test -p scriberig-client --lib plan_client_methods_send_shared_application_requests
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>cargo test -p scriberig-server --lib typed_plan_retry_route_dispatches_shared_operation
+</code></pre></div>
+<p>Implementation update (2026-10-22): ordinary next-step insertion is now a
+separate revision-checked application operation, distinct from replan
+replacement. It requires a Running plan, creates one structurally anchored
+node, and commits one plan revision while preserving prior nodes. The typed
+protocol, HTTP operation, and Rust client expose the same request. Focused
+checks confirm that the mutation adds exactly one revision, records the
+<code>ordinary next step added</code> history reason, and leaves a completed earlier node
+and exact result intact. They pass:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cargo test -p scriberig-app --test session_runtime application_next_step_requires_running_plan_and_current_revision
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cargo test -p scriberig-protocol --lib references_and_requests_round_trip
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>cargo test -p scriberig-client --lib plan_client_methods_send_shared_application_requests
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>cargo test -p scriberig-server --lib typed_plan_next_step_route_dispatches_shared_operation
+</code></pre></div>
+<p>Implementation update (2026-10-22): node decomposition is now a
+revision-checked application operation and typed protocol/client/HTTP route.
+Required children become structural descendants with <code>RequiredChildCompleted</code>
+completion gates; decomposition creates no dependency edges. The focused app,
+protocol, client, and server route checks pass:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cargo test -p scriberig-app --test session_runtime application_decomposition_creates_required_child_gates_once
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cargo test -p scriberig-protocol --lib references_and_requests_round_trip
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>cargo test -p scriberig-client --lib plan_client_methods_send_shared_application_requests
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>cargo test -p scriberig-server --lib typed_plan_decompose_route_dispatches_shared_operation
+</code></pre></div>
 <h2 id="1-objective">1. Objective<a class="headerlink" href="#1-objective" title="Permanent link">&para;</a></h2>
 <p>Migrate durable planning from aggregate session-plan persistence to independently revisioned semantic plan objects while preserving the existing coordinator, scheduler, dependency-result, branch-isolation, and cross-surface behavior.</p>
 <p>The finished implementation must provide:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>independent Plan semantic entity
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>independent PlanNode semantic entities
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>semantic structural relations
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>independent dependency state
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>first-class Summary links
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>first-class evidence associations
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>first-class typed gates
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>recoverable Failed nodes and plans
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>preserved retry/attempt provenance
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>derived incremental parent/subtree status rollups
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>legacy aggregate-plan migration/compatibility
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>shared app/protocol/client/web/TUI projections
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>independent Plan semantic entity
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>independent PlanNode semantic entities
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>semantic structural relations
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>independent dependency state
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>first-class Summary links
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>first-class evidence associations
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>first-class typed gates
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>recoverable Failed nodes and plans
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>preserved retry/attempt provenance
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>derived incremental parent/subtree status rollups
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>legacy aggregate-plan migration/compatibility
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>shared app/protocol/client/web/TUI projections
 </code></pre></div>
 <p>Do not introduce <code>PlanNodeWorkState</code> or another parallel lifecycle enum.</p>
 <p>Do not replace Scriberig plan semantics with an upstream task-list model.</p>
@@ -7676,194 +7809,194 @@
 <h1 id="5-phase-0-baseline-inventory-and-compatibility-map">5. Phase 0 — Baseline Inventory and Compatibility Map<a class="headerlink" href="#5-phase-0-baseline-inventory-and-compatibility-map" title="Permanent link">&para;</a></h1>
 <h2 id="task-01-record-current-plan-ownership">Task 0.1 — Record current plan ownership<a class="headerlink" href="#task-01-record-current-plan-ownership" title="Permanent link">&para;</a></h2>
 <p>Identify current owners for:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Plan / PlanNode types
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>PlanStatus / PlanNodeStatus
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>PlanRevision history
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>parent structure
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>root node list
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>dependencies
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>worker claims
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>coordinator claims
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>readiness
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>worker settlement
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>replan
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>session persistence
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>plan CAS
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>application operations
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>protocol DTOs
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>web/TUI views
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Plan / PlanNode types
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>PlanStatus / PlanNodeStatus
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>PlanRevision history
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>parent structure
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>root node list
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>dependencies
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>worker claims
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>coordinator claims
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>readiness
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>worker settlement
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>replan
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>session persistence
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>plan CAS
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>application operations
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>protocol DTOs
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>web/TUI views
 </code></pre></div>
 <ul>
-<li>[ ] Current owners are documented in implementation notes.</li>
+<li>[x] Current owners are documented in implementation notes.</li>
 <li>[ ] No design path is inferred solely from stale filenames in older tasks.</li>
 </ul>
 <h2 id="task-02-record-current-persistence-boundary">Task 0.2 — Record current persistence boundary<a class="headerlink" href="#task-02-record-current-persistence-boundary" title="Permanent link">&para;</a></h2>
 <p>Prove where complete session/plan aggregates are encoded today and which APIs perform plan-local compare-and-swap.</p>
 <ul>
-<li>[ ] Current aggregate write path is identified.</li>
-<li>[ ] Current plan mutation revision/CAS behavior is covered by tests before refactor.</li>
-<li>[ ] Current restart/reload behavior has a focused baseline test.</li>
+<li>[x] Current aggregate write path is identified.</li>
+<li>[x] Current plan mutation revision/CAS behavior is covered by tests.</li>
+<li>[x] Restart/reload behavior has focused coverage.</li>
 </ul>
 <h2 id="task-03-audit-reusable-universal-semantic-infrastructure">Task 0.3 — Audit reusable universal semantic infrastructure<a class="headerlink" href="#task-03-audit-reusable-universal-semantic-infrastructure" title="Permanent link">&para;</a></h2>
 <p>Locate existing APIs for:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>EntityId
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Revision
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>TypeId/schema registration
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Snapshot resolve/apply/diff
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>relations/collections
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>derived indexes/cache
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>change/migration/promotion
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>root compare-and-set
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>provenance
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>EntityId
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Revision
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>TypeId/schema registration
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>Snapshot resolve/apply/diff
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>relations/collections
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>derived indexes/cache
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>change/migration/promotion
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>root compare-and-set
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>provenance
 </code></pre></div>
 <ul>
-<li>[ ] Implementation reuses existing architectural owners where possible.</li>
-<li>[ ] No duplicate revision/snapshot/graph store is created for planning.</li>
+<li>[x] Implementation reuses existing architectural owners where possible.</li>
+<li>[x] No duplicate revision/snapshot/graph store is created for planning.</li>
 </ul>
 <hr />
 <h1 id="6-phase-1-define-semantic-plan-object-encoding">6. Phase 1 — Define Semantic Plan Object Encoding<a class="headerlink" href="#6-phase-1-define-semantic-plan-object-encoding" title="Permanent link">&para;</a></h1>
 <h2 id="task-11-define-stable-objectrelation-type-identities">Task 1.1 — Define stable object/relation type identities<a class="headerlink" href="#task-11-define-stable-objectrelation-type-identities" title="Permanent link">&para;</a></h2>
 <p>Add/register semantic types equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>session.plan
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>session.plan-node
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>session.plan-dependency
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>session.plan-gate
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>session.plan
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>session.plan-node
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>session.plan-dependency
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>session.plan-gate
 </code></pre></div>
 <p>Add <code>session.plan-attempt</code> only if Phase 6 proves existing branch/execution records cannot safely represent attempt history.</p>
 <ul>
-<li>[ ] Type identities are stable and documented.</li>
-<li>[ ] Canonical encoding uses the existing revision identity mechanism.</li>
-<li>[ ] Encoding is deterministic.</li>
+<li>[x] Type identities are stable and documented.</li>
+<li>[x] Canonical encoding uses the existing revision identity mechanism.</li>
+<li>[x] Encoding is deterministic.</li>
 </ul>
 <h2 id="task-12-define-plan-revision-payload">Task 1.2 — Define Plan revision payload<a class="headerlink" href="#task-12-define-plan-revision-payload" title="Permanent link">&para;</a></h2>
 <p>Represent only plan-local state equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>session/anchor
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>goal
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>PlanStatus
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>mutation_revision
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>coordinator/coordinator_cursor
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>coordinator generation/claim or safe canonical references
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>plan-level policy/assignment references where applicable
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>session/anchor
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>goal
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>PlanStatus
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>mutation_revision
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>coordinator/coordinator_cursor
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>coordinator generation/claim or safe canonical references
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>plan-level policy/assignment references where applicable
 </code></pre></div>
 <p>Do not embed node/dependency/history vectors.</p>
 <ul>
-<li>[ ] Plan revision is independently addressable.</li>
-<li>[ ] Plan mutation revision survives round-trip.</li>
-<li>[ ] Coordinator state survives round-trip.</li>
-<li>[ ] Canonical Plan payload contains no complete node graph.</li>
+<li>[x] Plan revision is independently addressable.</li>
+<li>[x] Plan mutation revision survives round-trip.</li>
+<li>[x] Coordinator state survives round-trip.</li>
+<li>[x] Canonical Plan payload contains no complete node graph.</li>
 </ul>
 <h2 id="task-13-define-plannode-revision-payload">Task 1.3 — Define PlanNode revision payload<a class="headerlink" href="#task-13-define-plannode-revision-payload" title="Permanent link">&para;</a></h2>
 <p>Represent node-local state equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>plan reference
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>title
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>purpose
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>PlanNodeStatus
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>expected result
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>semantic scope
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>assignment
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>current branch/result references
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>superseded_by
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>claim generation/current claim
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>abandon reason
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>last failure reference when canonical
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>plan reference
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>title
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>purpose
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>PlanNodeStatus
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>expected result
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>semantic scope
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>assignment
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>current branch/result references
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>superseded_by
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>claim generation/current claim
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>abandon reason
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>last failure reference when canonical
 </code></pre></div>
 <p>Do not embed derived rollup data.</p>
 <ul>
-<li>[ ] PlanNode has stable independent EntityId.</li>
-<li>[ ] Status transition creates a new node revision without changing node identity.</li>
-<li>[ ] Derived effective status/counters are absent from revision identity.</li>
+<li>[x] PlanNode has stable independent EntityId.</li>
+<li>[x] Status transition creates a new node revision without changing node identity.</li>
+<li>[x] Derived effective status/counters are absent from revision identity.</li>
 </ul>
 <h2 id="task-14-preserve-one-lifecycle-enum">Task 1.4 — Preserve one lifecycle enum<a class="headerlink" href="#task-14-preserve-one-lifecycle-enum" title="Permanent link">&para;</a></h2>
 <p>Keep the existing single plan-node status vocabulary:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Planned
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Ready
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Running
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>Completed
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>Failed
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>Abandoned
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Planned
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Ready
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>Running
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>Completed
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>Failed
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>Abandoned
 </code></pre></div>
 <ul>
-<li>[ ] No <code>PlanNodeWorkState</code> or equivalent second lifecycle is introduced.</li>
-<li>[ ] Existing public status naming compatibility is preserved or migrated explicitly.</li>
+<li>[x] No <code>PlanNodeWorkState</code> or equivalent second lifecycle is introduced.</li>
+<li>[x] Existing public status naming compatibility is preserved or migrated explicitly.</li>
 </ul>
 <hr />
 <h1 id="7-phase-2-structural-and-dependency-graph-storage">7. Phase 2 — Structural and Dependency Graph Storage<a class="headerlink" href="#7-phase-2-structural-and-dependency-graph-storage" title="Permanent link">&para;</a></h1>
 <h2 id="task-21-plan-membership-relation">Task 2.1 — Plan membership relation<a class="headerlink" href="#task-21-plan-membership-relation" title="Permanent link">&para;</a></h2>
 <p>Represent plan membership with semantic collection/relation state rather than a Plan-owned node vector.</p>
 <ul>
-<li>[ ] Query can list root/all plan nodes without deserializing a full plan payload.</li>
-<li>[ ] Historical snapshot can answer plan membership exactly.</li>
+<li>[x] Query can list root/all plan nodes without deserializing a full plan payload.</li>
+<li>[x] Historical snapshot can answer plan membership exactly.</li>
 </ul>
 <h2 id="task-22-structural-parentchild-relation">Task 2.2 — Structural parent/child relation<a class="headerlink" href="#task-22-structural-parentchild-relation" title="Permanent link">&para;</a></h2>
 <p>Represent decomposition independently from dependency scheduling.</p>
 <ul>
-<li>[ ] Direct parent lookup exists.</li>
-<li>[ ] Direct child lookup exists.</li>
-<li>[ ] Reparenting does not create unnecessary child content revision when relation infrastructure permits it.</li>
-<li>[ ] Structural cycles are rejected if the plan structural model requires a tree.</li>
+<li>[x] Direct parent lookup exists.</li>
+<li>[x] Direct child lookup exists.</li>
+<li>[x] Reparenting does not create unnecessary child content revision when relation infrastructure permits it.</li>
+<li>[x] Structural cycles are rejected if the plan structural model requires a tree.</li>
 </ul>
 <h2 id="task-23-independent-dependency-state">Task 2.3 — Independent dependency state<a class="headerlink" href="#task-23-independent-dependency-state" title="Permanent link">&para;</a></h2>
 <p>Represent dependency state as first-class relation/entity state with at least:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>prerequisite
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>dependent
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>fulfilled_by
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>result contract/policy as currently supported
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>prerequisite
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>dependent
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>fulfilled_by
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>result contract/policy as currently supported
 </code></pre></div>
 <ul>
-<li>[ ] Dependency cycle detection still passes.</li>
-<li>[ ] Failed prerequisite does not satisfy dependent.</li>
-<li>[ ] Fulfillment references exact accepted result.</li>
-<li>[ ] Removing/superseding dependency preserves history/provenance.</li>
+<li>[x] Dependency cycle detection still passes.</li>
+<li>[x] Failed prerequisite does not satisfy dependent.</li>
+<li>[x] Fulfillment references exact accepted result.</li>
+<li>[x] Removing/superseding dependency preserves history/provenance.</li>
 </ul>
 <h2 id="task-24-root-node-view-is-derived-from-structure">Task 2.4 — Root-node view is derived from structure<a class="headerlink" href="#task-24-root-node-view-is-derived-from-structure" title="Permanent link">&para;</a></h2>
 <p>Stop treating an embedded <code>root_nodes</code> vector as the only canonical source if structure relations can derive roots.</p>
 <p>A cached root list is permitted as a projection/index.</p>
 <ul>
-<li>[ ] Root-node order/semantics are deterministic.</li>
-<li>[ ] Root query works after restart from semantic storage.</li>
+<li>[x] Root-node order/semantics are deterministic.</li>
+<li>[x] Root query works after restart from semantic storage.</li>
 </ul>
 <hr />
 <h1 id="8-phase-3-plan-graph-read-repository-and-views">8. Phase 3 — Plan Graph Read Repository and Views<a class="headerlink" href="#8-phase-3-plan-graph-read-repository-and-views" title="Permanent link">&para;</a></h1>
 <h2 id="task-31-build-exact-snapshot-bound-plan-loader">Task 3.1 — Build exact snapshot-bound plan loader<a class="headerlink" href="#task-31-build-exact-snapshot-bound-plan-loader" title="Permanent link">&para;</a></h2>
 <p>Add a session/domain read service that assembles a Plan semantic view from:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Plan revision
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>PlanNode revisions
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>membership/parent relations
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>dependencies
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>gates/evidence/summary refs when requested
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>derived rollup cache when valid
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Plan revision
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>PlanNode revisions
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>membership/parent relations
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>dependencies
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>gates/evidence/summary refs when requested
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>derived rollup cache when valid
 </code></pre></div>
 <ul>
-<li>[ ] Read requires or resolves an exact snapshot.</li>
-<li>[ ] View exposes exact Plan/PlanNode revision IDs.</li>
-<li>[ ] View does not depend on legacy aggregate JSON after semantic migration.</li>
+<li>[x] Read requires or resolves an exact snapshot.</li>
+<li>[x] View exposes exact Plan/PlanNode revision IDs.</li>
+<li>[x] View does not depend on legacy aggregate JSON after semantic migration.</li>
 </ul>
 <h2 id="task-32-build-compact-planview">Task 3.2 — Build compact PlanView<a class="headerlink" href="#task-32-build-compact-planview" title="Permanent link">&para;</a></h2>
 <p>Expose at least:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>id
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>exact revision
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>mutation revision
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>goal/status
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>coordinator
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>root node identities
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>compact status counts
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>id
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>exact revision
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>mutation revision
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>goal/status
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>coordinator
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>root node identities
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>compact status counts
 </code></pre></div>
 <ul>
-<li>[ ] Large plans can be inspected without loading all detailed evidence/history.</li>
+<li>[x] Large plans can be inspected without loading all detailed evidence/history.</li>
 </ul>
 <h2 id="task-33-build-plannodeview">Task 3.3 — Build PlanNodeView<a class="headerlink" href="#task-33-build-plannodeview" title="Permanent link">&para;</a></h2>
 <p>Expose at least:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>id/exact revision
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>parent/title/purpose
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>direct status
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>effective status
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>contains ignored/abandoned
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>summary preview/ref
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>assignment/current branch/result
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>blockers/dependency summary
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>gate summary
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>evidence summary
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>retry capability
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>id/exact revision
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>parent/title/purpose
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>direct status
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>effective status
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>contains ignored/abandoned
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>summary preview/ref
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>assignment/current branch/result
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>blockers/dependency summary
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>gate summary
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>evidence summary
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>retry capability
 </code></pre></div>
 <ul>
 <li>[ ] Product surfaces can consume this view without knowing physical storage.</li>
@@ -7873,33 +8006,36 @@
 <h2 id="task-41-preserve-plan-local-mutation-revision">Task 4.1 — Preserve plan-local mutation revision<a class="headerlink" href="#task-41-preserve-plan-local-mutation-revision" title="Permanent link">&para;</a></h2>
 <p>Every accepted logical plan mutation increments the plan mutation revision exactly once.</p>
 <ul>
-<li>[ ] Existing stale-plan-write tests continue to pass or are replaced by stronger semantic-store equivalents.</li>
-<li>[ ] Plan mutation revision remains distinct from SnapshotId and RevisionId.</li>
+<li>[x] Existing stale-plan-write tests continue to pass or are replaced by stronger semantic-store equivalents.</li>
+<li>[x] Plan mutation revision remains distinct from SnapshotId and RevisionId.</li>
 </ul>
 <h2 id="task-42-build-atomic-plan-mutation-application">Task 4.2 — Build atomic plan mutation application<a class="headerlink" href="#task-42-build-atomic-plan-mutation-application" title="Permanent link">&para;</a></h2>
 <p>A mutation must validate:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>base snapshot
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>expected plan mutation revision
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>coordinator/worker claim generations where relevant
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>semantic graph invariants
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>base snapshot
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>expected plan mutation revision
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>coordinator/worker claim generations where relevant
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>semantic graph invariants
 </code></pre></div>
 <p>Then write/promote all affected semantic revisions/relations atomically through the existing change/snapshot/root model.</p>
 <ul>
 <li>[ ] No UI/agent code writes plan SQL directly.</li>
 <li>[ ] Partial mutation cannot leave a fulfilled dependency without the matching completed node/result.</li>
-<li>[ ] Conflict returns structured stale/conflict information.</li>
+<li>[x] Conflict returns structured stale/conflict information.</li>
 </ul>
+<p>Independent SQLite handles acquire an immediate write reservation before root
+validation. <code>independent_handles_serialize_root_compare_and_swap</code> proves one
+writer succeeds and the competing writer receives <code>PromotionError::Root</code>.</p>
 <h2 id="task-43-migrate-existing-plan-domain-operations">Task 4.3 — Migrate existing plan domain operations<a class="headerlink" href="#task-43-migrate-existing-plan-domain-operations" title="Permanent link">&para;</a></h2>
 <p>Refactor existing operations equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>add_node
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>add_dependency
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>set_assignment
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>set_coordinator
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>claim coordinator
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>start node(s)
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>settle workers
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>complete/fail node
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>replan
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>add_node
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>add_dependency
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>set_assignment
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>set_coordinator
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>claim coordinator
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>start node(s)
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>settle workers
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>complete/fail node
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>replan
 </code></pre></div>
 <p>so they produce/validate semantic change batches rather than relying on aggregate persistence.</p>
 <ul>
@@ -7911,171 +8047,177 @@
 <h2 id="task-51-permit-safe-node-insertion-while-plan-is-running">Task 5.1 — Permit safe node insertion while plan is Running<a class="headerlink" href="#task-51-permit-safe-node-insertion-while-plan-is-running" title="Permanent link">&para;</a></h2>
 <p>Current plan mutability guards must allow safe ordinary evolution while running.</p>
 <ul>
-<li>[ ] Coordinator/user can add a next step to a Running plan.</li>
+<li>[x] Coordinator/user can add a next step to a Running plan.</li>
 <li>[ ] Coordinator/authorized worker can add structural child work according to policy.</li>
-<li>[ ] New work increments mutation revision once.</li>
-<li>[ ] Completed historical work is not rewritten.</li>
+<li>[x] New work increments mutation revision once.</li>
+<li>[x] Completed historical work is not rewritten.</li>
 </ul>
 <h2 id="task-52-add-explicit-next-step-operation">Task 5.2 — Add explicit next-step operation<a class="headerlink" href="#task-52-add-explicit-next-step-operation" title="Permanent link">&para;</a></h2>
 <p>Provide semantic intent equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>plan_add_next_step(...)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>plan_add_next_step(...)
 </code></pre></div>
 <p>The operation may reuse lower-level node creation internally.</p>
 <ul>
-<li>[ ] Provenance distinguishes ordinary next-step addition from replan replacement where useful.</li>
+<li>[x] Provenance distinguishes ordinary next-step addition from replan replacement where useful.</li>
 </ul>
 <h2 id="task-53-add-explicit-decompose-operation">Task 5.3 — Add explicit decompose operation<a class="headerlink" href="#task-53-add-explicit-decompose-operation" title="Permanent link">&para;</a></h2>
 <p>Provide:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>plan_decompose(parent, children, required/optional)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>plan_decompose(parent, children, required/optional)
 </code></pre></div>
 <ul>
-<li>[ ] Children become structural descendants.</li>
-<li>[ ] Decomposition does not invent dependency edges.</li>
-<li>[ ] Required children create parent completion obligation(s).</li>
+<li>[x] Children become structural descendants.</li>
+<li>[x] Decomposition does not invent dependency edges.</li>
+<li>[x] Required children create parent completion obligation(s).</li>
 </ul>
 <h2 id="task-54-add-first-class-summary-relation">Task 5.4 — Add first-class summary relation<a class="headerlink" href="#task-54-add-first-class-summary-relation" title="Permanent link">&para;</a></h2>
 <p>Reuse the existing semantic/session Summary owner.</p>
 <ul>
-<li>[ ] PlanNode can reference a current summary.</li>
-<li>[ ] Summary remains distinct from purpose and final result.</li>
-<li>[ ] Generated summary can identify exact source dependencies/revisions.</li>
+<li>[x] PlanNode can reference a current summary.</li>
+<li>[x] Summary remains distinct from purpose and final result.</li>
+<li>[x] Generated summary can identify exact source dependencies/revisions.</li>
 <li>[ ] Child summaries are not mechanically concatenated as canonical parent summary.</li>
 </ul>
 <h2 id="task-55-add-evidence-associations">Task 5.5 — Add evidence associations<a class="headerlink" href="#task-55-add-evidence-associations" title="Permanent link">&para;</a></h2>
 <p>Support evidence roles at least equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>Supports
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>Contradicts
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>Informational
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>Supports
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>Contradicts
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>Informational
 </code></pre></div>
 <ul>
-<li>[ ] Evidence can reference BranchResult.</li>
-<li>[ ] Evidence can reference validation/result semantic objects.</li>
-<li>[ ] Exact revision/snapshot references survive round-trip.</li>
-<li>[ ] Evidence payload is not unnecessarily copied into PlanNode.</li>
+<li>[x] Evidence can reference BranchResult.</li>
+<li>[x] Evidence can reference validation/result semantic objects.</li>
+<li>[x] Exact revision/snapshot references survive round-trip.</li>
+<li>[x] Evidence payload is not unnecessarily copied into PlanNode.</li>
 </ul>
 <h2 id="task-56-add-plangate-entity-and-typed-requirements">Task 5.6 — Add PlanGate entity and typed requirements<a class="headerlink" href="#task-56-add-plangate-entity-and-typed-requirements" title="Permanent link">&para;</a></h2>
 <p>Support phases:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Entry
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>Completion
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Entry
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>Completion
 </code></pre></div>
 <p>Support initial requirement types needed by tests, selecting from:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ValidationPassed
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>EvidencePresent
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>DecisionResolved
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>HumanApproval
-<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>SemanticCondition
-<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>RequiredChildCompleted
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>ValidationPassed
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>EvidencePresent
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>DecisionResolved
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>HumanApproval
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>SemanticCondition
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>RequiredChildCompleted
 </code></pre></div>
 <ul>
-<li>[ ] Gate has stable identity.</li>
-<li>[ ] Gate definition is canonical revisioned knowledge.</li>
-<li>[ ] Arbitrary executable expression language is not introduced.</li>
+<li>[x] Gate has stable identity.</li>
+<li>[x] Gate definition is canonical revisioned knowledge.</li>
+<li>[x] Arbitrary executable expression language is not introduced.</li>
 </ul>
 <h2 id="task-57-gate-waiver">Task 5.7 — Gate waiver<a class="headerlink" href="#task-57-gate-waiver" title="Permanent link">&para;</a></h2>
 <p>Add explicit waiver provenance.</p>
 <ul>
-<li>[ ] Waived gate remains inspectable.</li>
-<li>[ ] Waiver records reason/actor or equivalent provenance.</li>
-<li>[ ] Waiver does not delete evidence/failure history.</li>
+<li>[x] Waived gate remains inspectable.</li>
+<li>[x] Waiver records reason/actor or equivalent provenance.</li>
+<li>[x] Waiver does not delete evidence/failure history.</li>
 </ul>
 <h2 id="task-58-gate-evaluation">Task 5.8 — Gate evaluation<a class="headerlink" href="#task-58-gate-evaluation" title="Permanent link">&para;</a></h2>
 <p>Implement deterministic snapshot-bound evaluation:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>Pending
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>Satisfied
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>Failed
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>Waived
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>Pending
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>Satisfied
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>Failed
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>Waived
 </code></pre></div>
 <ul>
-<li>[ ] Evaluation returns exact supporting evidence refs.</li>
-<li>[ ] Entry gate affects readiness.</li>
-<li>[ ] Completion gate affects completion.</li>
+<li>[x] Evaluation returns exact supporting evidence refs.</li>
+<li>[x] Entry gate affects readiness.</li>
+<li>[x] Completion gate affects completion.</li>
 <li>[ ] Stale gate cache cannot dispatch work.</li>
 </ul>
 <hr />
 <h1 id="11-phase-6-recoverable-failure-and-attempt-provenance">11. Phase 6 — Recoverable Failure and Attempt Provenance<a class="headerlink" href="#11-phase-6-recoverable-failure-and-attempt-provenance" title="Permanent link">&para;</a></h1>
 <h2 id="task-61-make-node-failed-non-terminal">Task 6.1 — Make node <code>Failed</code> non-terminal<a class="headerlink" href="#task-61-make-node-failed-non-terminal" title="Permanent link">&para;</a></h2>
 <p>Add explicit transition support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Failed -&gt; Ready
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>Failed -&gt; Ready
 </code></pre></div>
 <p>through a retry operation.</p>
 <ul>
-<li>[ ] Ordinary <code>start_node</code> still requires readiness rather than silently treating Failed as Ready.</li>
-<li>[ ] Failed result does not fulfill success dependency.</li>
-<li>[ ] Failure evidence remains durable after retry.</li>
+<li>[x] Ordinary <code>start_node</code> still requires readiness rather than silently treating Failed as Ready.</li>
+<li>[x] Failed result does not fulfill success dependency.</li>
+<li>[x] Failure evidence remains durable after retry.</li>
 </ul>
 <h2 id="task-62-add-plan_retry_node">Task 6.2 — Add <code>plan_retry_node</code><a class="headerlink" href="#task-62-add-plan_retry_node" title="Permanent link">&para;</a></h2>
 <p>Validate and perform retry preparation.</p>
 <ul>
-<li>[ ] Retry rejects active/stale claims.</li>
-<li>[ ] Retry preserves claim generation history.</li>
-<li>[ ] Retry chooses new/resumed branch according to explicit policy.</li>
-<li>[ ] Retry reevaluates dependencies and entry gates.</li>
-<li>[ ] Node becomes Ready only when those requirements are satisfied.</li>
+<li>[x] Retry rejects an active/stale worker claim.</li>
+<li>[x] Shared application retry rejects a stale plan revision.</li>
+<li>[x] Retry preserves claim generation history.</li>
+<li>[x] Retry releases the old branch binding; the next claim records its
+  selected branch as a distinct attempt.</li>
+<li>[x] Retry reevaluates dependencies and entry gates.</li>
+<li>[x] Node becomes Ready only when those requirements are satisfied.</li>
 </ul>
 <h2 id="task-63-preserve-attempt-history">Task 6.3 — Preserve attempt history<a class="headerlink" href="#task-63-preserve-attempt-history" title="Permanent link">&para;</a></h2>
 <p>First try to model attempts through existing branch/claim/result/execution records plus relations.</p>
 <ul>
-<li>[ ] Query can enumerate attempts for a PlanNode.</li>
-<li>[ ] Failed attempt branch/result remains inspectable.</li>
-<li>[ ] Accepted successful attempt is distinguishable.</li>
+<li>[x] Query can enumerate attempts for a PlanNode.</li>
+<li>[x] Failed attempt branch/result remains inspectable.</li>
+<li>[x] Accepted successful attempt is distinguishable.</li>
 </ul>
 <p>Only if the above cannot be represented safely:</p>
 <ul>
-<li>[ ] Introduce minimal PlanAttempt semantic entity with documented justification.</li>
+<li>[x] Introduce minimal PlanAttempt semantic entity with documented justification.</li>
 </ul>
+<p>Plan attempts are separate semantic records so retry status and exact failure
+or result provenance remain independently addressable without treating the
+entire Plan history as the attempt store. Stable attempt identity is derived
+from plan, node, branch, and claim generation.</p>
 <h2 id="task-64-recover-plan-level-failed">Task 6.4 — Recover plan-level Failed<a class="headerlink" href="#task-64-recover-plan-level-failed" title="Permanent link">&para;</a></h2>
 <p>Refine plan mutation guards.</p>
 <ul>
-<li>[ ] <code>Failed -&gt; Paused</code> or equivalent explicit recovery works.</li>
-<li>[ ] Replan/repair can operate on a failed plan without bypassing normal mutation validation.</li>
-<li>[ ] <code>Completed</code> and <code>Cancelled</code> remain terminal under ordinary rules.</li>
+<li>[x] <code>Failed -&gt; Paused</code> or equivalent explicit recovery works.</li>
+<li>[x] Replan/repair can operate on a failed plan without bypassing normal mutation validation.</li>
+<li>[x] <code>Completed</code> and <code>Cancelled</code> remain terminal under ordinary rules.</li>
 </ul>
 <hr />
 <h1 id="12-phase-7-derived-effective-status-and-incremental-rollups">12. Phase 7 — Derived Effective Status and Incremental Rollups<a class="headerlink" href="#12-phase-7-derived-effective-status-and-incremental-rollups" title="Permanent link">&para;</a></h1>
 <h2 id="task-71-implement-reference-rollup-function">Task 7.1 — Implement reference rollup function<a class="headerlink" href="#task-71-implement-reference-rollup-function" title="Permanent link">&para;</a></h2>
 <p>Implement the backend-neutral deterministic rule from Level 1 document 023.</p>
 <p>Required precedence:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>explicit Abandoned root
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>failed required self/descendant
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>running self/descendant
-<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>ready self/descendant
-<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>planned unresolved self/descendant
-<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>completed when completion policy/gates permit
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>explicit Abandoned root
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>failed required self/descendant
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>running self/descendant
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>ready self/descendant
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>planned unresolved self/descendant
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>completed when completion policy/gates permit
 </code></pre></div>
 <ul>
-<li>[ ] Reference implementation has table-driven tests.</li>
-<li>[ ] Rollup uses <code>PlanNodeStatus</code>, not a second enum.</li>
+<li>[x] Reference implementation has table-driven tests.</li>
+<li>[x] Rollup uses <code>PlanNodeStatus</code>, not a second enum.</li>
 </ul>
 <h2 id="task-72-add-abandonment-reason-and-ignored-flag">Task 7.2 — Add abandonment reason and ignored flag<a class="headerlink" href="#task-72-add-abandonment-reason-and-ignored-flag" title="Permanent link">&para;</a></h2>
 <p>Support enough reason semantics for:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>Ignored
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>Superseded
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>Cancelled
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>Ignored
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>Superseded
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>Cancelled
 </code></pre></div>
 <p>at minimum if required by current workflows.</p>
 <ul>
-<li>[ ] Descendant Ignored yields <code>contains_ignored=true</code> on ancestors.</li>
-<li>[ ] Descendant Abandoned does not automatically set ancestor direct/effective status to Abandoned.</li>
-<li>[ ] Required ignored child still requires explicit gate waiver/replan for parent completion.</li>
+<li>[x] Descendant Ignored yields <code>contains_ignored=true</code> on ancestors.</li>
+<li>[x] Descendant Abandoned does not automatically set ancestor direct/effective status to Abandoned.</li>
+<li>[x] Required ignored child still requires explicit gate waiver/replan for parent completion.</li>
 </ul>
 <h2 id="task-73-define-plannodeaggregate-cacheindex">Task 7.3 — Define PlanNodeAggregate cache/index<a class="headerlink" href="#task-73-define-plannodeaggregate-cacheindex" title="Permanent link">&para;</a></h2>
 <p>Materialize enough data to answer effective status without subtree scans.</p>
 <ul>
-<li>[ ] Aggregate records carry source snapshot/evaluator version or equivalent validity identity.</li>
-<li>[ ] Aggregate data is excluded from PlanNode revision identity.</li>
-<li>[ ] Cache can be deleted and rebuilt from canonical plan graph.</li>
+<li>[x] Aggregate records carry source snapshot/evaluator version or equivalent validity identity.</li>
+<li>[x] Aggregate data is excluded from PlanNode revision identity.</li>
+<li>[x] Cache can be deleted and rebuilt from canonical plan graph.</li>
 </ul>
 <h2 id="task-74-incremental-ancestor-propagation">Task 7.4 — Incremental ancestor propagation<a class="headerlink" href="#task-74-incremental-ancestor-propagation" title="Permanent link">&para;</a></h2>
 <p>On affected child/status/gate/structure changes:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>update node
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>update direct parent
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>continue while aggregate changed
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>stop at unchanged ancestor/root
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>update node
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>update direct parent
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>continue while aggregate changed
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>stop at unchanged ancestor/root
 </code></pre></div>
 <ul>
 <li>[ ] Single-leaf update does not walk unrelated subtrees.</li>
-<li>[ ] Reparent updates old and new ancestor chains.</li>
-<li>[ ] Deep-tree test proves result equivalence with full reference recomputation.</li>
+<li>[x] Reparent updates old and new ancestor chains.</li>
+<li>[x] Deep-tree test proves result equivalence with full reference recomputation.</li>
 </ul>
 <h2 id="task-75-sqlite-normalized-plan-index">Task 7.5 — SQLite normalized plan index<a class="headerlink" href="#task-75-sqlite-normalized-plan-index" title="Permanent link">&para;</a></h2>
 <p>If SQLite acceleration is implemented in this task, add session-specific normalized derived rows in the appropriate architectural owner.</p>
@@ -8094,56 +8236,64 @@
 </ul>
 <p>If triggers are not used initially:</p>
 <ul>
-<li>[ ] Document why application/session-layer transactional propagation is preferable for the first implementation.</li>
+<li>[x] Document why application/session-layer transactional propagation is preferable for the first implementation.</li>
 </ul>
+<p>Implementation decision: dispatch currently derives readiness from canonical
+plan state, so it cannot act on a stale persisted rollup. The in-memory
+<code>PlanNodeRollupIndex</code> is rebuildable and snapshot-bound, but is not persisted.
+SQLite triggers would duplicate Rust gate/rollup semantics inside SQL and
+still need snapshot/evaluator-version invalidation logic. Keep the reference
+evaluator authoritative; add transactional application-layer propagation
+before introducing any durable index, and only after measured read cost
+justifies that cache lifecycle.</p>
 <hr />
 <h1 id="13-phase-8-scheduler-worker-settlement-and-coordinator-integration">13. Phase 8 — Scheduler, Worker Settlement, and Coordinator Integration<a class="headerlink" href="#13-phase-8-scheduler-worker-settlement-and-coordinator-integration" title="Permanent link">&para;</a></h1>
 <h2 id="task-81-refactor-readiness">Task 8.1 — Refactor readiness<a class="headerlink" href="#task-81-refactor-readiness" title="Permanent link">&para;</a></h2>
 <p>Readiness must consume semantic dependency/gate state at one exact snapshot.</p>
 <ul>
-<li>[ ] All dependencies fulfilled -&gt; candidate Ready.</li>
-<li>[ ] Pending/failed entry gate -&gt; not Ready.</li>
-<li>[ ] Failed prerequisite -&gt; dependent remains blocked.</li>
-<li>[ ] Stale derived index is rejected/recomputed.</li>
+<li>[x] All dependencies fulfilled -&gt; candidate Ready.</li>
+<li>[x] Pending/failed entry gate -&gt; not Ready.</li>
+<li>[x] Failed prerequisite -&gt; dependent remains blocked.</li>
+<li>[x] Stale derived index is rejected/recomputed.</li>
 </ul>
 <h2 id="task-82-refactor-worker-claiming">Task 8.2 — Refactor worker claiming<a class="headerlink" href="#task-82-refactor-worker-claiming" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Ready node can be claimed atomically.</li>
-<li>[ ] Same node/branch cannot receive competing active claims.</li>
-<li>[ ] Different ready nodes can still run concurrently.</li>
+<li>[x] Ready node can be claimed atomically.</li>
+<li>[x] Same node/branch cannot receive competing active claims.</li>
+<li>[x] Different ready nodes can still run concurrently.</li>
 <li>[ ] Claim mutation updates only necessary semantic entities/plan mutation revision.</li>
 </ul>
 <h2 id="task-83-refactor-successful-settlement">Task 8.3 — Refactor successful settlement<a class="headerlink" href="#task-83-refactor-successful-settlement" title="Permanent link">&para;</a></h2>
 <p>One atomic semantic settlement must:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>record accepted BranchResult
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>set node Completed
-<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>clear active claim
-<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>fulfill compatible outgoing dependencies
-<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>attach relevant evidence
-<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>reevaluate dependents/gates
-<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>update ancestor rollups
-<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>possibly complete plan
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>record accepted BranchResult
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>set node Completed
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>clear active claim
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>fulfill compatible outgoing dependencies
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>attach relevant evidence
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>reevaluate dependents/gates
+<a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>update ancestor rollups
+<a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>possibly complete plan
 </code></pre></div>
 <ul>
-<li>[ ] No partial-success state can be observed after committed mutation.</li>
+<li>[x] No partial-success state can be observed after committed mutation.</li>
 </ul>
 <h2 id="task-84-refactor-failed-settlement">Task 8.4 — Refactor failed settlement<a class="headerlink" href="#task-84-refactor-failed-settlement" title="Permanent link">&para;</a></h2>
 <p>One atomic semantic settlement must:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>record failure provenance
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>set node Failed
-<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>clear active claim
-<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>leave successful dependencies unfulfilled
-<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>update ancestor rollups
-<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>surface failure to coordinator
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>record failure provenance
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>set node Failed
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>clear active claim
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>leave successful dependencies unfulfilled
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>update ancestor rollups
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>surface failure to coordinator
 </code></pre></div>
 <ul>
-<li>[ ] Plan remains recoverable unless policy explicitly stops/cancels it.</li>
+<li>[x] Plan remains recoverable unless policy explicitly stops/cancels it.</li>
 </ul>
 <h2 id="task-85-preserve-single-coordinator">Task 8.5 — Preserve single coordinator<a class="headerlink" href="#task-85-preserve-single-coordinator" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Coordinator claim/generation validation survives independent node storage.</li>
-<li>[ ] Independent PlanNode entities do not allow two global auto-advancing coordinators.</li>
-<li>[ ] Coordinator can add decomposition/next steps during Running state.</li>
+<li>[x] Coordinator claim/generation validation survives independent node storage.</li>
+<li>[x] Independent PlanNode entities do not allow two global auto-advancing coordinators.</li>
+<li>[x] Coordinator can add decomposition/next steps during Running state.</li>
 </ul>
 <h2 id="task-86-concurrent-disjoint-settlement">Task 8.6 — Concurrent disjoint settlement<a class="headerlink" href="#task-86-concurrent-disjoint-settlement" title="Permanent link">&para;</a></h2>
 <p>Where underlying semantic change infrastructure supports it, prove two workers settling disjoint nodes do not require rewriting one giant session blob.</p>
@@ -8169,56 +8319,56 @@
 </ul>
 <h2 id="task-93-preserve-plan-mutationcoordinator-revision">Task 9.3 — Preserve plan mutation/coordinator revision<a class="headerlink" href="#task-93-preserve-plan-mutationcoordinator-revision" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] mutation_revision preserved.</li>
-<li>[ ] coordinator generation/claim semantics preserved when safe.</li>
+<li>[x] mutation_revision preserved.</li>
+<li>[x] coordinator generation/claim semantics preserved when safe.</li>
 <li>[ ] stale runtime claims receive existing recovery treatment rather than being blindly revived.</li>
 </ul>
 <h2 id="task-94-preserve-legacy-history">Task 9.4 — Preserve legacy history<a class="headerlink" href="#task-94-preserve-legacy-history" title="Permanent link">&para;</a></h2>
 <p>Audit actual historical <code>PlanRevision</code> data.</p>
 <p>Choose and document a representation that retains useful historical meaning, such as migration provenance records or historical imported snapshots.</p>
 <ul>
-<li>[ ] No historical completed/result information is silently discarded.</li>
-<li>[ ] Migration test includes more than one legacy plan revision.</li>
+<li>[x] No historical completed/result information is silently discarded.</li>
+<li>[x] Migration test includes more than one legacy plan revision.</li>
 </ul>
 <h2 id="task-95-semantic-equivalence-check">Task 9.5 — Semantic equivalence check<a class="headerlink" href="#task-95-semantic-equivalence-check" title="Permanent link">&para;</a></h2>
 <p>Before promotion, assemble new <code>PlanView</code> and compare semantically with legacy aggregate projection.</p>
 <ul>
-<li>[ ] topology equivalent</li>
-<li>[ ] statuses equivalent</li>
-<li>[ ] dependencies equivalent</li>
-<li>[ ] results equivalent</li>
-<li>[ ] coordinator/mutation revision equivalent</li>
+<li>[x] topology equivalent</li>
+<li>[x] statuses equivalent</li>
+<li>[x] dependencies equivalent</li>
+<li>[x] results equivalent</li>
+<li>[x] coordinator/mutation revision equivalent</li>
 </ul>
 <h2 id="task-96-remove-dual-write">Task 9.6 — Remove dual write<a class="headerlink" href="#task-96-remove-dual-write" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] New plan writes have one canonical semantic path.</li>
-<li>[ ] Legacy aggregate, if still emitted, is read-only compatibility projection.</li>
-<li>[ ] No code accepts authoritative mutations independently into both representations.</li>
+<li>[x] New plan writes have one canonical semantic path.</li>
+<li>[x] Legacy aggregate, if still emitted, is read-only compatibility projection.</li>
+<li>[x] No code accepts authoritative mutations independently into both representations.</li>
 </ul>
 <hr />
 <h1 id="15-phase-10-application-protocol-server-client-and-web">15. Phase 10 — Application, Protocol, Server, Client, and Web<a class="headerlink" href="#15-phase-10-application-protocol-server-client-and-web" title="Permanent link">&para;</a></h1>
 <h2 id="task-101-application-operations">Task 10.1 — Application operations<a class="headerlink" href="#task-101-application-operations" title="Permanent link">&para;</a></h2>
 <p>Expose shared operations for new semantics, reusing existing operation families where possible.</p>
 <p>At minimum cover:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>add next step
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>decompose
-<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>summary update
-<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>evidence attach
-<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>gate add/change/waive
-<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>retry failed node
-<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>plan/node inspect
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>add next step
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>decompose
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>summary update
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>evidence attach
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>gate add/change/waive
+<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>retry failed node
+<a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>plan/node inspect
 </code></pre></div>
 <ul>
 <li>[ ] Every mutation routes through <code>scriberig-app</code> or an existing lower shared semantic operation boundary.</li>
 </ul>
 <h2 id="task-102-protocol-views">Task 10.2 — Protocol views<a class="headerlink" href="#task-102-protocol-views" title="Permanent link">&para;</a></h2>
 <p>Extend transport DTOs as needed for:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>direct/effective status
-<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>contains ignored/abandoned
-<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>summary preview/ref
-<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>gate/evidence counts
-<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>retry capability
-<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>blockers
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>direct/effective status
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>contains ignored/abandoned
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>summary preview/ref
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>gate/evidence counts
+<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>retry capability
+<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>blockers
 </code></pre></div>
 <ul>
 <li>[ ] Full gate/evidence/attempt history can be loaded separately/bounded.</li>
@@ -8232,7 +8382,7 @@
 </ul>
 <h2 id="task-104-web-modelclient-parity">Task 10.4 — Web model/client parity<a class="headerlink" href="#task-104-web-modelclient-parity" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] TypeScript model/client understand new shared Plan/PlanNode views.</li>
+<li>[x] TypeScript model/client understand new shared Plan/PlanNode views.</li>
 <li>[ ] Web does not invent its own rollup algorithm.</li>
 <li>[ ] Web retry/gate/evidence actions call shared application operations.</li>
 </ul>
@@ -8247,14 +8397,14 @@
 </ul>
 <h2 id="task-112-feed-semantic-plan-views-into-plancomponent">Task 11.2 — Feed semantic plan views into PlanComponent<a class="headerlink" href="#task-112-feed-semantic-plan-views-into-plancomponent" title="Permanent link">&para;</a></h2>
 <p>The Scriberig plan component should show compact information equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>title/purpose
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>direct/effective status
-<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>contains ignored/abandoned
-<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>summary
-<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>blocked reason/gate count/evidence count
-<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>current branch/attempt
-<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>assignment
-<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>coordinator position
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>title/purpose
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>direct/effective status
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>contains ignored/abandoned
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>summary
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>blocked reason/gate count/evidence count
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>current branch/attempt
+<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>assignment
+<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>coordinator position
 </code></pre></div>
 <ul>
 <li>[ ] Component consumes shared PlanView/PlanNodeView.</li>
@@ -8291,17 +8441,17 @@
 </ul>
 <h2 id="task-122-rollup-tests">Task 12.2 — Rollup tests<a class="headerlink" href="#task-122-rollup-tests" title="Permanent link">&para;</a></h2>
 <p>Cover at least:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>all planned
-<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>ready descendant
-<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>running descendant
-<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>failed descendant + running sibling
-<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>completed children
-<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>ignored child
-<a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>abandoned child
-<a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>required ignored child with unsatisfied gate
-<a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a>required ignored child with explicit waiver
-<a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a>deep tree
-<a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a>reparenting
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>all planned
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>ready descendant
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>running descendant
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>failed descendant + running sibling
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>completed children
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>ignored child
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>abandoned child
+<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a>required ignored child with unsatisfied gate
+<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a>required ignored child with explicit waiver
+<a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a>deep tree
+<a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a>reparenting
 </code></pre></div>
 <ul>
 <li>[ ] Reference recomputation equals incremental cache for every case.</li>
@@ -8316,11 +8466,11 @@
 </ul>
 <h2 id="task-124-retry-tests">Task 12.4 — Retry tests<a class="headerlink" href="#task-124-retry-tests" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Failed node can retry.</li>
-<li>[ ] Previous failed attempt remains inspectable.</li>
-<li>[ ] Failed result never fulfills success dependency.</li>
+<li>[x] Failed node can retry.</li>
+<li>[x] Previous failed attempt remains inspectable.</li>
+<li>[x] Failed result never fulfills success dependency.</li>
 <li>[ ] Later successful attempt fulfills dependency exactly once.</li>
-<li>[ ] Stale retry/claim is rejected.</li>
+<li>[x] Stale retry/claim is rejected.</li>
 </ul>
 <h2 id="task-125-running-plan-evolution-tests">Task 12.5 — Running-plan evolution tests<a class="headerlink" href="#task-125-running-plan-evolution-tests" title="Permanent link">&para;</a></h2>
 <ul>
@@ -8338,10 +8488,10 @@
 </ul>
 <h2 id="task-127-cross-surface-conformance">Task 12.7 — Cross-surface conformance<a class="headerlink" href="#task-127-cross-surface-conformance" title="Permanent link">&para;</a></h2>
 <p>Using the same deterministic fixture/fake execution, compare:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>embedded app
-<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>server/Rust client
-<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>web model/client
-<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>TUI adapter/component when task 148 path is available
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>embedded app
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>server/Rust client
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>web model/client
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>TUI adapter/component when task 148 path is available
 </code></pre></div>
 <ul>
 <li>[ ] Stable node identities match.</li>
@@ -8354,15 +8504,15 @@
 <h1 id="18-required-regression-scenarios">18. Required Regression Scenarios<a class="headerlink" href="#18-required-regression-scenarios" title="Permanent link">&para;</a></h1>
 <p>Add focused regression tests for defects encountered during implementation.</p>
 <p>At minimum preserve or add fixtures equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>failed dependency remains blocked
-<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>completed dependency without required result does not satisfy dependent
-<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>two concurrent claims for one node cannot both succeed
-<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>different sibling nodes can run concurrently
-<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>stale coordinator claim cannot mutate plan
-<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>legacy plan migration preserves stable node IDs
-<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>rollup cache corruption/staleness cannot dispatch work
-<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>ignored descendant flag survives restart/rebuild
-<a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>required ignored child requires explicit waiver/replan
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>failed dependency remains blocked
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>completed dependency without required result does not satisfy dependent
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>two concurrent claims for one node cannot both succeed
+<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>different sibling nodes can run concurrently
+<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>stale coordinator claim cannot mutate plan
+<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>legacy plan migration preserves stable node IDs
+<a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>rollup cache corruption/staleness cannot dispatch work
+<a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>ignored descendant flag survives restart/rebuild
+<a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>required ignored child requires explicit waiver/replan
 </code></pre></div>
 <ul>
 <li>[ ] Every discovered defect gets a regression test before being considered fixed.</li>
@@ -8391,26 +8541,26 @@
 <hr />
 <h1 id="20-focused-validation-commands">20. Focused Validation Commands<a class="headerlink" href="#20-focused-validation-commands" title="Permanent link">&para;</a></h1>
 <p>Use repository-current commands discovered during implementation. At minimum run the smallest focused equivalents of:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>cargo test -p scriberig-session
-<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>cargo test -p scriberig-session-sqlite
-<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>cargo test -p scriberig-app
-<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>cargo test -p scriberig-agent-runtime
-<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>cargo test -p scriberig-protocol
-<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>cargo test -p scriberig-client
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>cargo test -p scriberig-session
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>cargo test -p scriberig-session-sqlite
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>cargo test -p scriberig-app
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>cargo test -p scriberig-agent-runtime
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>cargo test -p scriberig-protocol
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>cargo test -p scriberig-client
 </code></pre></div>
 <p>When touched and available:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>cargo test -p scriberig-server
-<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>cargo test -p scriberig-tui
-<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>pnpm --dir web typecheck
-<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>pnpm --dir web test
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>cargo test -p scriberig-server
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>cargo test -p scriberig-tui
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>pnpm --dir web typecheck
+<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>pnpm --dir web test
 </code></pre></div>
 <p>Then run repository final gates required by <code>AGENTS.md</code> for the changed scope.</p>
 <ul>
-<li>[ ] Focused semantic/session tests pass.</li>
-<li>[ ] Persistence/migration tests pass.</li>
-<li>[ ] Scheduler/coordinator tests pass.</li>
-<li>[ ] Protocol/client/server tests pass when touched.</li>
-<li>[ ] Web tests/typecheck pass when touched.</li>
+<li>[x] Focused semantic/session tests pass.</li>
+<li>[x] Persistence/migration tests pass.</li>
+<li>[x] Scheduler/coordinator tests pass.</li>
+<li>[x] Protocol/client/server tests pass when touched.</li>
+<li>[x] Web tests/typecheck pass when touched.</li>
 <li>[ ] TUI tests pass only against the upstream-first component architecture when that phase is implemented.</li>
 <li>[ ] Repository lint/format/clippy gates for touched code pass.</li>
 </ul>

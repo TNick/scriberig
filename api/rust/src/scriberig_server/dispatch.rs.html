@@ -210,157 +210,173 @@
 <a href=#210 id=210 data-nosnippet>210</a>            Request::PlanReplan(request) =&gt; {
 <a href=#211 id=211 data-nosnippet>211</a>                <span class="self">self</span>.plan_request(<span class="kw-2">&amp;</span>Request::PlanReplan(request), correlation_id, <span class="prelude-val">None</span>)
 <a href=#212 id=212 data-nosnippet>212</a>            }
-<a href=#213 id=213 data-nosnippet>213</a>            Request::SessionRead(request) =&gt; <span class="self">self</span>.session_read(<span class="kw-2">&amp;</span>request, correlation_id),
-<a href=#214 id=214 data-nosnippet>214</a>            Request::ModelRequestDetail(request) =&gt; <span class="self">self
-<a href=#215 id=215 data-nosnippet>215</a>                </span>.service
-<a href=#216 id=216 data-nosnippet>216</a>                .model_request_detail(
-<a href=#217 id=217 data-nosnippet>217</a>                    <span class="kw-2">&amp;</span>command_context(<span class="string">"session_branch_tree"</span>),
-<a href=#218 id=218 data-nosnippet>218</a>                    <span class="kw-2">&amp;</span>request.session.id,
-<a href=#219 id=219 data-nosnippet>219</a>                    <span class="kw-2">&amp;</span>request.branch.id,
-<a href=#220 id=220 data-nosnippet>220</a>                    <span class="kw-2">&amp;</span>request.invocation,
-<a href=#221 id=221 data-nosnippet>221</a>                )
-<a href=#222 id=222 data-nosnippet>222</a>                .map_or_else(
-<a href=#223 id=223 data-nosnippet>223</a>                    |error| Response::Error(helpers::map_error(<span class="kw-2">&amp;</span>error, correlation_id)),
-<a href=#224 id=224 data-nosnippet>224</a>                    Response::ModelRequestDetail,
-<a href=#225 id=225 data-nosnippet>225</a>                ),
-<a href=#226 id=226 data-nosnippet>226</a>            Request::ToolResultDetail(request) =&gt; <span class="self">self
-<a href=#227 id=227 data-nosnippet>227</a>                </span>.service
-<a href=#228 id=228 data-nosnippet>228</a>                .tool_result_detail(
-<a href=#229 id=229 data-nosnippet>229</a>                    <span class="kw-2">&amp;</span>command_context(<span class="string">"session_branch_tree"</span>),
-<a href=#230 id=230 data-nosnippet>230</a>                    <span class="kw-2">&amp;</span>request.session.id,
-<a href=#231 id=231 data-nosnippet>231</a>                    <span class="kw-2">&amp;</span>request.branch.id,
-<a href=#232 id=232 data-nosnippet>232</a>                    <span class="kw-2">&amp;</span>request.result,
-<a href=#233 id=233 data-nosnippet>233</a>                )
-<a href=#234 id=234 data-nosnippet>234</a>                .map_or_else(
-<a href=#235 id=235 data-nosnippet>235</a>                    |error| Response::Error(helpers::map_error(<span class="kw-2">&amp;</span>error, correlation_id)),
-<a href=#236 id=236 data-nosnippet>236</a>                    Response::ToolResultDetail,
-<a href=#237 id=237 data-nosnippet>237</a>                ),
-<a href=#238 id=238 data-nosnippet>238</a>            Request::ModelLibrary(<span class="kw">_</span>) =&gt; agent_console::model_library(
-<a href=#239 id=239 data-nosnippet>239</a>                <span class="kw-2">&amp;</span><span class="self">self</span>.service,
-<a href=#240 id=240 data-nosnippet>240</a>                <span class="kw-2">&amp;</span>command_context(<span class="string">"agent_model_library"</span>),
-<a href=#241 id=241 data-nosnippet>241</a>                correlation_id,
-<a href=#242 id=242 data-nosnippet>242</a>            ),
-<a href=#243 id=243 data-nosnippet>243</a>            Request::AgentPresentationPreferencesRead(<span class="kw">_</span>) =&gt; agent_console::read_preferences(
-<a href=#244 id=244 data-nosnippet>244</a>                <span class="kw-2">&amp;</span><span class="self">self</span>.service,
-<a href=#245 id=245 data-nosnippet>245</a>                <span class="kw-2">&amp;</span>agent_console::presentation_context(<span class="self">self</span>.principal.as_ref()),
-<a href=#246 id=246 data-nosnippet>246</a>                correlation_id,
-<a href=#247 id=247 data-nosnippet>247</a>            ),
-<a href=#248 id=248 data-nosnippet>248</a>            Request::AgentPresentationPreferencesSet(request) =&gt; agent_console::set_preferences(
-<a href=#249 id=249 data-nosnippet>249</a>                <span class="kw-2">&amp;</span><span class="self">self</span>.service,
-<a href=#250 id=250 data-nosnippet>250</a>                <span class="kw-2">&amp;</span>agent_console::presentation_context(<span class="self">self</span>.principal.as_ref()),
-<a href=#251 id=251 data-nosnippet>251</a>                <span class="kw-2">&amp;</span>request,
-<a href=#252 id=252 data-nosnippet>252</a>                correlation_id,
-<a href=#253 id=253 data-nosnippet>253</a>            ),
-<a href=#254 id=254 data-nosnippet>254</a>            Request::SessionModelSelection(request) =&gt; {
-<a href=#255 id=255 data-nosnippet>255</a>                agent_console::set_model(<span class="kw-2">&amp;</span><span class="self">self</span>.service, <span class="kw-2">&amp;</span>request, correlation_id)
-<a href=#256 id=256 data-nosnippet>256</a>            }
-<a href=#257 id=257 data-nosnippet>257</a>            Request::SessionThinkingSelection(request) =&gt; {
-<a href=#258 id=258 data-nosnippet>258</a>                agent_console::set_thinking(<span class="kw-2">&amp;</span><span class="self">self</span>.service, <span class="kw-2">&amp;</span>request, correlation_id)
-<a href=#259 id=259 data-nosnippet>259</a>            }
-<a href=#260 id=260 data-nosnippet>260</a>            Request::Project(<span class="kw">_</span>) =&gt; Response::Error(ProtocolError {
-<a href=#261 id=261 data-nosnippet>261</a>                code: ProtocolErrorCode::UnsupportedOperation,
-<a href=#262 id=262 data-nosnippet>262</a>                message: <span class="string">"project operations require the HTTP project catalog"</span>.to_owned(),
-<a href=#263 id=263 data-nosnippet>263</a>                details: <span class="prelude-val">None</span>,
-<a href=#264 id=264 data-nosnippet>264</a>                correlation_id: <span class="prelude-val">Some</span>(correlation_id.to_owned()),
-<a href=#265 id=265 data-nosnippet>265</a>            }),
-<a href=#266 id=266 data-nosnippet>266</a>        }
-<a href=#267 id=267 data-nosnippet>267</a>    }
-<a href=#268 id=268 data-nosnippet>268</a>
-<a href=#269 id=269 data-nosnippet>269</a>    <span class="doccomment">/// Builds the least-capability context for principal-scoped display settings.
-<a href=#270 id=270 data-nosnippet>270</a>    ///
-<a href=#271 id=271 data-nosnippet>271</a>    /// Context restricted to the model-library capability and bound to the
-<a href=#272 id=272 data-nosnippet>272</a>    /// trusted transport principal, when one was configured.
-<a href=#273 id=273 data-nosnippet>273</a>    /// Builds the capability response from the injected application service.
-<a href=#274 id=274 data-nosnippet>274</a>    ///
-<a href=#275 id=275 data-nosnippet>275</a>    /// The public runtime capability response.
-<a href=#276 id=276 data-nosnippet>276</a>    /// # Returns
-<a href=#277 id=277 data-nosnippet>277</a>    /// The operation result.
-<a href=#278 id=278 data-nosnippet>278</a>    </span><span class="kw">fn </span>capabilities(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Response {
-<a href=#279 id=279 data-nosnippet>279</a>        <span class="kw">let </span>capabilities = <span class="self">self
-<a href=#280 id=280 data-nosnippet>280</a>            </span>.service
-<a href=#281 id=281 data-nosnippet>281</a>            .capabilities()
-<a href=#282 id=282 data-nosnippet>282</a>            .into_iter()
-<a href=#283 id=283 data-nosnippet>283</a>            .map(|capability| CapabilityInfo {
-<a href=#284 id=284 data-nosnippet>284</a>                id: capability.id.to_string(),
-<a href=#285 id=285 data-nosnippet>285</a>                description: capability.description,
-<a href=#286 id=286 data-nosnippet>286</a>                available: capability.available,
-<a href=#287 id=287 data-nosnippet>287</a>                domain: capability.scope,
-<a href=#288 id=288 data-nosnippet>288</a>            })
-<a href=#289 id=289 data-nosnippet>289</a>            .collect();
-<a href=#290 id=290 data-nosnippet>290</a>        Response::Capabilities(CapabilitiesResponse {
-<a href=#291 id=291 data-nosnippet>291</a>            protocol: ProtocolVersion::default(),
-<a href=#292 id=292 data-nosnippet>292</a>            capabilities,
-<a href=#293 id=293 data-nosnippet>293</a>            features: <span class="macro">vec!</span>[RuntimeFeature {
-<a href=#294 id=294 data-nosnippet>294</a>                id: <span class="string">"inspect"</span>.to_owned(),
-<a href=#295 id=295 data-nosnippet>295</a>                enabled: <span class="bool-val">true</span>,
-<a href=#296 id=296 data-nosnippet>296</a>            }],
-<a href=#297 id=297 data-nosnippet>297</a>        })
-<a href=#298 id=298 data-nosnippet>298</a>    }
-<a href=#299 id=299 data-nosnippet>299</a>
-<a href=#300 id=300 data-nosnippet>300</a>    <span class="doccomment">/// Dispatches one typed agent request through the shared command boundary.
-<a href=#301 id=301 data-nosnippet>301</a>    ///
-<a href=#302 id=302 data-nosnippet>302</a>    /// - `kind`: Stable agent operation identifier.
-<a href=#303 id=303 data-nosnippet>303</a>    /// - `payload`: Provider-neutral request payload.
-<a href=#304 id=304 data-nosnippet>304</a>    /// - `references`: Session and optional branch references for the response.
-<a href=#305 id=305 data-nosnippet>305</a>    /// - `correlation_id`: Request correlation identity.
-<a href=#306 id=306 data-nosnippet>306</a>    ///
-<a href=#307 id=307 data-nosnippet>307</a>    /// Typed accepted agent response or protocol error.
-<a href=#308 id=308 data-nosnippet>308</a>    /// # Returns
-<a href=#309 id=309 data-nosnippet>309</a>    /// The operation result.
-<a href=#310 id=310 data-nosnippet>310</a>    </span><span class="kw">fn </span>agent_command(
-<a href=#311 id=311 data-nosnippet>311</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#312 id=312 data-nosnippet>312</a>        kind: <span class="kw-2">&amp;</span>str,
-<a href=#313 id=313 data-nosnippet>313</a>        payload: <span class="kw-2">&amp;</span>serde_json::Value,
-<a href=#314 id=314 data-nosnippet>314</a>        references: <span class="prelude-ty">Option</span>&lt;(
-<a href=#315 id=315 data-nosnippet>315</a>            <span class="kw-2">&amp;</span>scriberig_protocol::SessionReference,
-<a href=#316 id=316 data-nosnippet>316</a>            <span class="kw-2">&amp;</span>scriberig_protocol::BranchReference,
-<a href=#317 id=317 data-nosnippet>317</a>        )&gt;,
-<a href=#318 id=318 data-nosnippet>318</a>        correlation_id: <span class="kw-2">&amp;</span>str,
-<a href=#319 id=319 data-nosnippet>319</a>    ) -&gt; Response {
-<a href=#320 id=320 data-nosnippet>320</a>        <span class="kw">if </span>!<span class="self">self
-<a href=#321 id=321 data-nosnippet>321</a>            </span>.service
-<a href=#322 id=322 data-nosnippet>322</a>            .capabilities()
-<a href=#323 id=323 data-nosnippet>323</a>            .iter()
-<a href=#324 id=324 data-nosnippet>324</a>            .any(|capability| capability.id.as_str() == kind &amp;&amp; capability.available)
-<a href=#325 id=325 data-nosnippet>325</a>        {
-<a href=#326 id=326 data-nosnippet>326</a>            <span class="kw">return </span>Response::Error(helpers::map_error(
-<a href=#327 id=327 data-nosnippet>327</a>                <span class="kw-2">&amp;</span>scriberig_app::ApplicationError::UnsupportedOperation {
-<a href=#328 id=328 data-nosnippet>328</a>                    operation: kind.to_owned(),
-<a href=#329 id=329 data-nosnippet>329</a>                },
-<a href=#330 id=330 data-nosnippet>330</a>                correlation_id,
-<a href=#331 id=331 data-nosnippet>331</a>            ));
-<a href=#332 id=332 data-nosnippet>332</a>        }
-<a href=#333 id=333 data-nosnippet>333</a>        <span class="kw">let </span>session = references.as_ref().map_or_else(
-<a href=#334 id=334 data-nosnippet>334</a>            || {
-<a href=#335 id=335 data-nosnippet>335</a>                payload
-<a href=#336 id=336 data-nosnippet>336</a>                    .get(<span class="string">"session"</span>)
-<a href=#337 id=337 data-nosnippet>337</a>                    .and_then(serde_json::Value::as_str)
-<a href=#338 id=338 data-nosnippet>338</a>                    .unwrap_or_default()
-<a href=#339 id=339 data-nosnippet>339</a>                    .to_owned()
-<a href=#340 id=340 data-nosnippet>340</a>            },
-<a href=#341 id=341 data-nosnippet>341</a>            |(session, <span class="kw">_</span>)| session.id.clone(),
-<a href=#342 id=342 data-nosnippet>342</a>        );
-<a href=#343 id=343 data-nosnippet>343</a>        <span class="self">self</span>.service
-<a href=#344 id=344 data-nosnippet>344</a>            .command(<span class="kw-2">&amp;</span>command_context(kind), kind, payload)
-<a href=#345 id=345 data-nosnippet>345</a>            .map_or_else(
-<a href=#346 id=346 data-nosnippet>346</a>                |error| Response::Error(helpers::map_error(<span class="kw-2">&amp;</span>error, correlation_id)),
-<a href=#347 id=347 data-nosnippet>347</a>                |operation| {
-<a href=#348 id=348 data-nosnippet>348</a>                    <span class="kw">let </span>branch = references.map(|(<span class="kw">_</span>, branch)| branch.clone()).or_else(|| {
-<a href=#349 id=349 data-nosnippet>349</a>                        <span class="self">self</span>.service
-<a href=#350 id=350 data-nosnippet>350</a>                            .read_session(<span class="kw-2">&amp;</span>command_context(<span class="string">"session_branch_tree"</span>), <span class="kw-2">&amp;</span>session)
-<a href=#351 id=351 data-nosnippet>351</a>                            .ok()
-<a href=#352 id=352 data-nosnippet>352</a>                            .and_then(|value| value.branches.last().cloned())
-<a href=#353 id=353 data-nosnippet>353</a>                            .map(|branch| scriberig_protocol::BranchReference {
-<a href=#354 id=354 data-nosnippet>354</a>                                id: branch.id.clone(),
-<a href=#355 id=355 data-nosnippet>355</a>                            })
-<a href=#356 id=356 data-nosnippet>356</a>                    });
-<a href=#357 id=357 data-nosnippet>357</a>                    Response::AgentAccepted(scriberig_protocol::AgentAcceptedResponse {
-<a href=#358 id=358 data-nosnippet>358</a>                        operation: OperationStatusResponse { operation },
-<a href=#359 id=359 data-nosnippet>359</a>                        session: scriberig_protocol::SessionReference { id: session },
-<a href=#360 id=360 data-nosnippet>360</a>                        branch,
-<a href=#361 id=361 data-nosnippet>361</a>                    })
-<a href=#362 id=362 data-nosnippet>362</a>                },
-<a href=#363 id=363 data-nosnippet>363</a>            )
-<a href=#364 id=364 data-nosnippet>364</a>    }
-<a href=#365 id=365 data-nosnippet>365</a>}
+<a href=#213 id=213 data-nosnippet>213</a>            Request::PlanRetry(request) =&gt; {
+<a href=#214 id=214 data-nosnippet>214</a>                <span class="self">self</span>.plan_request(<span class="kw-2">&amp;</span>Request::PlanRetry(request), correlation_id, <span class="prelude-val">None</span>)
+<a href=#215 id=215 data-nosnippet>215</a>            }
+<a href=#216 id=216 data-nosnippet>216</a>            Request::PlanNextStep(request) =&gt; {
+<a href=#217 id=217 data-nosnippet>217</a>                <span class="self">self</span>.plan_request(<span class="kw-2">&amp;</span>Request::PlanNextStep(request), correlation_id, <span class="prelude-val">None</span>)
+<a href=#218 id=218 data-nosnippet>218</a>            }
+<a href=#219 id=219 data-nosnippet>219</a>            Request::PlanDecompose(request) =&gt; {
+<a href=#220 id=220 data-nosnippet>220</a>                <span class="self">self</span>.plan_request(<span class="kw-2">&amp;</span>Request::PlanDecompose(request), correlation_id, <span class="prelude-val">None</span>)
+<a href=#221 id=221 data-nosnippet>221</a>            }
+<a href=#222 id=222 data-nosnippet>222</a>            Request::PlanSemanticMutation(request) =&gt; <span class="self">self</span>.plan_request(
+<a href=#223 id=223 data-nosnippet>223</a>                <span class="kw-2">&amp;</span>Request::PlanSemanticMutation(request),
+<a href=#224 id=224 data-nosnippet>224</a>                correlation_id,
+<a href=#225 id=225 data-nosnippet>225</a>                <span class="prelude-val">None</span>,
+<a href=#226 id=226 data-nosnippet>226</a>            ),
+<a href=#227 id=227 data-nosnippet>227</a>            Request::SessionRead(request) =&gt; <span class="self">self</span>.session_read(<span class="kw-2">&amp;</span>request, correlation_id),
+<a href=#228 id=228 data-nosnippet>228</a>            Request::ModelRequestDetail(request) =&gt; <span class="self">self
+<a href=#229 id=229 data-nosnippet>229</a>                </span>.service
+<a href=#230 id=230 data-nosnippet>230</a>                .model_request_detail(
+<a href=#231 id=231 data-nosnippet>231</a>                    <span class="kw-2">&amp;</span>command_context(<span class="string">"session_branch_tree"</span>),
+<a href=#232 id=232 data-nosnippet>232</a>                    <span class="kw-2">&amp;</span>request.session.id,
+<a href=#233 id=233 data-nosnippet>233</a>                    <span class="kw-2">&amp;</span>request.branch.id,
+<a href=#234 id=234 data-nosnippet>234</a>                    <span class="kw-2">&amp;</span>request.invocation,
+<a href=#235 id=235 data-nosnippet>235</a>                    request.offset,
+<a href=#236 id=236 data-nosnippet>236</a>                    request.max_chars,
+<a href=#237 id=237 data-nosnippet>237</a>                )
+<a href=#238 id=238 data-nosnippet>238</a>                .map_or_else(
+<a href=#239 id=239 data-nosnippet>239</a>                    |error| Response::Error(helpers::map_error(<span class="kw-2">&amp;</span>error, correlation_id)),
+<a href=#240 id=240 data-nosnippet>240</a>                    Response::ModelRequestDetail,
+<a href=#241 id=241 data-nosnippet>241</a>                ),
+<a href=#242 id=242 data-nosnippet>242</a>            Request::ToolResultDetail(request) =&gt; <span class="self">self
+<a href=#243 id=243 data-nosnippet>243</a>                </span>.service
+<a href=#244 id=244 data-nosnippet>244</a>                .tool_result_detail(
+<a href=#245 id=245 data-nosnippet>245</a>                    <span class="kw-2">&amp;</span>command_context(<span class="string">"session_branch_tree"</span>),
+<a href=#246 id=246 data-nosnippet>246</a>                    <span class="kw-2">&amp;</span>request.session.id,
+<a href=#247 id=247 data-nosnippet>247</a>                    <span class="kw-2">&amp;</span>request.branch.id,
+<a href=#248 id=248 data-nosnippet>248</a>                    <span class="kw-2">&amp;</span>request.result,
+<a href=#249 id=249 data-nosnippet>249</a>                )
+<a href=#250 id=250 data-nosnippet>250</a>                .map_or_else(
+<a href=#251 id=251 data-nosnippet>251</a>                    |error| Response::Error(helpers::map_error(<span class="kw-2">&amp;</span>error, correlation_id)),
+<a href=#252 id=252 data-nosnippet>252</a>                    Response::ToolResultDetail,
+<a href=#253 id=253 data-nosnippet>253</a>                ),
+<a href=#254 id=254 data-nosnippet>254</a>            Request::ModelLibrary(<span class="kw">_</span>) =&gt; agent_console::model_library(
+<a href=#255 id=255 data-nosnippet>255</a>                <span class="kw-2">&amp;</span><span class="self">self</span>.service,
+<a href=#256 id=256 data-nosnippet>256</a>                <span class="kw-2">&amp;</span>command_context(<span class="string">"agent_model_library"</span>),
+<a href=#257 id=257 data-nosnippet>257</a>                correlation_id,
+<a href=#258 id=258 data-nosnippet>258</a>            ),
+<a href=#259 id=259 data-nosnippet>259</a>            Request::AgentPresentationPreferencesRead(<span class="kw">_</span>) =&gt; agent_console::read_preferences(
+<a href=#260 id=260 data-nosnippet>260</a>                <span class="kw-2">&amp;</span><span class="self">self</span>.service,
+<a href=#261 id=261 data-nosnippet>261</a>                <span class="kw-2">&amp;</span>agent_console::presentation_context(<span class="self">self</span>.principal.as_ref()),
+<a href=#262 id=262 data-nosnippet>262</a>                correlation_id,
+<a href=#263 id=263 data-nosnippet>263</a>            ),
+<a href=#264 id=264 data-nosnippet>264</a>            Request::AgentPresentationPreferencesSet(request) =&gt; agent_console::set_preferences(
+<a href=#265 id=265 data-nosnippet>265</a>                <span class="kw-2">&amp;</span><span class="self">self</span>.service,
+<a href=#266 id=266 data-nosnippet>266</a>                <span class="kw-2">&amp;</span>agent_console::presentation_context(<span class="self">self</span>.principal.as_ref()),
+<a href=#267 id=267 data-nosnippet>267</a>                <span class="kw-2">&amp;</span>request,
+<a href=#268 id=268 data-nosnippet>268</a>                correlation_id,
+<a href=#269 id=269 data-nosnippet>269</a>            ),
+<a href=#270 id=270 data-nosnippet>270</a>            Request::SessionModelSelection(request) =&gt; {
+<a href=#271 id=271 data-nosnippet>271</a>                agent_console::set_model(<span class="kw-2">&amp;</span><span class="self">self</span>.service, <span class="kw-2">&amp;</span>request, correlation_id)
+<a href=#272 id=272 data-nosnippet>272</a>            }
+<a href=#273 id=273 data-nosnippet>273</a>            Request::SessionThinkingSelection(request) =&gt; {
+<a href=#274 id=274 data-nosnippet>274</a>                agent_console::set_thinking(<span class="kw-2">&amp;</span><span class="self">self</span>.service, <span class="kw-2">&amp;</span>request, correlation_id)
+<a href=#275 id=275 data-nosnippet>275</a>            }
+<a href=#276 id=276 data-nosnippet>276</a>            Request::Project(<span class="kw">_</span>) =&gt; Response::Error(ProtocolError {
+<a href=#277 id=277 data-nosnippet>277</a>                code: ProtocolErrorCode::UnsupportedOperation,
+<a href=#278 id=278 data-nosnippet>278</a>                message: <span class="string">"project operations require the HTTP project catalog"</span>.to_owned(),
+<a href=#279 id=279 data-nosnippet>279</a>                details: <span class="prelude-val">None</span>,
+<a href=#280 id=280 data-nosnippet>280</a>                correlation_id: <span class="prelude-val">Some</span>(correlation_id.to_owned()),
+<a href=#281 id=281 data-nosnippet>281</a>            }),
+<a href=#282 id=282 data-nosnippet>282</a>        }
+<a href=#283 id=283 data-nosnippet>283</a>    }
+<a href=#284 id=284 data-nosnippet>284</a>
+<a href=#285 id=285 data-nosnippet>285</a>    <span class="doccomment">/// Builds the least-capability context for principal-scoped display settings.
+<a href=#286 id=286 data-nosnippet>286</a>    ///
+<a href=#287 id=287 data-nosnippet>287</a>    /// Context restricted to the model-library capability and bound to the
+<a href=#288 id=288 data-nosnippet>288</a>    /// trusted transport principal, when one was configured.
+<a href=#289 id=289 data-nosnippet>289</a>    /// Builds the capability response from the injected application service.
+<a href=#290 id=290 data-nosnippet>290</a>    ///
+<a href=#291 id=291 data-nosnippet>291</a>    /// The public runtime capability response.
+<a href=#292 id=292 data-nosnippet>292</a>    /// # Returns
+<a href=#293 id=293 data-nosnippet>293</a>    /// The operation result.
+<a href=#294 id=294 data-nosnippet>294</a>    </span><span class="kw">fn </span>capabilities(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Response {
+<a href=#295 id=295 data-nosnippet>295</a>        <span class="kw">let </span>capabilities = <span class="self">self
+<a href=#296 id=296 data-nosnippet>296</a>            </span>.service
+<a href=#297 id=297 data-nosnippet>297</a>            .capabilities()
+<a href=#298 id=298 data-nosnippet>298</a>            .into_iter()
+<a href=#299 id=299 data-nosnippet>299</a>            .map(|capability| CapabilityInfo {
+<a href=#300 id=300 data-nosnippet>300</a>                id: capability.id.to_string(),
+<a href=#301 id=301 data-nosnippet>301</a>                description: capability.description,
+<a href=#302 id=302 data-nosnippet>302</a>                available: capability.available,
+<a href=#303 id=303 data-nosnippet>303</a>                domain: capability.scope,
+<a href=#304 id=304 data-nosnippet>304</a>            })
+<a href=#305 id=305 data-nosnippet>305</a>            .collect();
+<a href=#306 id=306 data-nosnippet>306</a>        Response::Capabilities(CapabilitiesResponse {
+<a href=#307 id=307 data-nosnippet>307</a>            protocol: ProtocolVersion::default(),
+<a href=#308 id=308 data-nosnippet>308</a>            capabilities,
+<a href=#309 id=309 data-nosnippet>309</a>            features: <span class="macro">vec!</span>[RuntimeFeature {
+<a href=#310 id=310 data-nosnippet>310</a>                id: <span class="string">"inspect"</span>.to_owned(),
+<a href=#311 id=311 data-nosnippet>311</a>                enabled: <span class="bool-val">true</span>,
+<a href=#312 id=312 data-nosnippet>312</a>            }],
+<a href=#313 id=313 data-nosnippet>313</a>        })
+<a href=#314 id=314 data-nosnippet>314</a>    }
+<a href=#315 id=315 data-nosnippet>315</a>
+<a href=#316 id=316 data-nosnippet>316</a>    <span class="doccomment">/// Dispatches one typed agent request through the shared command boundary.
+<a href=#317 id=317 data-nosnippet>317</a>    ///
+<a href=#318 id=318 data-nosnippet>318</a>    /// - `kind`: Stable agent operation identifier.
+<a href=#319 id=319 data-nosnippet>319</a>    /// - `payload`: Provider-neutral request payload.
+<a href=#320 id=320 data-nosnippet>320</a>    /// - `references`: Session and optional branch references for the response.
+<a href=#321 id=321 data-nosnippet>321</a>    /// - `correlation_id`: Request correlation identity.
+<a href=#322 id=322 data-nosnippet>322</a>    ///
+<a href=#323 id=323 data-nosnippet>323</a>    /// Typed accepted agent response or protocol error.
+<a href=#324 id=324 data-nosnippet>324</a>    /// # Returns
+<a href=#325 id=325 data-nosnippet>325</a>    /// The operation result.
+<a href=#326 id=326 data-nosnippet>326</a>    </span><span class="kw">fn </span>agent_command(
+<a href=#327 id=327 data-nosnippet>327</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#328 id=328 data-nosnippet>328</a>        kind: <span class="kw-2">&amp;</span>str,
+<a href=#329 id=329 data-nosnippet>329</a>        payload: <span class="kw-2">&amp;</span>serde_json::Value,
+<a href=#330 id=330 data-nosnippet>330</a>        references: <span class="prelude-ty">Option</span>&lt;(
+<a href=#331 id=331 data-nosnippet>331</a>            <span class="kw-2">&amp;</span>scriberig_protocol::SessionReference,
+<a href=#332 id=332 data-nosnippet>332</a>            <span class="kw-2">&amp;</span>scriberig_protocol::BranchReference,
+<a href=#333 id=333 data-nosnippet>333</a>        )&gt;,
+<a href=#334 id=334 data-nosnippet>334</a>        correlation_id: <span class="kw-2">&amp;</span>str,
+<a href=#335 id=335 data-nosnippet>335</a>    ) -&gt; Response {
+<a href=#336 id=336 data-nosnippet>336</a>        <span class="kw">if </span>!<span class="self">self
+<a href=#337 id=337 data-nosnippet>337</a>            </span>.service
+<a href=#338 id=338 data-nosnippet>338</a>            .capabilities()
+<a href=#339 id=339 data-nosnippet>339</a>            .iter()
+<a href=#340 id=340 data-nosnippet>340</a>            .any(|capability| capability.id.as_str() == kind &amp;&amp; capability.available)
+<a href=#341 id=341 data-nosnippet>341</a>        {
+<a href=#342 id=342 data-nosnippet>342</a>            <span class="kw">return </span>Response::Error(helpers::map_error(
+<a href=#343 id=343 data-nosnippet>343</a>                <span class="kw-2">&amp;</span>scriberig_app::ApplicationError::UnsupportedOperation {
+<a href=#344 id=344 data-nosnippet>344</a>                    operation: kind.to_owned(),
+<a href=#345 id=345 data-nosnippet>345</a>                },
+<a href=#346 id=346 data-nosnippet>346</a>                correlation_id,
+<a href=#347 id=347 data-nosnippet>347</a>            ));
+<a href=#348 id=348 data-nosnippet>348</a>        }
+<a href=#349 id=349 data-nosnippet>349</a>        <span class="kw">let </span>session = references.as_ref().map_or_else(
+<a href=#350 id=350 data-nosnippet>350</a>            || {
+<a href=#351 id=351 data-nosnippet>351</a>                payload
+<a href=#352 id=352 data-nosnippet>352</a>                    .get(<span class="string">"session"</span>)
+<a href=#353 id=353 data-nosnippet>353</a>                    .and_then(serde_json::Value::as_str)
+<a href=#354 id=354 data-nosnippet>354</a>                    .unwrap_or_default()
+<a href=#355 id=355 data-nosnippet>355</a>                    .to_owned()
+<a href=#356 id=356 data-nosnippet>356</a>            },
+<a href=#357 id=357 data-nosnippet>357</a>            |(session, <span class="kw">_</span>)| session.id.clone(),
+<a href=#358 id=358 data-nosnippet>358</a>        );
+<a href=#359 id=359 data-nosnippet>359</a>        <span class="self">self</span>.service
+<a href=#360 id=360 data-nosnippet>360</a>            .command(<span class="kw-2">&amp;</span>command_context(kind), kind, payload)
+<a href=#361 id=361 data-nosnippet>361</a>            .map_or_else(
+<a href=#362 id=362 data-nosnippet>362</a>                |error| Response::Error(helpers::map_error(<span class="kw-2">&amp;</span>error, correlation_id)),
+<a href=#363 id=363 data-nosnippet>363</a>                |operation| {
+<a href=#364 id=364 data-nosnippet>364</a>                    <span class="kw">let </span>branch = references.map(|(<span class="kw">_</span>, branch)| branch.clone()).or_else(|| {
+<a href=#365 id=365 data-nosnippet>365</a>                        <span class="self">self</span>.service
+<a href=#366 id=366 data-nosnippet>366</a>                            .read_session(<span class="kw-2">&amp;</span>command_context(<span class="string">"session_branch_tree"</span>), <span class="kw-2">&amp;</span>session)
+<a href=#367 id=367 data-nosnippet>367</a>                            .ok()
+<a href=#368 id=368 data-nosnippet>368</a>                            .and_then(|value| value.branches.last().cloned())
+<a href=#369 id=369 data-nosnippet>369</a>                            .map(|branch| scriberig_protocol::BranchReference {
+<a href=#370 id=370 data-nosnippet>370</a>                                id: branch.id.clone(),
+<a href=#371 id=371 data-nosnippet>371</a>                            })
+<a href=#372 id=372 data-nosnippet>372</a>                    });
+<a href=#373 id=373 data-nosnippet>373</a>                    Response::AgentAccepted(scriberig_protocol::AgentAcceptedResponse {
+<a href=#374 id=374 data-nosnippet>374</a>                        operation: OperationStatusResponse { operation },
+<a href=#375 id=375 data-nosnippet>375</a>                        session: scriberig_protocol::SessionReference { id: session },
+<a href=#376 id=376 data-nosnippet>376</a>                        branch,
+<a href=#377 id=377 data-nosnippet>377</a>                    })
+<a href=#378 id=378 data-nosnippet>378</a>                },
+<a href=#379 id=379 data-nosnippet>379</a>            )
+<a href=#380 id=380 data-nosnippet>380</a>    }
+<a href=#381 id=381 data-nosnippet>381</a>}
 </code></pre></div></section></main></body></html>

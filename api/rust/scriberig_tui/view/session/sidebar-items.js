@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["SessionRowKind"],"struct":["SessionModel","SessionRow"]};
+window.SIDEBAR_ITEMS = {"enum":["SessionRowKind"],"struct":["SessionModel","SessionRow","SessionRowIdentity"]};

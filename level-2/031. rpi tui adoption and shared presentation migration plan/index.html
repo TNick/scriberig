@@ -231,7 +231,7 @@
   <span class="md-ellipsis">
     
   
-    Scriberig
+    ScribeRig
   
 
     
@@ -7381,7 +7381,7 @@
   <span class="md-ellipsis">
     
   
-    Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
+    Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
   
 
     
@@ -8100,6 +8100,16 @@
 
 
 <h1 id="rpi-tui-adoption-and-shared-presentation-migration-plan">RPI TUI Adoption and Shared Presentation Migration Plan<a class="headerlink" href="#rpi-tui-adoption-and-shared-presentation-migration-plan" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Superseded ownership target:</strong> Level-2 plan 032 is the current authority
+for final runtime and terminal ownership. This document and tasks 138–143
+preserve historical research and implementation evidence only. In particular,
+the <code>scriberig-tui-kit</code> boundary and Ratatui-based acceptance language below
+do not authorize retaining a ScribeRig-owned commodity widget layer. The
+corrective migration must delegate reusable terminal machinery directly to
+upstream <code>rpi-tui</code>, remove local duplicates, and keep only ScribeRig semantic
+projections and adapters. Final acceptance is tracked by tasks 144–149.</p>
+</blockquote>
 <h2 id="1-purpose">1. Purpose<a class="headerlink" href="#1-purpose" title="Permanent link">&para;</a></h2>
 <p>This document converts the research and recommendations in <code>design/level-1/022. Adopt TUI.md</code> into an implementation-oriented Level-2 plan for the current Scriberig repository.</p>
 <p>It is constrained by the existing Scriberig architecture and by work that landed after the research snapshot. In particular, the repository now already has:</p>

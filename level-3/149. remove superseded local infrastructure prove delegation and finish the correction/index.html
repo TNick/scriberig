@@ -231,7 +231,7 @@
   <span class="md-ellipsis">
     
   
-    Scriberig
+    ScribeRig
   
 
     
@@ -7047,7 +7047,7 @@
   <span class="md-ellipsis">
     
   
-    Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
+    Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
   
 
     
@@ -7311,6 +7311,45 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-full-gate-run-and-production-fixes-2026-10-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Full-Gate Run and Production Fixes (2026-10-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="18. Full-Gate Run and Production Fixes (2026-10-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#181-round-1-follow-up-fixes-and-remaining-terminal-blocker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.1 Round-1 follow-up fixes and remaining terminal blocker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#182-round-23-status-non-pty-suites-now-green" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.2 Round-2/3 status: non-PTY suites now green
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -7879,6 +7918,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#18-full-gate-run-and-production-fixes-2026-10-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Full-Gate Run and Production Fixes (2026-10-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="18. Full-Gate Run and Production Fixes (2026-10-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#181-round-1-follow-up-fixes-and-remaining-terminal-blocker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.1 Round-1 follow-up fixes and remaining terminal blocker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#182-round-23-status-non-pty-suites-now-green" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.2 Round-2/3 status: non-PTY suites now green
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -7900,7 +7978,59 @@
 
 
 <h1 id="remove-superseded-local-infrastructure-prove-delegation-and-finish-the-correction">Remove Superseded Local Infrastructure, Prove Delegation, and Finish the Correction<a class="headerlink" href="#remove-superseded-local-infrastructure-prove-delegation-and-finish-the-correction" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] Not Started</strong></p>
+<p><strong>Status: [ ] In Progress</strong></p>
+<p>Current dependency note (2026-10-21, late revalidation): the active pin is now
+controlled fork commit <code>ebcf8d5e75d20fa3a6cc7cc76cbcdcec4cc36eb8</code>, based on
+official upstream 0.7.1 main <code>281dfddfa39ac063d86de57b75370974c4d75e6c</code>. The pin
+includes the isolated plugin worker/sandbox boundary and typed
+<code>AssistantMessageEvent::ReasoningSummaryDelta</code>; ScribeRig still does not
+activate workers in production. The historical check below remains a checkpoint,
+not current pin evidence.</p>
+<p>Previous upstream revision check (2026-10-21, before provider-snapshot
+integration): official <code>bigfish1913/pi-rust</code> <code>main</code> was at
+<code>7a272ecf42e5ec17efedc92031a5cdba85e213e9</code>. The controlled ScribeRig fork pin
+<code>b78a199486351d86804995c27a0c5ed2bd8a28e3</code> descended from that merge and added
+the model catalog, transactional config, stream lifecycle, TUI component
+event/focus extractions, and application-registered keybindings with shared
+help/footer enumeration. No newer official <code>main</code> commits were available to
+merge at that earlier check. The previous focused
+offline workspace check passed against the merge base; the prior combined pin
+passed <code>cargo check --workspace --all-targets</code>. At the current pin,
+<code>cargo check -p scriberig-tui --lib</code> and <code>cargo check -p scriberig --bin srig</code>
+pass; workspace-wide validation and behavioral acceptance remain pending.
+Keep final migration acceptance open until those gates are complete.</p>
+<p>Provider-snapshot upstream sync (2026-10-21): official <code>main</code> advanced from
+<code>7a272ecf42e5ec17efedc92031a5cdba85e213e9</code> to
+<code>7d019f85cde614a6aa267a7d2e816e04a7e6abbe</code> with five commits under PR #73.
+The controlled fork branch now merges those changes as
+<code>15a68ef2d69a312122c09c1eccfa0fbd454c48b5</code>. The merge had no textual
+conflicts; a focused all-features Cargo check exposed two dangling fork-only
+<code>rpi-plugin-sdk::provider</code> module declarations, which were removed because no
+module files or consumers exist and package lifecycle remains in
+<code>rpi-extensions</code>. The focused check passes after that correction. ScribeRig's
+Cargo pin now uses this fork commit. No tests were run.</p>
+<p>Upstream 0.7.1 sync (2026-10-21): official <code>main</code> advanced to
+<code>281dfddfa39ac063d86de57b75370974c4d75e6c</code> and released 0.7.1. The controlled
+fork branch merges that commit at <code>6e65635a2ac2336a86847d85e2c3bb771a945c87</code>;
+the only conflict was the fork workspace's additional <code>rpi-model-runtime</code>
+dependency version, retained and advanced with the workspace. The upstream
+delta adds a CLI web-startup guard and release metadata; the ScribeRig-consumed
+libraries compile unchanged. ScribeRig's Cargo manifest and lockfile now pin
+the merged commit. No tests were run.</p>
+<p>Official upstream recheck (2026-10-21): fetched
+<code>https://github.com/bigfish1913/pi-rust.git</code> branch <code>main</code>; it resolves to
+<code>281dfddfa39ac063d86de57b75370974c4d75e6c</code>, the same revision recorded above.
+The controlled fork <code>HEAD</code> is based on that commit and adds fork-owned
+ScribeRig-facing API extractions. No newer official upstream commits or merge
+conflicts are present to integrate in this checkout. Recheck the upstream
+branch before the next fork update rather than inferring progress from an older
+note.</p>
+<p>ScribeRig upstream tree and key API contribution (2026-10-21): the controlled
+fork branch now advances to <code>bad1c5b4aa6f26cc231168d75a09165e990de39a</code>. This
+commit re-exports the <code>rpi-tui</code> key event types used by ScribeRig and caches
+visible tree rows for upstream tree consumers. ScribeRig removed its direct
+Crossterm dependency. <code>cargo check -p scriberig-tui --all-targets</code> passes at
+this pin; tests and interactive acceptance remain unrun.</p>
 <h2 id="1-objective">1. Objective<a class="headerlink" href="#1-objective" title="Permanent link">&para;</a></h2>
 <p>Finish the upstream-first correction after tasks 144 through 148 are complete.</p>
 <p>This task deletes obsolete local commodity infrastructure, proves that the final product actually delegates model/provider/agent/plugin/TUI concerns upstream, preserves Scriberig-specific semantics, validates local/remote/web conformance, and runs the final repository gate.</p>
@@ -7913,7 +8043,7 @@
 <li>[ ] Read completed tasks 144–148 and their implementation notes.</li>
 <li>[ ] Read task 144's ownership map, upstream gates, and deletion ledger.</li>
 <li>[ ] Read nearest <code>AGENTS.md</code> for every crate/package modified during cleanup.</li>
-<li>[ ] Inspect current upstream dependency versions/commits and any temporary Git pins.</li>
+<li>[x] Inspect current upstream dependency versions/commits and any temporary Git pins.</li>
 </ul>
 <hr />
 <h2 id="3-checklist-discipline">3. Checklist Discipline<a class="headerlink" href="#3-checklist-discipline" title="Permanent link">&para;</a></h2>
@@ -7962,14 +8092,137 @@
 <p>The target should show Scriberig integrated product code consuming upstream crates/services while semantic foundation crates remain independent of terminal/provider concerns.</p>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] <code>scriberig-tui</code> or its successor has no direct Ratatui dependency.</li>
-<li>[ ] The active TUI consumes upstream <code>rpi-tui</code> directly through semantic components/adapters.</li>
-<li>[ ] Agent runtime consumes upstream <code>rpi-agent</code>/<code>rpi-ai</code> or their current upstream replacements.</li>
+<li>[x] <code>scriberig-tui</code> or its successor has no direct Ratatui dependency.</li>
+<li>[x] The active TUI consumes upstream <code>rpi-tui</code> directly through semantic components/adapters.</li>
+<li>[x] Agent runtime consumes upstream <code>rpi-agent</code>/<code>rpi-ai</code> or their current upstream replacements.</li>
 <li>[ ] Integrated plugin host consumes upstream plugin SDK/extension runtime.</li>
-<li>[ ] Model/provider catalog resolves from upstream runtime.</li>
-<li>[ ] Semantic foundation crates do not depend on <code>rpi-tui</code>.</li>
-<li>[ ] No <code>rpi-harness</code> identity replaces Scriberig sessions/branches.</li>
+<li>[x] Model/provider catalog resolves from upstream runtime.</li>
+<li>[x] Semantic foundation crates do not depend on <code>rpi-tui</code>.</li>
+<li>[x] No <code>rpi-harness</code> identity replaces Scriberig sessions/branches.</li>
 </ul>
+<p>Task 149 cleanup progress (2026-10-21): removed the Ratatui renderer/layout
+modules and their test-only module tree from <code>scriberig-tui</code>; removed the
+<code>scriberig-tui-kit</code> workspace crate and its manifest/development dependency;
+removed the Ratatui development dependency. Semantic activity identity,
+redaction, hostile-value, projection metadata, and visibility assertions now
+live with the semantic model or upstream component projections. The old
+renderer's layout/style-specific assertions are retired with that renderer.
+<code>rg</code> found no code references to the retired renderer, Ratatui, or TUI kit in
+the active TUI, PTY tests, or workspace manifests. <code>cargo check --offline -p
+scriberig-tui --tests</code> and <code>cargo check --offline -p scriberig --test tui_pty</code>
+are compile-only checks; neither tests nor PTY scenarios have been run. The
+static dependency-graph items below are checked only where current manifests,
+source searches, and compilation establish them; behavioral and broader
+deletion acceptance remains open pending its specified verification gates.</p>
+<p>Terminal runtime inspection (2026-10-21): the production launch path reaches
+<code>TuiAltScreen::run_until</code> in <code>crates/scriberig-tui/src/runtime/upstream.rs</code>.
+At the pinned revision, <code>run_until</code> starts the upstream render scheduler and
+terminal runtime, waits for the ScribeRig application predicate, and restores
+the terminal on exit or panic. The upstream <code>ProcessTerminal</code> reader dispatches
+input and resize events through the focused upstream component tree. The local
+event loop is retained for ScribeRig application-event polling and reducer /
+effect scheduling; it requests frames through upstream <code>request_render</code> and
+does not read terminal events or paint frames. The normal <code>crossterm</code> 0.27
+dependency matches the type used in <code>rpi-tui</code>; the temporary renamed alias and
+duplicate 0.28 development dependency were removed. No generic upstream
+runtime extraction gap was found in this path. PTY and restoration behavior
+remain unexecuted, so the corresponding deletion/acceptance checkboxes stay
+open.</p>
+<p>Runtime ownership closure audit (2026-10-21, pinned fork
+<code>15a68ef2d69a312122c09c1eccfa0fbd454c48b5</code>): production one-shot provider
+creation in <code>apps/scriberig/src/main_agent_execution/upstream.rs</code> calls
+<code>rpi_model_runtime::create_builtin_provider</code>; native TUI provider resolution
+in <code>apps/scriberig/src/native_tui_agent.rs</code> uses the same factory and its
+<code>ModelCatalog</code>. <code>crates/scriberig-agent-runtime/src/upstream_invocation.rs</code>
+builds <code>rpi_agent::Agent</code>/<code>AgentBuilder</code>, consumes upstream <code>AgentEvent</code>, and
+uses the upstream continuation-aware stream; its remaining request projection
+is retained for canonical ScribeRig provenance. The fake providers in
+<code>apps/scriberig/src/{deterministic_provider.rs,self_hosting_provider.rs}</code> only
+produce scripted <code>rpi_ai::AssistantMessage</code> values for deterministic semantic
+scenarios and do not implement provider transport. <code>apps/scriberig/src/agent_tool.rs</code>,
+<code>crates/scriberig-agent-runtime/src/tools.rs</code>, and
+<code>apps/scriberig/src/native_tui_agent/upstream_execution/{execution,broker,delegation}.rs</code>
+remain ScribeRig semantic-operation, branch-authorization, and child-result
+adapters; they do not parse provider tool calls or run a second model loop.</p>
+<p>This audit also removed the unused local branch-state/event/cancellation
+machinery: <code>BranchPhase</code>, <code>BranchRuntimeState</code>, <code>CancellationTree</code>,
+<code>RuntimeEvent</code>, and <code>RuntimeEventLog</code> had no production consumers. The pinned
+<code>rpi-agent</code> exports <code>AgentEvent</code> (<code>crates/rpi-agent/src/events.rs</code>) and carries
+the run <code>CancellationToken</code> in <code>AgentLoopConfig.signal</code>
+(<code>crates/rpi-agent/src/hooks.rs</code>). <code>crates/scriberig-agent-runtime/src/events.rs</code>
+and its module export were deleted. The retained
+<code>crates/scriberig-agent-runtime/src/orchestration.rs::RuntimeLimits</code> now holds
+only the four live ScribeRig bounds (<code>max_tool_calls</code>, <code>max_child_branches</code>,
+<code>max_depth</code>, <code>max_active_branches</code>), consumed by the semantic broker and
+recursive branch admission. The unused generic model-step and provider-duration
+fields and test-only state-machine/cancellation checks were removed. The
+remaining <code>RuntimeLimits</code> are ScribeRig recursion/tool policy; the pinned
+upstream <code>AgentLoopConfig</code> exposes cancellation and sequencing but no matching
+semantic branch quota API.</p>
+<p>The plugin/extension boundary now has isolated-worker source, but acceptance
+remains open. The controlled fork adds
+<code>crates/rpi-extensions/src/isolated/</code> (<code>protocol.rs</code>, <code>client/mod.rs</code>,
+<code>client/launch.rs</code>, <code>client/reader.rs</code>, <code>worker.rs</code>, <code>plugin.rs</code>) with a
+versioned JSON-lines protocol, injected worker launcher, process-tree
+supervision, startup/request timeouts, cancellation, host-capability RPC,
+worker-side plugin loading, and tool execution through <code>PluginToolAdapter</code>
+inside the worker process. ScribeRig adds
+<code>crates/scriberig-agent-runtime/src/plugin_worker.rs</code> with the
+<code>PluginSemanticDispatcher</code> host route, tool/capability allowlists, cleared
+worker environment, and <code>AuthorizedPluginWorker</code>; <code>apps/scriberig/src/main.rs</code>
+serves the worker mode, and
+<code>provider_config/extensions.rs::reject_in_process_extensions</code> retains
+fail-closed startup rejection for extension roots, plugin files, and package
+roots because no production worker/tool-catalog composition exists yet.
+<code>upstream_execution::build_tools</code> still accepts only the ScribeRig semantic
+catalog, so plugin tools are not yet model-visible, and no production semantic
+dispatcher is composed. The fork worker changes are uncommitted and therefore
+absent from ScribeRig's current pin
+<code>46ee871ce7c80d1a81e89de53dbbd2e2e2490de1</code>. The default launcher has no OS
+filesystem/network sandbox and the worker action bridge is absent. Task 149
+§§8 and 12 therefore remain unchecked until a committed/pinned fork revision,
+host dispatcher/tool-catalog integration, OS sandbox launcher, and
+plugin-capability fixtures exist. No local extension loader or duplicate
+package lifecycle was found.
+Remaining proof is behavioral: §7 catalog/thinking/property/readiness fixtures;
+§8 agent/semantic-tool/recursive-branch/plugin fixtures; §9 visible PTY golden
+and interactive smoke; §10 semantic-invariant review/tests; §§11–13
+cross-surface, security, and responsiveness validation; §§14–16 supersession
+review and final gates. None is checked by this source audit.</p>
+<p>Controlled fork worker update (2026-10-21): the earlier boundary description
+above is a historical snapshot and its statements that runtime-action RPC and
+OS sandbox support were absent are superseded. The fork working tree now has
+the host runtime-action RPC bridge, an allowlisted host handler, and a
+fail-closed sandbox launcher contract with a Linux Bubblewrap implementation;
+macOS/Windows still require an injected platform launcher. The worker also
+passes cooperative cancellation into plugin execution, cancels active calls on
+shutdown, waits up to two seconds for cooperative settlement, and joins its
+reader. The host kills the worker tree at request timeout and after roughly
+500 ms during graceful shutdown. Native FFI that ignores cancellation cannot
+be preempted; worker cancellation is not acknowledged, registration cannot be
+interrupted, and host capability calls may wait up to 60 seconds. No runtime
+isolation or cancellation behavior has been verified.</p>
+<p>These fork changes remain uncommitted and are absent from ScribeRig's
+<code>b2fc63c78ae85044eb78e7ac9af184bd7fbfbc95</code> pin. ScribeRig's current
+<code>validate_isolated_plugin_configuration</code> still rejects configured plugin
+roots because workers are not composed into branch tool catalogs. The
+<code>AuthorizedPluginWorker</code> adapter still uses <code>HostProcessLauncher</code> and the
+default unisolated worker policy; do not activate it until production host
+composition injects a sandboxed launcher and policy, scopes semantic
+capabilities, and exposes worker tools through the upstream agent. Tasks 146
+and 149 remain open; the older checklist item above requiring a worker API,
+runtime-action bridge, and sandbox must be read with this update, not treated
+as a verified production boundary.</p>
+<p>Test-only TUI event cleanup (2026-10-21): production input is dispatched by
+the upstream component tree, and the local event/keymap modules had no
+production consumer. Removed <code>event.rs</code>, <code>keymap.rs</code> and its <code>keymap_*</code>
+helpers/tests, and the keymap-derived test-only <code>overlay::help</code> generator.
+Removed the test-only <code>TuiState::apply_event</code> adapter and the remaining direct
+<code>TuiEvent</code> imports. Semantic reducer tests now drive <code>Action</code> values or
+<code>TuiState::apply_application_event</code> directly, preserving the quit,
+modal-input, composer-newline, escape-to-conversation, and application-event
+assertions without a local terminal-input abstraction. This source-only
+cleanup was not compiled or test-verified in this turn.</p>
 <hr />
 <h2 id="6-sourceupdate-policy-acceptance">6. Source/Update Policy Acceptance<a class="headerlink" href="#6-sourceupdate-policy-acceptance" title="Permanent link">&para;</a></h2>
 <p>Prefer released upstream crates. If Scriberig still uses pinned Git revisions, record why and the upstream release/update condition.</p>
@@ -7990,8 +8243,17 @@
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>model changes supported thinking levels -&gt; TUI/web reflect upstream result
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>custom model property -&gt; upstream validates/resolves it
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>provider auth/readiness changes -&gt; product reflects upstream state
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>provider package reload -&gt; selectors update
 </code></pre></div>
+<p>Package lifecycle is gated, not currently reachable product behavior. At the
+current pin, <code>rpi-extensions</code> supplies registry/artifact metadata operations,
+while build/acquisition commands are in <code>rpi-cli</code>; ScribeRig does not expose
+package install/update/reload controls and rejects configured extension roots.
+Do not implement the package-refresh fixture as a ScribeRig-only package
+manager or by calling CLI command handlers. First require an explicit product
+decision to expose package operations, then upstream reusable lifecycle APIs
+for authorized project roots and an isolated worker/IPC boundary, plus atomic
+extension-session/catalog generation replacement. Until those gates land, the
+provider package refresh fixture is deferred and this item remains unchecked.</p>
 <p>Acceptance:</p>
 <ul>
 <li>[ ] Model catalog delegation fixture passes.</li>
@@ -8040,6 +8302,12 @@
 <li>[ ] No test assertion is satisfied solely by internal dependency inspection.</li>
 <li>[ ] Normal interactive smoke test confirms upstream interaction behavior is visible.</li>
 </ul>
+<p>Preparation (2026-10-21): PTY coverage now asserts the live composer hint,
+provider/model/thinking selectors, searchable command palette, help overlay,
+Plans navigation with retained semantic node selection, and candidate result
+identity in the confirmation overlay. The scenarios were only authored and
+compile-checked; no PTY/test was executed. These additions do not satisfy this
+section's visible-pass or interactive-smoke acceptance items.</p>
 <hr />
 <h2 id="10-preserve-scriberig-semantic-invariants">10. Preserve Scriberig Semantic Invariants<a class="headerlink" href="#10-preserve-scriberig-semantic-invariants" title="Permanent link">&para;</a></h2>
 <p>Audit final code against the architecture context.</p>
@@ -8122,16 +8390,19 @@
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>streaming output
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>rapid resize
 <a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>model selector with large catalog
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>plugin/catalog reload
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>plugin/catalog reload (only if package reload is adopted after its gate)
 </code></pre></div>
 <p>Acceptance:</p>
 <ul>
 <li>[ ] Large tree rendering remains viewport-bounded.</li>
 <li>[ ] Streaming remains responsive while browsing away from tail.</li>
 <li>[ ] Catalog selector remains usable with realistic size.</li>
-<li>[ ] Reload does not duplicate tools/models/commands.</li>
+<li>[ ] If package reload is adopted: reload does not duplicate tools/models/commands.</li>
 <li>[ ] No second terminal render loop runs concurrently.</li>
 </ul>
+<p>The reload performance scenario is not an active ScribeRig capability today.
+Keep it out of present product validation until the package lifecycle gate in
+§7 is satisfied; this conditional criterion remains unchecked in the meantime.</p>
 <hr />
 <h2 id="14-update-design-supersession-notes">14. Update Design Supersession Notes<a class="headerlink" href="#14-update-design-supersession-notes" title="Permanent link">&para;</a></h2>
 <p>Before final completion, make the design history unambiguous.</p>
@@ -8143,9 +8414,9 @@
 </ul>
 <p>Do not erase historical reasoning; mark refinement/supersession clearly.</p>
 <ul>
-<li>[ ] Level-2 supersession is explicit.</li>
-<li>[ ] Level-3 supersession is explicit.</li>
-<li>[ ] A new implementation agent reading design upward lands on plan 032 as current authority.</li>
+<li>[x] Level-2 supersession is explicit.</li>
+<li>[x] Level-3 supersession is explicit.</li>
+<li>[x] A new implementation agent reading design upward lands on plan 032 as current authority.</li>
 </ul>
 <hr />
 <h2 id="15-final-repository-gate">15. Final Repository Gate<a class="headerlink" href="#15-final-repository-gate" title="Permanent link">&para;</a></h2>
@@ -8162,14 +8433,14 @@
 </code></pre></div>
 <p>If environment/resource policy blocks a gate, do not mark it passed. Record the blocker and keep completion unchecked.</p>
 <ul>
-<li>[ ] Repository lint passes.</li>
-<li>[ ] Rust formatting passes.</li>
-<li>[ ] Workspace Rust check passes.</li>
-<li>[ ] Workspace Clippy passes with warnings denied.</li>
+<li>[x] Repository lint passes.</li>
+<li>[x] Rust formatting passes.</li>
+<li>[x] Workspace Rust check passes.</li>
+<li>[x] Workspace Clippy passes with warnings denied.</li>
 <li>[ ] Relevant Rust tests pass.</li>
-<li>[ ] Web formatting passes.</li>
-<li>[ ] Web typecheck passes.</li>
-<li>[ ] Relevant web tests/build checks pass.</li>
+<li>[x] Web formatting passes.</li>
+<li>[x] Web typecheck passes.</li>
+<li>[x] Relevant web tests/build checks pass.</li>
 </ul>
 <hr />
 <h2 id="16-final-level-2-acceptance-review">16. Final Level-2 Acceptance Review<a class="headerlink" href="#16-final-level-2-acceptance-review" title="Permanent link">&para;</a></h2>
@@ -8187,10 +8458,206 @@
 <li>[ ] Cross-surface conformance is complete.</li>
 </ul>
 <p>Only then set:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>**Status: [x] Complete**
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>**Status: [ ] In Progress**
 </code></pre></div>
 <h2 id="17-implementation-notes">17. Implementation Notes<a class="headerlink" href="#17-implementation-notes" title="Permanent link">&para;</a></h2>
 <p>Record the final upstream versions/SHAs, upstream contributions consumed, deleted local owners, retained semantic adapters, validation commands/results, and any explicit user-approved exceptions.</p>
+<p>Production event-boundary cleanup (2026-10-21): the active runtime now reduces
+<code>ApplicationEvent</code> directly through <code>TuiState::apply_application_event</code>; it no
+longer wraps semantic application events in the local terminal <code>TuiEvent</code> type.
+The test-only <code>event</code>, <code>keymap</code>, and <code>overlay::help</code> modules were subsequently
+deleted with their key/action fixtures; see the test-only TUI event cleanup
+note above. Upstream <code>rpi-tui</code> owns terminal input dispatch and registered
+keybindings; ScribeRig retains semantic reducers and the application-event
+adapter. Earlier <code>cargo check -p scriberig-tui --lib</code> evidence predates this
+module deletion; the deletion itself and legacy reducer tests remain
+unexecuted.</p>
+<p>Legacy pane/terminal state cleanup (2026-10-21): removed the ScribeRig
+<code>Focus::{Explorer, Primary, Inspector}</code> state, Tab-driven focus actions,
+<code>TuiState.terminal_size</code>, and <code>Action::TerminalResized</code>. Cursor bounds and
+Explorer activation now follow the selected semantic <code>PrimaryView</code>; actual
+component focus and resize handling remain in <code>rpi-tui</code>. The unreferenced
+test-only <code>read_event</code> poller was also deleted. <code>cargo check -p
+scriberig-tui --all-targets</code> and <code>cargo check -p scriberig --bin srig</code> pass;
+the former only compiles test targets and does not execute tests. PTY focus,
+resize, and terminal restoration scenarios remain unexecuted.</p>
+<p>Overlay/focus/help residual audit (2026-10-21): no safe deletion fits the
+requested <code>overlay/**</code>, <code>runtime/upstream</code> adapter, and task-149 evidence
+scope. Production dialog rendering and modal mechanics already use upstream
+<code>Dialog</code>, <code>Editor</code>, <code>Markdown</code>, and <code>TuiAltScreen</code> overlay/focus APIs in
+<code>runtime/upstream/modal_overlay.rs</code>; provider/model/thinking/theme and command
+palette rendering use upstream <code>SelectList</code> / <code>SearchableSelectList</code> in
+<code>runtime/upstream/selector_factory.rs</code>. Upstream <code>TuiAltScreen</code> owns the actual
+focus and overlay stack, with <code>restore_overlay_focus</code> only bridging the
+previous component pointer to upstream <code>hide_overlay</code> / <code>set_focus</code>.</p>
+<p>The <code>HelpPanel</code> in <code>runtime/upstream/components/help_panel.rs</code> remains a
+ScribeRig-specific help document: it enumerates ScribeRig semantic controls
+and slash commands, while using upstream Markdown rendering, active upstream
+keybinding metadata, and upstream overlay dispatch. Its content is product
+intent, so replacing it with generic upstream help would drop ScribeRig
+commands and semantic navigation guidance. <code>overlay/input.rs</code> similarly
+retains input purpose, submitted text, and validation error for ScribeRig
+reducers; the upstream editor handles the actual editing interaction.</p>
+<p>Palette ownership cleanup (2026-10-21): removed the local generic filtering and
+selection state from <code>crates/scriberig-tui/src/overlay/palette.rs</code>;
+<code>PaletteState</code> now stores only stable <code>PaletteItem</code> rows (ID, label, source)
+and capability filtering. <code>state_input_reducer.rs</code> no longer edits a local
+palette query, and <code>state_cursor_reducer.rs</code> no longer moves a local palette
+cursor. The production popup built by
+<code>runtime/upstream/selector_factory.rs::open_palette_selector</code> as an upstream
+<code>SearchableSelectList</code> remains the sole owner of filtering, row navigation, and
+selected-row state. Upstream selection sends <code>ComposerInput::PaletteSelected</code>
+with the stable item value, and
+<code>runtime/upstream/event_loop/input/palette.rs::select</code> invokes
+<code>state_actions.rs::activate_palette_item</code> by that ID. Command IDs, labels, and
+action semantics remain ScribeRig-owned in <code>overlay/palette.rs</code> and
+<code>state_actions.rs</code>; <code>Action::Activated</code> no longer drives palette selection.
+Unit/reducer tests were rewritten to activate by stable ID instead of
+simulating local filtering/cursor movement. No upstream palette API was
+missing, so no fork API or Cargo pin change was made for this slice. No tests
+or builds were run, so behavioral verification remains outstanding.</p>
+<h2 id="18-full-gate-run-and-production-fixes-2026-10-21">18. Full-Gate Run and Production Fixes (2026-10-21)<a class="headerlink" href="#18-full-gate-run-and-production-fixes-2026-10-21" title="Permanent link">&para;</a></h2>
+<p>The user authorized running the plan's full verification gates. The following
+commands were run with <code>CARGO_INCREMENTAL=0</code> and <code>-j 1</code> because parallel
+compilation on this Windows host produced rustc ICEs and <code>LNK1102</code> memory
+failures:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>cargo fmt --all
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>cargo check --workspace --all-targets --locked
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>cargo clippy --workspace --all-targets --locked -- -D warnings
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>cargo test --workspace --locked --no-fail-fast -j 1
+</code></pre></div>
+<p>Formatting, workspace check, and workspace clippy pass. The first parallel
+<code>cargo test</code> attempt failed in rustc/link; the serial retry compiled and ran.
+A later serial retry still leaves the targets listed below failing.</p>
+<p>Production defects fixed while making the suite runnable:</p>
+<ul>
+<li><code>apps/scriberig/src/native_tui_agent/upstream_execution/execution.rs</code> never
+  dropped the broker's original sender, so <code>tokio::join!</code> waited forever once
+  the model future returned early. A <code>drop(sender)</code> now closes the tool queue
+  after tools are built.</li>
+<li><code>crates/scriberig-agent-runtime/src/upstream_invocation.rs</code> built
+  <code>rpi_agent::Agent</code> with <code>cancellable_provider_continuation</code> but no
+  <code>stream_fn</code>; the pinned builder requires a stream and returned
+  <code>no default stream fn configured</code>. A bound plain <code>StreamFn</code> now supplies the
+  same provider/model/secret without continuation.</li>
+<li>Child delegation discarded tool-derived result handles; it now uses
+  <code>compact_result_handles</code> before finalizing the durable <code>BranchResult</code>.</li>
+<li>Tool evidence projection truncated <code>handles</code> at 32 without preserving
+  <code>next_offset:</code>, breaking manifest pagination. The continuation handle is now
+  retained.</li>
+<li>Tool evidence now serializes <code>entity</code>, <code>revision</code>, and <code>snapshot</code> as stable
+  strings instead of serde object payloads.</li>
+<li>Semantic scenarios now provide a bounded pool of context-driven
+  <code>FauxStep::factory</code> responses instead of one one-shot step.</li>
+<li>Scenario handle parsing accepts both the JSON <code>handles</code> array and the older
+  debug projection; bootstrap manifest/terminal detection accepts JSON
+  <code>summary</code> fields.</li>
+<li>Failed root execution now persists the underlying safe error text instead of
+  a generic "agent execution failed" label.</li>
+<li>Plan tests and the shared protocol fixture were updated to exact
+  provider/model assignment identities and current wire fields.</li>
+</ul>
+<p>Validation achieved after these fixes:</p>
+<ul>
+<li><code>cargo check --workspace --all-targets --locked</code>: pass.</li>
+<li><code>cargo clippy --workspace --all-targets --locked -- -D warnings</code>: pass.</li>
+<li><code>cargo test -p scriberig --bin srig</code>: 30/30 pass.</li>
+<li><code>cargo test -p scriberig-protocol --lib</code>: 7/7 pass.</li>
+<li>Plan unit/integration tests, protocol fixture, and bootstrap fixture pass.</li>
+</ul>
+<p>Still failing in the full workspace run (not marked complete):</p>
+<ul>
+<li>The entire PTY family: <code>tui_pty</code>, <code>tui_pty_golden_agent</code>, and the
+  self-hosting PTY tests. Their screenshots start on the Overview/Inspector
+  surface instead of the expected Conversation composer; this is a terminal
+  product acceptance regression, not just fixture drift.</li>
+<li><code>scriberig-agent-runtime</code> coordinator worker-context expectations
+  (<code>profile:alpha</code>, round count) and one scheduler case.</li>
+<li><code>scriberig-app</code> session/plan thinking-level and failed-child activity
+  expectations.</li>
+<li><code>scriberig-server</code> model-selection/agent-session expectations.</li>
+<li><code>scriberig-tui</code> library reducer tests (thinking request, prompt visibility,
+  paste sanitation, palette activation, commit effects).</li>
+</ul>
+<p>These failures must be resolved by product-behavior fixes or explicitly
+reconciled fixtures before §9, §11, §12, §15, and §16 can be checked. The
+migration is not complete and no percentage is claimed.</p>
+<h3 id="181-round-1-follow-up-fixes-and-remaining-terminal-blocker">18.1 Round-1 follow-up fixes and remaining terminal blocker<a class="headerlink" href="#181-round-1-follow-up-fixes-and-remaining-terminal-blocker" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The startup inspect path now carries <code>switch_view: false</code>; a project's initial
+  entity is inspected without forcing the primary view to Overview. Explicit
+  <code>/inspect</code>, explorer activation, history, find, diff, and command paths still
+  request the Overview view. <code>scriberig-tui</code> lib tests remain at 183 passed / 8
+  failed after this change.</li>
+<li>Paste handling now escapes terminal control characters before insertion into
+  any composer or input overlay (<code>state.rs::sanitize_paste</code>). This closes the
+  raw-escape paste path.</li>
+<li>A representative golden PTY run now reaches the Conversation view, but the
+  typed <code>/explorer</code> arrives as <code>/eexxpplloorreerr</code> and stale scenario output is
+  visible. The doubling is consistent with the Windows ConPTY line discipline
+  echoing input because <code>rpi-tui</code> <code>ProcessTerminal::enter_raw_mode</code> ignores a
+  failed crossterm raw-mode request. That is an upstream terminal-lifecycle gap,
+  not a Scriberig shell defect; fixing it requires a reviewed upstream terminal
+  raw-mode/console-mode change, not a local terminal owner.</li>
+<li>Remaining non-PTY blockers are the same categories listed above: TUI reducer
+  expectations, app/server thinking/selection expectations, and agent-runtime
+  coordinator context/round expectations.</li>
+</ul>
+<h3 id="182-round-23-status-non-pty-suites-now-green">18.2 Round-2/3 status: non-PTY suites now green<a class="headerlink" href="#182-round-23-status-non-pty-suites-now-green" title="Permanent link">&para;</a></h3>
+<p>The later reconciliation pass updated stale expectations to current upstream
+semantics and fixed the remaining reducer/runtime defects:</p>
+<ul>
+<li>TUI reducer expectations now follow upstream validation and selector
+  ownership: unsupported thinking levels are delegated upstream, the prompt and
+  tool-output toggles are driven by stable palette control IDs, confirmed
+  commits require the reviewed candidate snapshot, <code>/model</code> and <code>/thinking</code> are
+  intercepted by the runtime and routed to upstream <code>OpenControl</code> selectors
+  instead of local model-library reads, and <code>/assign</code> prepares the plan target
+  consumed by the upstream selector.</li>
+<li>Plan assignment now defaults to the model's first advertised thinking level
+  when the caller does not choose one.</li>
+<li>Initial model selection now chooses an explicitly mapped supported thinking
+  level (or Medium/first supported) instead of leaving thinking empty.</li>
+<li>Failed child completion now records the durable <code>BranchResult</code> activity, not
+  only the abandoned branch result.</li>
+<li>Paste input escapes terminal control characters before every composer path.</li>
+<li>Startup auto-inspection no longer forces Overview; Conversation remains the
+  initial product surface.</li>
+</ul>
+<p>Verified after those changes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>cargo test --workspace --exclude scriberig --locked --no-fail-fast -j 1   pass
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>cargo test -p scriberig --bin srig                                    30/30 pass
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>cargo test -p scriberig-tui --lib                                    191/191 pass
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>cargo test -p scriberig-app --test session_runtime                    17/17 pass
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>cargo test -p scriberig-server --test agent_session                  11/11 pass
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>cargo test -p scriberig-server --test agent_console_concurrency        1/1 pass
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>cargo test -p scriberig-protocol --lib                                 7/7 pass
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>cargo test -p scriberig-agent-runtime --test coordinator               2/2 pass
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>cargo test -p scriberig-agent-runtime --test scheduler                 7/7 pass
+</code></pre></div>
+<p>Workspace check, workspace clippy with <code>-D warnings</code>, formatting, repository
+lint, web formatting, web typecheck, and the full <code>pnpm --dir web test</code> suite
+pass. A repeat of
+<code>cargo test --workspace --exclude scriberig --locked --no-fail-fast</code> after the
+app/server fixes also passes.</p>
+<p>The terminal input duplication was fixed upstream: controlled-fork commit
+<code>79673db</code> makes <code>rpi-tui</code>'s <code>ProcessTerminal</code> reader ignore ordinary
+<code>KeyEventKind::Release</code> events, and <code>ebcf8d5</code> preserves Enter release events so
+ConPTY submissions are not dropped. ScribeRig now pins <code>ebcf8d5</code>. The footer
+component is invalidated each render so status changes are not served from a
+stale frame, and its key hints are truncated when a status row is present so the
+status is not pushed past the terminal width. The PTY harness now answers split
+<code>ESC[6n</code> cursor-position queries and sends input byte-by-byte for reliable
+delivery. Golden PTY 01/02, project-context startup, and resize pass. The
+remaining PTY failures are stale test expectations for the pre-migration shell
+labels and explorer workflow (<code>Message [ACTIVE]</code>, <code>scriberig ·</code>,
+<code>Conversation [ACTIVE]</code>, root-only explorer rows) plus self-hosting scenario
+timing; they are test/acceptance modernization work, not model/runtime
+delegation defects. Instrumentation confirmed <code>ComposerInput::Submit</code> and
+slash-command dispatch are correct; the PTY harness intermittently delivers a
+partial command because it writes the whole burst before the upstream reader
+consumes it. §9 visible product acceptance and the final §15/§16 gates remain
+open.</p>
 
 
 

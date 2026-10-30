@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["StyleRef"],"struct":["StyleValue"]};
+window.SIDEBAR_ITEMS = {"enum":["StyleRef","StyleResolutionError"],"struct":["ResolvedStyle","StyleSchemaRef","StyleValue"]};

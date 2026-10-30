@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["PlanSemanticError"],"struct":["PlanSemanticAttempt","PlanSemanticHistory","PlanSemanticNodeRef","PlanSemanticRevision","PlanSemanticSnapshot"]};

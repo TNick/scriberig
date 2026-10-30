@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["path_list_is_nonempty","validate_isolated_plugin_configuration"]};

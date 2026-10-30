@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["validate_plan_provider"]};
+window.SIDEBAR_ITEMS = {"mod":["completion","summary_activity","validation"]};

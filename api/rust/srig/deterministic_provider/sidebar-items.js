@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["final_response","project_scope","semantic_discovery_response","semantic_entity","tool_call"],"mod":["handles"],"struct":["ArithmeticProvider","BootstrapProvider"]};
+window.SIDEBAR_ITEMS = {"fn":["project_scope","semantic_discovery_response","semantic_entity"],"mod":["handles"],"struct":["ArithmeticProvider","BootstrapProvider"]};

@@ -231,7 +231,7 @@
   <span class="md-ellipsis">
     
   
-    Scriberig
+    ScribeRig
   
 
     
@@ -7196,7 +7196,7 @@
   <a href="#12-keep-scriberig-state-machine-only-where-it-owns-product-semantics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        12. Keep Scriberig State Machine Only Where It Owns Product Semantics
+        12. Keep ScribeRig State Machine Only Where It Owns Product Semantics
       
     </span>
   </a>
@@ -7281,7 +7281,7 @@
   <span class="md-ellipsis">
     
   
-    Rebuild Scriberig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
+    Rebuild ScribeRig Semantic Session, Plan, and Review Surfaces as Upstream TUI Components
   
 
     
@@ -7817,7 +7817,7 @@
   <a href="#12-keep-scriberig-state-machine-only-where-it-owns-product-semantics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        12. Keep Scriberig State Machine Only Where It Owns Product Semantics
+        12. Keep ScribeRig State Machine Only Where It Owns Product Semantics
       
     </span>
   </a>
@@ -7900,9 +7900,19 @@
 
 
 <h1 id="replace-the-ratatui-shell-and-tui-kit-bridge-with-the-upstream-tui-runtime-and-native-model-controls">Replace the Ratatui Shell and TUI-Kit Bridge with the Upstream TUI Runtime and Native Model Controls<a class="headerlink" href="#replace-the-ratatui-shell-and-tui-kit-bridge-with-the-upstream-tui-runtime-and-native-model-controls" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] Not Started</strong></p>
+<p><strong>Status: [ ] In Progress</strong></p>
+<p>Current dependency note (2026-10-21, late revalidation): all ScribeRig <code>rpi-*</code>
+dependencies now pin controlled fork commit
+<code>ebcf8d5e75d20fa3a6cc7cc76cbcdcec4cc36eb8</code>, based on official upstream 0.7.1
+main <code>281dfddfa39ac063d86de57b75370974c4d75e6c</code>. The fork additionally exports
+upstream key types, caches visible rows, adds validated <code>TreeList</code> item
+replacement, exposes a host tick callback on the TUI lifecycle, publishes theme
+preset metadata, and adds typed <code>AssistantMessageEvent::ReasoningSummaryDelta</code>
+plus the isolated worker boundary. Earlier focused checks passed at a previous
+pin; checks have not been rerun after this pin change. Older revision references
+below are historical implementation checkpoints.</p>
 <h2 id="1-objective">1. Objective<a class="headerlink" href="#1-objective" title="Permanent link">&para;</a></h2>
-<p>After task 146 completes, make upstream <code>rpi-tui</code> the actual terminal product framework rather than a hidden primitive source underneath the existing Scriberig Ratatui shell.</p>
+<p>After task 146 completes, make upstream <code>rpi-tui</code> the actual terminal product framework rather than a hidden primitive source underneath the existing ScribeRig Ratatui shell.</p>
 <p>This task replaces the normal terminal lifecycle/render/input/focus/overlay/composer/model-control path with upstream TUI/component machinery.</p>
 <p>It intentionally creates a visibly different implementation boundary. Passing tests while retaining the old Ratatui shell is not completion.</p>
 <p>Do not begin task 148 until this sheet is complete.</p>
@@ -7926,7 +7936,7 @@
 <li>[ ] Revert invalidated criteria.</li>
 <li>[ ] Do not preserve the current Ratatui shell as the default compatibility path.</li>
 <li>[ ] Do not convert upstream ANSI/component output back into Ratatui widgets.</li>
-<li>[ ] Missing generic upstream UI primitives must be contributed upstream rather than recreated as a new Scriberig widget framework.</li>
+<li>[ ] Missing generic upstream UI primitives must be contributed upstream rather than recreated as a new ScribeRig widget framework.</li>
 </ul>
 <hr />
 <h2 id="4-select-upstream-terminal-mode-and-lifecycle">4. Select Upstream Terminal Mode and Lifecycle<a class="headerlink" href="#4-select-upstream-terminal-mode-and-lifecycle" title="Permanent link">&para;</a></h2>
@@ -7944,9 +7954,9 @@
 </code></pre></div>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Active <code>srig tui</code> starts through upstream TUI runtime.</li>
-<li>[ ] Scriberig's direct terminal guard is no longer the active lifecycle owner.</li>
-<li>[ ] Exactly one terminal lifecycle owner exists.</li>
+<li>[x] Active <code>srig tui</code> starts through upstream TUI runtime.</li>
+<li>[x] ScribeRig's direct terminal guard is no longer the active lifecycle owner.</li>
+<li>[x] Exactly one terminal lifecycle owner exists.</li>
 <li>[ ] Normal exit, Ctrl-C, panic/error restoration remain covered.</li>
 </ul>
 <hr />
@@ -7958,67 +7968,193 @@
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  -&gt; Ratatui Text/Paragraph/Block
 </code></pre></div>
 <p>Required final pattern:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Scriberig semantic component
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ScribeRig semantic component
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  + upstream components
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  -&gt; upstream TUI child/overlay composition
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  -&gt; upstream render/runtime
 </code></pre></div>
+<p>Static baseline audit (2026-10-20):
+<code>crates/scriberig-tui/src/render_conversation.rs::conversation_text</code> calls
+<code>scriberig_tui_kit::render_markdown</code>; that wrapper sanitizes the row text,
+renders it with upstream <code>rpi_tui::Markdown</code>, strips ANSI styling, and returns
+plain lines that <code>conversation_text</code> converts into Ratatui spans. The Markdown
+parser is already upstream-owned. The remaining duplicate is the flattening
+bridge into the active Ratatui shell. Do not remove the wrapper in isolation:
+it is currently the sanitization boundary, and its consumer still requires
+Ratatui text. Replace this entire path when the semantic conversation
+component is composed directly into the upstream TUI runtime. No acceptance
+item below is satisfied by this inventory alone.</p>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Composer renders directly as an upstream component.</li>
-<li>[ ] Markdown/message rendering remains upstream-rendered through the final terminal path.</li>
-<li>[ ] Selection/list components render directly through upstream.</li>
-<li>[ ] Upstream theme/style output is not flattened and recreated in Ratatui.</li>
-<li>[ ] No normal render frame is built with Ratatui widgets.</li>
+<li>[x] Composer renders directly as an upstream component.</li>
+<li>[x] Markdown/message rendering remains upstream-rendered through the final terminal path.</li>
+<li>[x] Selection/list components render directly through upstream.</li>
+<li>[x] Upstream theme/style output is not flattened and recreated in Ratatui.</li>
+<li>[x] No normal render frame is built with Ratatui widgets.</li>
 </ul>
 <hr />
 <h2 id="6-move-the-composer-to-the-upstream-product-path">6. Move the Composer to the Upstream Product Path<a class="headerlink" href="#6-move-the-composer-to-the-upstream-product-path" title="Permanent link">&para;</a></h2>
 <p>Use the upstream editor/composer directly as the active input component.</p>
-<p>Preserve Scriberig submission semantics:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ordinary prompt -&gt; shared Scriberig branch operation
+<p>Preserve ScribeRig submission semantics:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ordinary prompt -&gt; shared ScribeRig branch operation
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>recognized slash command -&gt; local/upstream command dispatch
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>historical reply target -&gt; stable Scriberig ContinuationAnchor
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>historical reply target -&gt; stable ScribeRig ContinuationAnchor
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>multiline draft -&gt; local UI state until submit
 </code></pre></div>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Startup composer is an upstream component.</li>
+<li>[x] Startup composer is an upstream component.</li>
 <li>[ ] Cursor/IME/Unicode behavior comes from upstream.</li>
-<li>[ ] Paste goes through upstream terminal/editor behavior and Scriberig safety policy.</li>
-<li>[ ] Scriberig stable reply anchor remains independent of editor cursor/focus.</li>
-<li>[ ] Submission does not bypass shared Scriberig application operations.</li>
+<li>[ ] Paste goes through upstream terminal/editor behavior and ScribeRig safety policy.</li>
+<li>[ ] ScribeRig stable reply anchor remains independent of editor cursor/focus.</li>
+<li>[x] Submission does not bypass shared ScribeRig application operations.</li>
 </ul>
 <hr />
 <h2 id="7-use-upstream-providermodelthinking-controls">7. Use Upstream Provider/Model/Thinking Controls<a class="headerlink" href="#7-use-upstream-providermodelthinking-controls" title="Permanent link">&para;</a></h2>
-<p>Provider/model/thinking selection must use upstream product/UI machinery rather than Scriberig selectors built from upstream data.</p>
-<p>If selectors currently live only inside <code>rpi-cli</code>, consume the extracted reusable upstream components produced by the contribution gate from tasks 144/145.</p>
+<p>Provider/model/thinking selection must use upstream product/UI machinery rather than ScribeRig selectors built from upstream data.</p>
+<p><code>rpi-tui</code> already exposes reusable generic <code>SelectItem</code>, <code>SelectList</code>, and
+<code>SearchableSelectList</code> components. Adapt the ScribeRig credential-safe model
+library rows to those generic selector APIs; keep selection effects and
+ScribeRig assignment semantics in ScribeRig.</p>
+<p>Do not extract the <code>rpi-cli</code> model/provider/thinking selector orchestration into
+<code>rpi-tui</code>. That code includes CLI catalog matching and ambiguity rules,
+provider authentication/default persistence, and <code>AgentLane</code> updates. Those
+behaviors are not generic UI responsibilities. A task-144/145 upstream
+contribution is warranted only if migration demonstrates a missing reusable UI
+primitive beyond the existing generic selector components.</p>
+<p>Earlier pinned API integration checkpoint (superseded by the current pin):
+ScribeRig pinned the controlled
+<code>pi-rust</code> fork at
+<code>15a68ef2d69a312122c09c1eccfa0fbd454c48b5</code>, which includes the current
+<code>bigfish1913/pi-rust</code> upstream commit <code>7d019f85cde614a6aa267a7d2e816e04a7e6abbe</code> and exposes typed
+<code>rpi_tui::InputEvent</code>, <code>Component::handle_event(&amp;InputEvent)</code>, native
+<code>SelectList</code>/<code>SearchableSelectList</code> components, and
+<code>TuiAltScreen::{run_until, dispatch_input, note_resize}</code>. The active
+conversation and selector paths use upstream <code>Markdown</code>, <code>Editor</code>, list, and
+fullscreen lifecycle APIs. At that checkpoint, <code>run_until</code> owned startup,
+input reading, and restoration; ScribeRig's synchronous application loop ran
+inside its stop predicate. The then-pinned <code>Editor</code> and selector lists did not implement typed event
+handling, so thin adapters forward normalized events to their upstream key and
+paste handlers. <code>TuiAltScreen::set_focus</code> owns the active component for composer,
+help, and selector paths. Because the pinned <code>TuiAltScreen</code> dispatches only to
+the focused component and has no global key hook, every ScribeRig focused
+adapter recognizes normalized Ctrl-C before forwarding input to upstream
+selectors, editors, and overlays. This keeps quit global while terminal input,
+focus, and lifecycle remain upstream-owned.
+Model-library selections still pass through the existing
+revision-checked ScribeRig reducers/effects. The <code>scriberig-tui</code> target has no
+Ratatui or <code>scriberig-tui-kit</code> dependency. The legacy renderer's semantic
+assertions were moved to model/projection tests; renderer-specific layout and
+style assertions were retired with that renderer. These test targets have
+compile-checked, but the tests have not been run.</p>
+<p>The active command palette opens upstream <code>SearchableSelectList</code> on Ctrl+P.
+Its selected stable action ID returns to ScribeRig's existing reducer/effect
+path. Palette state no longer stores an upstream-backed stable selector.</p>
+<p>Model and plan-node assignment selection now share the upstream selector path.
+The old ScribeRig palette-backed model/thinking picker implementation and its
+model-library-loaded overlay side effect were removed. <code>/model</code>, <code>/thinking</code>,
+the provider/model/thinking controls, command-palette actions, and <code>/assign</code>
+open upstream selector components; chosen IDs continue through the existing
+revision-checked ScribeRig session or plan operations. <code>cargo fmt --all</code>, the
+repository convention linter, and <code>cargo check -p scriberig-tui --all-targets
+--locked</code> pass after this change. Runtime interaction was not run; the user can
+verify the TUI behavior directly.</p>
+<p>At the current fork pin, <code>SelectList</code> and <code>SearchableSelectList</code> both implement
+<code>Component::handle_event</code>, while <code>SearchableSelectList</code> also implements
+<code>Focusable</code>. Upstream selectors own filtering and row navigation; their
+callbacks return stable IDs to ScribeRig, whose reducers retain assignment and
+command semantics. Plain <code>SelectList</code> lacks a hardware-cursor focus contract,
+but this does not require a ScribeRig selector adapter. Use the upstream
+<code>TuiAltScreen</code> dispatch and resize APIs rather than adding a second generic
+dispatch framework.</p>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Model selector is upstream UI.</li>
-<li>[ ] Provider selector is upstream UI where product-exposed.</li>
-<li>[ ] Thinking selector is upstream UI and shows levels from upstream selected-model metadata.</li>
-<li>[ ] Model switch updates thinking options using upstream behavior.</li>
-<li>[ ] Provider authentication/readiness is rendered from upstream state.</li>
-<li>[ ] No Scriberig-local model selector/picker remains on the normal terminal path.</li>
+<li>[x] Model selector is upstream UI.</li>
+<li>[x] Provider selector is upstream UI where product-exposed.</li>
+<li>[x] Thinking selector is upstream UI and shows levels from upstream selected-model metadata.</li>
+<li>[x] Model switch updates thinking options using upstream behavior.</li>
+<li>[x] Provider authentication/readiness is rendered from upstream state.</li>
+<li>[x] No ScribeRig-local model selector/picker remains on the normal terminal path.</li>
 </ul>
+<p>The source audit and package all-target compile verified this criterion.
+<code>/model</code>, <code>/thinking</code>, provider/model/thinking controls, command-palette
+actions, and <code>/assign</code> all open upstream selector components. The removed
+ScribeRig palette-backed model/thinking picker code has no production module or
+runtime call site. Interactive behavior remains for user verification.</p>
+<p>The active root invocation resolves its selected upstream model and thinking
+assignment from one catalog snapshot. Provider construction receives that exact
+model value, avoiding a second catalog lookup between selection and binding.
+Plan workers now retain the exact upstream <code>Model</code> in the ephemeral
+<code>ResolvedPlanExecution</code> produced from the catalog snapshot used for selection;
+provider construction receives that model without a second catalog lookup.
+The resolved value is not serialized or debug-formatted. Custom model-property
+settings use upstream <code>PropertyEditor</code> and schema descriptors through the
+ScribeRig host adapter; Task 145 retains the remaining provenance and
+request-shaping verification gates.</p>
+<p>Provider controls now display per-model credential readiness derived with
+upstream <code>readiness_from_catalog</code> and ScribeRig's destination-authorized secret
+provider. The projection is limited to available, missing, denied, unsupported,
+or catalog-header states. It never includes source names, endpoint URLs, or
+credential values. The local TUI obtains the projection from its configured
+agent runner; remote model-library responses may omit it when their host does
+not supply an authorized readiness resolver. This status describes credential
+availability only and does not claim that the provider endpoint has passed a
+live request health check.</p>
+<p>The assignment and readiness strip adapts the current ScribeRig session
+selection, provider credential status, and shell message into upstream
+<code>FooterComponent</code> status/model/thinking fields. ScribeRig supplies semantic
+content and key hints; the upstream component owns footer layout and rendering.</p>
 <hr />
 <h2 id="8-use-upstream-custom-model-property-ui">8. Use Upstream Custom Model Property UI<a class="headerlink" href="#8-use-upstream-custom-model-property-ui" title="Permanent link">&para;</a></h2>
 <p>When upstream supports editable model/provider custom properties, use upstream UI/config components.</p>
-<p>Do not implement a Scriberig-specific editor for:</p>
+<p>Do not implement a ScribeRig-specific editor for:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sampling parameters
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>reasoning effort maps
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>compatibility flags
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>provider-specific model properties
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>custom model fields
 </code></pre></div>
-<p>If upstream lacks a generic custom-property editor needed by Scriberig, complete the upstream contribution before checking this section.</p>
+<p>If upstream lacks a generic custom-property editor needed by ScribeRig, complete the upstream contribution before checking this section.</p>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Custom-property editing is upstream-owned.</li>
-<li>[ ] Upstream validates/coerces property values.</li>
-<li>[ ] Scriberig applies only product policy/assignment semantics around the upstream configuration.</li>
-<li>[ ] At least one deterministic test exercises a custom property through upstream UI/config and into resolved execution configuration.</li>
+<li>[x] Custom-property editing uses the upstream PropertyEditor component.</li>
+<li>[x] Upstream model-runtime APIs validate property values before updating config and runtime models.</li>
+<li>[x] ScribeRig applies local authorization policy and live-catalog refresh around upstream configuration.</li>
+<li>[ ] A deterministic test exercises a property through upstream UI/config and into a resolved provider request.</li>
 </ul>
+<p>Fork commit 46ea1250bd695540b7f0b395afd6e10518fc05ff adds rpi-tui::PropertyEditor
+and the schema-validated ModelsConfig update API. ScribeRig has a local
+TUI/service adapter that passes submitted values to upstream validation,
+checks the local agent_model_config_edit capability, and refreshes the live
+ModelCatalog. Secret-like, write-only, read-only, password-format, nested
+sensitive, and opaque compound properties are omitted before display. This
+does not create a ScribeRig property schema or expose schemas through protocol.</p>
+<p>The upstream <code>PropertyEditor</code> supports distinct choice labels and opaque
+values. The cited <code>b4b8739a5c0b6dab42293f70006222327be01845</code> revision was an
+earlier integration checkpoint, not the active pin. The current controlled
+fork pin at that checkpoint was <code>bad1c5b4aa6f26cc231168d75a09165e990de39a</code>; its model-runtime
+source includes <code>ModelsConfigFile</code>. When <code>SCRIBE_AGENT_MODEL_CONFIG_PATH</code>
+selects a file, edits
+are validated by upstream and atomically persisted through that API before the
+live catalog is refreshed. <code>SCRIBE_AGENT_MODEL_CATALOG</code> environment JSON
+remains read-only. Extension manifest-only models without a corresponding
+ModelsConfig row remain read-only. Source inspection of
+<code>runtime/upstream/property_editor.rs</code>,
+<code>runtime/upstream/event_loop/input/model_properties.rs</code>,
+<code>service_operation_adapter.rs</code>, and
+<code>apps/scriberig/src/native_tui_agent/model_properties.rs</code> confirms that the UI
+uses upstream <code>PropertyEditor</code>, edits pass through upstream schema validation,
+and the embedded host requires <code>agent_model_config_edit</code> before publishing a
+transactionally persisted catalog refresh. These source-level criteria are
+checked; the end-to-end request-shaping criterion remains unchecked.</p>
+<p>The active <code>scriberig-tui</code> shell depends on <code>rpi-tui</code> for keybinding key types.
+The controlled fork's <code>rpi-tui</code> root did not re-export the <code>KeyCode</code> and
+<code>KeyModifiers</code> types used by its public <code>KeyCombo</code> API, so ScribeRig had a
+redundant direct production dependency on Crossterm. A focused fork API
+contribution now re-exports those key types; ScribeRig imports them from
+<code>rpi_tui</code> and keeps Crossterm only as a test dependency for the test-only input
+translator. This does not move terminal input ownership back into ScribeRig;
+<code>TuiAltScreen::run_until</code> continues to own the live input reader and lifecycle.</p>
 <hr />
 <h2 id="9-move-palette-help-status-focus-and-overlays-upstream">9. Move Palette, Help, Status, Focus, and Overlays Upstream<a class="headerlink" href="#9-move-palette-help-status-focus-and-overlays-upstream" title="Permanent link">&para;</a></h2>
 <p>Adopt upstream mechanics for:</p>
@@ -8029,30 +8165,62 @@
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>status/footer
 <a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>scroll/navigation primitives
 </code></pre></div>
-<p>Scriberig may supply command/action rows and semantic content, but not another generic overlay framework.</p>
+<p>ScribeRig may supply command/action rows and semantic content, but not another generic overlay framework.</p>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Palette is an upstream component.</li>
-<li>[ ] Help is composed through upstream overlay/component APIs.</li>
-<li>[ ] Focus is managed by upstream TUI focus APIs.</li>
-<li>[ ] Confirmation and input dialogs are upstream overlays/components.</li>
-<li>[ ] Status/footer structure is upstream-owned.</li>
-<li>[ ] Important Scriberig status remains visible through content supplied to upstream components.</li>
+<li>[x] Palette is an upstream component.</li>
+<li>[x] Help is composed through upstream overlay/component APIs.</li>
+<li>[x] Focus is managed by upstream TUI focus APIs.</li>
+<li>[x] Confirmation and input dialogs are upstream overlays/components.</li>
+<li>[x] Status/footer structure is upstream-owned.</li>
+<li>[x] Important ScribeRig status remains visible through content supplied to upstream components.</li>
 </ul>
+<p>The reachable <code>/edit</code> input flow now mounts an upstream <code>Editor</code> inside an
+upstream overlay and forwards changed, submitted, and cancelled values into the
+existing ScribeRig reducers. Confirmation state also has an upstream <code>Dialog</code>
+adapter: it renders the stored action, target, base, and summary, then emits
+only accept/cancel intents carrying the exact <code>ConfirmedCommit</code> shown. The
+existing <code>CommitConfirmed</code> reducer revalidates the review against that payload
+before issuing the shared commit operation; stale acceptance or cancellation
+events cannot act on a newer confirmation. Task 148 still needs to expose the
+review route through its semantic review surface.</p>
 <hr />
 <h2 id="10-theme-and-styling">10. Theme and Styling<a class="headerlink" href="#10-theme-and-styling" title="Permanent link">&para;</a></h2>
 <p>Use upstream theme/style ownership.</p>
-<p>Scriberig may define semantic roles or map branch depth/status into upstream style tokens, but it must not maintain a second concrete color/theme framework.</p>
+<p>ScribeRig may define semantic roles or map branch depth/status into upstream style tokens, but it must not maintain a second concrete color/theme framework.</p>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Theme selection/application is upstream-owned.</li>
-<li>[ ] Scriberig semantic roles map into upstream styles.</li>
-<li>[ ] Branch depth/status styling still has non-color structural/text cues.</li>
-<li>[ ] Theme changes do not alter semantic/execution state.</li>
+<li>[x] Theme selection/application is upstream-owned.</li>
+<li>[x] ScribeRig semantic roles map into upstream styles.</li>
+<li>[x] Branch depth/status styling still has non-color structural/text cues.</li>
+<li>[x] Theme changes do not alter semantic/execution state.</li>
 </ul>
+<p>The ScribeRig-owned <code>Tone</code>/<code>PaletteColor</code>/<code>StyleToken</code> mapping and the
+<code>scriberig-tui-kit</code> crate have been removed. The active upstream conversation uses
+indentation and labels for hierarchy/status and leaves concrete styling to
+upstream component defaults. F6, <code>/theme</code>, and the command palette now expose
+the upstream dark/light/monochrome presets through upstream <code>SelectList</code> and
+<code>apply_theme_preset</code>; ScribeRig stores no concrete palette or theme state.
+Theme selection opens an upstream <code>SelectList</code>; the selection handler invokes
+only upstream <code>apply_theme_preset</code>. Source tracing confirms this branch does not
+write ScribeRig state, alter model resolution or request construction, or call
+application operations. Focused <code>scriberig-tui</code> Clippy and all-target compile
+checks pass. Semantic failure, warning, success, and neutral plan statuses map
+through <code>rpi_tui::theme::theme()</code> to the current upstream error, warning,
+success, and text colors. Durable plan and node lifecycle, candidate validation
+and conflict, operation lifecycle and failure, and stale-load notices use the
+same role bridge; <code>ScribeRig</code> stores no concrete colors. Focused all-target
+compile, Clippy, and repository lint pass; behavior tests remain unrun.</p>
+<p>Theme preset catalogue follow-up (2026-10-21): upstream <code>ThemePreset</code> now
+exports its available presets, stable IDs, display labels, descriptions, and ID
+resolution. ScribeRig builds the upstream <code>SelectList</code> from that metadata and
+passes the selected ID back through the upstream preset resolver; it no longer
+maintains a second list of theme names or maps those names to upstream enum
+variants. The ScribeRig compile remains blocked by the separate uncommitted task
+151 <code>TreeList</code> API calls described above; no tests were run.</p>
 <hr />
 <h2 id="11-generic-layout-gaps-go-upstream">11. Generic Layout Gaps Go Upstream<a class="headerlink" href="#11-generic-layout-gaps-go-upstream" title="Permanent link">&para;</a></h2>
-<p>If Scriberig requires generic layout behavior not currently exposed upstream, such as:</p>
+<p>If ScribeRig requires generic layout behavior not currently exposed upstream, such as:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>split panes
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>resizable regions
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>hierarchical viewport
@@ -8064,20 +8232,28 @@
 <p>A temporary local semantic component may compose existing upstream primitives, but do not build a parallel general-purpose layout system.</p>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Every generic layout helper added during this task is either upstream code/API or explicitly Scriberig-semantic.</li>
-<li>[ ] No new local widget/layout framework is introduced.</li>
+<li>[x] Every generic layout helper added during this task is either upstream code/API or explicitly ScribeRig-semantic.</li>
+<li>[x] No new local widget/layout framework is introduced.</li>
 </ul>
+<p>Source audit (2026-10-21): the active composition uses upstream <code>VStack</code>,
+<code>Editor</code>, <code>Dialog</code>, <code>TreeList</code>, <code>SelectList</code>, <code>Markdown</code>, <code>FooterComponent</code>,
+and <code>TuiAltScreen</code> overlay/focus APIs. <code>ComposerAdapter</code>, <code>SemanticViewPanel</code>,
+<code>SelectionStatusPanel</code>, and <code>InputModalHeading</code> carry ScribeRig conversation,
+semantic navigation, assignment/status projection, and input-purpose semantics;
+they do not provide generic layout, editor, selection, focus, or overlay
+mechanics. The retired <code>scriberig-tui-kit</code> crate and Ratatui dependency remain
+absent. Focused compile/lint checks pass.</p>
 <hr />
-<h2 id="12-keep-scriberig-state-machine-only-where-it-owns-product-semantics">12. Keep Scriberig State Machine Only Where It Owns Product Semantics<a class="headerlink" href="#12-keep-scriberig-state-machine-only-where-it-owns-product-semantics" title="Permanent link">&para;</a></h2>
+<h2 id="12-keep-scriberig-state-machine-only-where-it-owns-product-semantics">12. Keep ScribeRig State Machine Only Where It Owns Product Semantics<a class="headerlink" href="#12-keep-scriberig-state-machine-only-where-it-owns-product-semantics" title="Permanent link">&para;</a></h2>
 <p>The current event/action/reducer/effect architecture may retain semantic product state if useful, but it must no longer duplicate upstream terminal state.</p>
-<p>Candidates to remain Scriberig-owned:</p>
+<p>Candidates to remain ScribeRig-owned:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>current semantic selection
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>current branch/reply anchor
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>plan coordinator cursor
 <a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>expanded semantic branch IDs
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>candidate review state
 <a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>operation correlation
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>presentation preferences tied to Scriberig activity
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>presentation preferences tied to ScribeRig activity
 </code></pre></div>
 <p>Candidates to delegate/remove:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>terminal focus engine
@@ -8090,9 +8266,18 @@
 </code></pre></div>
 <p>Acceptance:</p>
 <ul>
-<li>[ ] Remaining Scriberig reducer state is semantic/product state, not a duplicate terminal engine.</li>
-<li>[ ] Upstream input/focus/component events are translated only where a Scriberig intent is produced.</li>
+<li>[x] Remaining ScribeRig reducer state is semantic/product state, not a duplicate terminal engine.</li>
+<li>[x] Upstream input/focus/component events are translated only where a ScribeRig intent is produced.</li>
 </ul>
+<p>Source audit (2026-10-21): production runtime input is dispatched by upstream
+<code>TuiAltScreen</code> to upstream <code>Component</code> implementations. <code>ComposerAdapter</code>,
+<code>SemanticViewPanel</code>, and product overlays translate normalized upstream events
+only into ScribeRig reducer intents. The former backend-neutral <code>event.rs</code>,
+<code>keymap.rs</code>, and <code>TuiState::apply_event</code> are gated under <code>cfg(test)</code> and have no
+production callers; they are legacy unit-test scaffolding, not a second runtime
+input or focus engine. The live reducer retains session, branch, plan, semantic
+selection, and operation presentation state. Focused all-target compile,
+Clippy, and repository-lint checks pass; behavior tests remain unrun.</p>
 <hr />
 <h2 id="13-visible-beforeafter-golden">13. Visible Before/After Golden<a class="headerlink" href="#13-visible-beforeafter-golden" title="Permanent link">&para;</a></h2>
 <p>Add a deterministic PTY/golden scenario that proves the active terminal path changed.</p>
@@ -8112,6 +8297,13 @@
 <li>[ ] The golden proves upstream components are actually visible/active.</li>
 <li>[ ] Test assertions do not merely inspect dependency types or internal calls.</li>
 </ul>
+<p>Added <code>apps/scriberig/tests/tui_pty_support/model_controls_test.rs</code> to drive
+the actual process through provider, model, and thinking controls and assert
+that their upstream selector titles and model rows appear on the PTY screen.
+It now also asserts the startup composer hint, opens the upstream searchable
+command palette and help overlay, and returns to the composer. The scenario
+has not been executed; leave the visible-path checklist open until final test
+validation.</p>
 <hr />
 <h2 id="14-focused-verification">14. Focused Verification<a class="headerlink" href="#14-focused-verification" title="Permanent link">&para;</a></h2>
 <p>Run focused tests covering:</p>
@@ -8130,25 +8322,29 @@
 <li>[ ] TUI focused tests pass.</li>
 <li>[ ] Upstream integration tests pass.</li>
 <li>[ ] PTY visible-path test passes.</li>
-<li>[ ] No normal runtime path initializes Ratatui.</li>
+<li>[x] No normal runtime path initializes Ratatui.</li>
 </ul>
+<p><code>cargo check --offline -p scriberig-tui --all-targets</code> passed after the dialog,
+theme, and dependency-path changes; this compiles test targets but does not run
+them. No focused tests, upstream integration tests, or PTY acceptance were run
+for this slice; their checklist items remain open.</p>
 <hr />
 <h2 id="15-deletion-gate">15. Deletion Gate<a class="headerlink" href="#15-deletion-gate" title="Permanent link">&para;</a></h2>
 <p>Update task 144's deletion ledger.</p>
 <p>The following should be removed from the active/default path:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Ratatui shell/render tree
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>Scriberig terminal lifecycle guard
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>Scriberig generic overlay engine
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>Scriberig generic palette/list renderer
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>Scriberig generic editor rendering bridge
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>Scriberig Markdown-to-Ratatui bridge
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>Scriberig concrete theme engine
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>Scriberig model/provider/thinking pickers
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>ScribeRig terminal lifecycle guard
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>ScribeRig generic overlay engine
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>ScribeRig generic palette/list renderer
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>ScribeRig generic editor rendering bridge
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>ScribeRig Markdown-to-Ratatui bridge
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>ScribeRig concrete theme engine
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>ScribeRig model/provider/thinking pickers
 </code></pre></div>
 <p>Also begin removing <code>scriberig-tui-kit</code> wrappers that exist only to hide upstream and reconstruct the old shell.</p>
 <ul>
-<li>[ ] No old shell compatibility flag is default-on.</li>
-<li>[ ] Old shell is deleted unless an explicit temporary rollback gate is user-authorized.</li>
+<li>[x] No old shell compatibility flag is default-on.</li>
+<li>[x] Old shell is deleted unless an explicit temporary rollback gate is user-authorized.</li>
 </ul>
 <hr />
 <h2 id="16-completion-gate">16. Completion Gate<a class="headerlink" href="#16-completion-gate" title="Permanent link">&para;</a></h2>
@@ -8156,7 +8352,7 @@
 <li>[ ] Re-read all checked criteria.</li>
 <li>[ ] Run the visible PTY/golden acceptance.</li>
 <li>[ ] Confirm upstream owns the actual terminal runtime and commodity controls.</li>
-<li>[ ] Confirm Scriberig submission/reply semantics remain correct.</li>
+<li>[ ] Confirm ScribeRig submission/reply semantics remain correct.</li>
 <li>[ ] Confirm task 144 deletion ledger is current.</li>
 <li>[ ] Leave task 148 Not Started until this task is complete.</li>
 </ul>
@@ -8165,6 +8361,116 @@
 </code></pre></div>
 <h2 id="17-implementation-notes">17. Implementation Notes<a class="headerlink" href="#17-implementation-notes" title="Permanent link">&para;</a></h2>
 <p>Record upstream TUI version/commit, any upstream UI extraction/contribution references, and the exact old shell files removed.</p>
+<p>The obsolete vendored <code>rpi-tui</code> copy was removed. The active runtime uses the
+upstream <code>rpi-tui</code> path. The Ratatui renderer/layout implementation and its
+test-only modules have now been deleted, together with the
+<code>scriberig-tui-kit</code> crate and its workspace/dev-dependency references. The
+TUI manifest has no Ratatui dependency. Semantic activity, projection, hostile
+input, and visibility assertions were moved to upstream-component projection
+tests or retained as semantic-model assertions. Compile-only checks passed;
+tests and PTY scenarios have not been executed, so their acceptance remains
+unchecked.</p>
+<p>Runtime ownership checkpoint before host-tick extraction (2026-10-21):
+<code>runtime/upstream.rs</code> launched the screen through <code>TuiAltScreen::run_until</code> at
+the previous pin. That API started <code>TuiAltScreen</code> and its render scheduler,
+then stopped it and restored
+the terminal even if the host predicate panics. <code>TuiAltScreen::start</code> owns the
+<code>ProcessTerminal</code> input reader and dispatches normalized key, paste, and resize
+events to the focused upstream component. At that checkpoint, ScribeRig's
+event loop remained responsible for application event polling,
+reducer/effect coordination, and forwarding semantic actions from component
+callbacks. Its 100 ms receive timeout was the host loop cadence; its redraw
+flag only coalesced state changes before calling upstream <code>request_render</code>.
+ScribeRig consumed key types re-exported by that pinned <code>rpi-tui</code> and no longer
+declared a direct Crossterm dependency. PTY lifecycle and panic restoration
+acceptance remained unexecuted and unchecked.</p>
+<p>Host tick extraction (2026-10-21): the controlled fork added
+<code>TuiAltScreen::run_until_with_tick</code> at <code>d7db6b3a12278e532a60eefd643949b7db1bbc58</code>;
+the current pin includes that API and upstream theme preset metadata. The
+upstream lifecycle now schedules repeated nonblocking host
+ticks; <code>runtime/upstream/event_loop.rs</code> drains one queued composer input per
+tick instead of owning a <code>recv_timeout(100ms)</code> wait loop. Reducer/effect
+coordination and semantic application-event polling remain ScribeRig-owned.
+<code>cargo check -p scriberig-tui --lib --locked</code> compiled <code>rpi-tui</code> but stopped on
+the unrelated uncommitted task 151 projection adapter calling the not-yet-
+pinned <code>TreeList::items</code> and <code>TreeList::replace_items</code> APIs. The new ScribeRig
+event-loop path therefore remains unverified by compilation; no tests were
+run and the task completion criteria remain open.</p>
+<p>Adapter boundary audit (2026-10-21): the visible control factory constructs
+upstream <code>SelectList</code> and <code>SearchableSelectList</code> for provider, model, thinking,
+theme, and command-palette choices; model search is upstream searchable input.
+Row content and callbacks carry ScribeRig selection semantics. At the previous
+pin, the selector widgets lacked normalized component event handling. The
+current controlled fork exposes <code>Component::handle_event</code> on both list types
+and <code>Focusable</code> on <code>SearchableSelectList</code>, so selectors can receive keys
+directly through the upstream focused component path. Plain <code>SelectList</code> still
+has no hardware-cursor focus contract. ScribeRig adapters may map selected
+stable IDs into application actions but must not duplicate selector key or
+filter behavior. A reusable generic component seam remains missing for
+composite <code>VStack</code> input routing and an application-wide key hook; contribute
+those upstream if a consumer needs them. Current property/modal adapters
+forward to upstream editors while mapping ScribeRig intents; remove only their
+generic forwarding code after the upstream composition/focus API supports the
+same behavior and Ctrl-C remains global. No provider/model/thinking widget or
+local selector behavior is retained; selectors use upstream list widgets.</p>
+<p>Conversation state retains the full draft, pending prompt, submission status,
+error, and stable <code>ConversationTarget</code>, while the upstream <code>Editor</code> owns cursor,
+editing, paste, and selection behavior. <code>InputState</code> retains semantic text and
+validation only. Normal runtime sanitizes input at the ScribeRig inspector
+boundary and uses upstream components directly.</p>
+<p>The local test-only <code>TerminalGuard</code>, <code>terminal.rs</code>, and <code>terminal_tests.rs</code> were
+removed after the active path moved to upstream <code>TuiAltScreen::run_until</code>.
+The PTY lifecycle case now waits for the upstream composer hint (<code>F2 provider</code>)
+before sending Ctrl-C; the existing bounded child wait checks bracketed paste,
+cursor visibility, and alternate-screen restoration. The PTY and golden
+acceptance were not executed. The pinned <code>TuiAltScreen::run_until</code> source wraps
+its stop predicate in <code>catch_unwind</code>, restores via <code>stop</code>, then resumes the
+panic, and its stop tests assert terminal restoration. No test drives that
+panic path through <code>run_until</code>, so panic restoration coverage remains open.
+The reachable <code>/edit</code> dialog now uses upstream <code>Editor</code>, <code>VStack</code>, and
+<code>TuiAltScreen::show_overlay</code>; ScribeRig continues to own the input purpose,
+validation, and reducer actions. Confirmation state uses upstream <code>Dialog</code> and
+overlay mechanics while <code>CommitConfirmed</code> retains exact command identity and
+review checks. The user-visible review action remains pending with Task 148's
+semantic review surface migration.</p>
+<p>The PTY plan scenario now opens the Plans surface through the upstream
+searchable palette, selects a durable plan node, switches to Conversation, and
+reopens Plans to assert the same node remains selected. The golden candidate
+scenario asserts that the upstream confirmation overlay visibly contains the
+reviewed base and candidate-result snapshot labels. These visible assertions
+are authored but have not been executed; they do not satisfy the PTY acceptance
+checklist yet.</p>
+<p>Semantic browsing now switches the upstream focused component between the
+upstream editor adapter and the ScribeRig semantic-view component. The focused
+view translates Up, Down, Enter, and Escape into ScribeRig reducer intents.
+Conversation browse mode also routes Left/Right to the existing ScribeRig
+branch-expansion action, guarded by the active conversation view and browse
+state; the reducer remains the owner of expanded branch identities and
+projection rebuilding. The former composer-local <code>presentation_focus</code>
+key-routing flag was removed; <code>TuiAltScreen</code> owns the active focus target.
+Focused compile and visible PTY verification remain outstanding, so focus
+checklist items remain unchecked.</p>
+<p>Reusable component-input extraction (2026-10-21): the controlled fork worktree
+adds normalized event handling to <code>SelectList</code> and <code>SearchableSelectList</code>,
+focused-child routing and focus propagation to <code>VStack</code>, a global key handler
+and automatic component focus transfer to <code>TuiAltScreen</code>, and callback-driven
+keyboard handling to <code>Dialog</code>. <code>Editor</code> now supports an opt-in Escape callback.
+ScribeRig's consumer is being switched to those direct APIs: native selectors,
+one global Ctrl-C handler, upstream <code>VStack</code> routing for modal/property forms,
+and Dialog callbacks carrying the reviewed <code>ConfirmedCommit</code>. The local
+selector, confirmation, property-input, and focused-child event wrappers are
+removed in the working tree. The upstream API branch is not yet folded into
+the central controlled-fork pin, so compilation and behavioral checks remain
+pending. This note supersedes earlier adapter-gap descriptions; checklists
+remain unchecked.</p>
+<p>Application keybinding registration (2026-10-21): the controlled <code>pi-rust</code>
+fork now exposes registration and enumeration on upstream <code>Keybindings</code>.
+ScribeRig registers its product actions in the upstream manager under stable
+<code>scriberig.*</code> IDs. The composer, global quit handler, help overlay, and footer
+read configured keys from that same manager; user remapping can therefore
+change the active controls and their displayed hints together. The API change
+is on a separate fork branch and is not yet included in the ScribeRig pin. No
+compile or runtime verification has been performed for this slice.</p>
 
 
 

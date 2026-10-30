@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["CredentialRef","ModelCapabilities","ModelDescriptor","ModelLibraryResponse","ModelProfile","ThinkingLevelDescriptor"]};
+window.SIDEBAR_ITEMS = {"enum":["ModelInputModality","ProviderCredentialReadiness"],"fn":["model_row_id"],"struct":["ModelCostSnapshot","ModelCostTierSnapshot","ModelDescriptor","ModelLibraryResponse","ModelMetadataSnapshot","ProviderReadiness"]};

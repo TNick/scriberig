@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["KeyCode","TuiEvent"],"fn":["read_event"],"struct":["Key","Modifiers"]};

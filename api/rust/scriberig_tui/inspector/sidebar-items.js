@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["LoadState"],"fn":["presentation_error","sanitize"],"struct":["InspectorModel"]};
+window.SIDEBAR_ITEMS = {"enum":["LoadState"],"fn":["presentation_error","sanitize","sanitize_external_text"],"struct":["InspectorModel"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["PlanScheduler","ScheduleTick","WorkerBatchResult"],"trait":["PlanWorkerExecutor"]};
+window.SIDEBAR_ITEMS = {"struct":["PlanScheduler","PlanWorkerExecutionResult","ScheduleTick","WorkerBatchResult","WorkerModelRequestEvidence","WorkerToolEvidence"],"trait":["PlanWorkerExecutor"]};

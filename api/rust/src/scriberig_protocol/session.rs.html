@@ -5,24 +5,38 @@
 <a href=#5 id=5 data-nosnippet>5</a><span class="attr">#[path = <span class="string">"session/requests.rs"</span>]
 <a href=#6 id=6 data-nosnippet>6</a></span><span class="kw">mod </span>requests;
 <a href=#7 id=7 data-nosnippet>7</a><span class="kw">pub use </span>requests::{
-<a href=#8 id=8 data-nosnippet>8</a>    ModelRequestDetailRequest, ModelRequestDetailResponse, ModelRequestMessageDetail,
-<a href=#9 id=9 data-nosnippet>9</a>    ModelRequestToolDetail, SessionReadRequest, ToolResultDetailRequest, ToolResultDetailResponse,
-<a href=#10 id=10 data-nosnippet>10</a>};
-<a href=#11 id=11 data-nosnippet>11</a><span class="attr">#[path = <span class="string">"session/activity.rs"</span>]
-<a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">mod </span>activity;
-<a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub use </span>activity::{
-<a href=#14 id=14 data-nosnippet>14</a>    SessionActivityItem, SessionBranch, SessionBranchResult, SessionBranchStatus, SessionTurn,
-<a href=#15 id=15 data-nosnippet>15</a>};
-<a href=#16 id=16 data-nosnippet>16</a><span class="attr">#[path = <span class="string">"session/plan.rs"</span>]
-<a href=#17 id=17 data-nosnippet>17</a></span><span class="kw">mod </span>plan;
-<a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub use </span>plan::{
-<a href=#19 id=19 data-nosnippet>19</a>    SessionContinuationAnchor, SessionCoordinatorClaim, SessionExpectedResult,
-<a href=#20 id=20 data-nosnippet>20</a>    SessionModelAssignment, SessionPlan, SessionPlanAction, SessionPlanAssignmentRequest,
-<a href=#21 id=21 data-nosnippet>21</a>    SessionPlanCreateRequest, SessionPlanDependency, SessionPlanLifecycleRequest, SessionPlanNode,
-<a href=#22 id=22 data-nosnippet>22</a>    SessionPlanNodeDraft, SessionPlanNodeReference, SessionPlanNodeStatus,
-<a href=#23 id=23 data-nosnippet>23</a>    SessionPlanReplanRequest, SessionPlanRevision, SessionPlanStatus, SessionWorkerClaim,
-<a href=#24 id=24 data-nosnippet>24</a>};
-<a href=#25 id=25 data-nosnippet>25</a><span class="attr">#[path = <span class="string">"session/execution.rs"</span>]
-<a href=#26 id=26 data-nosnippet>26</a></span><span class="kw">mod </span>execution;
-<a href=#27 id=27 data-nosnippet>27</a><span class="kw">pub use </span>execution::{SessionExecutionChange, SessionExecutionSelection, SessionReadResponse};
+<a href=#8 id=8 data-nosnippet>8</a>    ModelContextRevisionReference, ModelRequestDetailFragment, ModelRequestDetailRequest,
+<a href=#9 id=9 data-nosnippet>9</a>    ModelRequestDetailResponse, ModelRequestMessageDetail, ModelRequestToolDetail,
+<a href=#10 id=10 data-nosnippet>10</a>    SessionReadRequest, ToolResultDetailRequest, ToolResultDetailResponse,
+<a href=#11 id=11 data-nosnippet>11</a>};
+<a href=#12 id=12 data-nosnippet>12</a><span class="attr">#[path = <span class="string">"session/activity.rs"</span>]
+<a href=#13 id=13 data-nosnippet>13</a></span><span class="kw">mod </span>activity;
+<a href=#14 id=14 data-nosnippet>14</a><span class="kw">pub use </span>activity::{
+<a href=#15 id=15 data-nosnippet>15</a>    SessionActivityItem, SessionBranch, SessionBranchResult, SessionBranchStatus, SessionTurn,
+<a href=#16 id=16 data-nosnippet>16</a>};
+<a href=#17 id=17 data-nosnippet>17</a><span class="attr">#[path = <span class="string">"session/plan.rs"</span>]
+<a href=#18 id=18 data-nosnippet>18</a></span><span class="kw">mod </span>plan;
+<a href=#19 id=19 data-nosnippet>19</a><span class="attr">#[path = <span class="string">"session/plan_operations.rs"</span>]
+<a href=#20 id=20 data-nosnippet>20</a></span><span class="kw">mod </span>plan_operations;
+<a href=#21 id=21 data-nosnippet>21</a><span class="attr">#[path = <span class="string">"session/plan_semantics.rs"</span>]
+<a href=#22 id=22 data-nosnippet>22</a></span><span class="kw">mod </span>plan_semantics;
+<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub use </span>plan::{
+<a href=#24 id=24 data-nosnippet>24</a>    SessionContinuationAnchor, SessionCoordinatorClaim, SessionExpectedResult,
+<a href=#25 id=25 data-nosnippet>25</a>    SessionModelAssignment, SessionPlan, SessionPlanAbandonReason, SessionPlanAction,
+<a href=#26 id=26 data-nosnippet>26</a>    SessionPlanAssignmentRequest, SessionPlanCreateRequest, SessionPlanDependency,
+<a href=#27 id=27 data-nosnippet>27</a>    SessionPlanEvidenceAssociation, SessionPlanEvidenceKind, SessionPlanEvidenceOwner,
+<a href=#28 id=28 data-nosnippet>28</a>    SessionPlanEvidenceReference, SessionPlanEvidenceRole, SessionPlanGate, SessionPlanGateCounts,
+<a href=#29 id=29 data-nosnippet>29</a>    SessionPlanGatePhase, SessionPlanGateRequirement, SessionPlanGateWaiver,
+<a href=#30 id=30 data-nosnippet>30</a>    SessionPlanLifecycleRequest, SessionPlanNode, SessionPlanNodeDraft, SessionPlanNodeReference,
+<a href=#31 id=31 data-nosnippet>31</a>    SessionPlanNodeStatus, SessionPlanReplanRequest, SessionPlanRetryRequest, SessionPlanRevision,
+<a href=#32 id=32 data-nosnippet>32</a>    SessionPlanSemanticPredicate, SessionPlanStatus, SessionPlanStatusCounts, SessionPlanSummary,
+<a href=#33 id=33 data-nosnippet>33</a>    SessionSemanticReference, SessionWorkerClaim,
+<a href=#34 id=34 data-nosnippet>34</a>};
+<a href=#35 id=35 data-nosnippet>35</a><span class="kw">pub use </span>plan_operations::{
+<a href=#36 id=36 data-nosnippet>36</a>    SessionPlanChildDraft, SessionPlanDecomposeRequest, SessionPlanNextStepRequest,
+<a href=#37 id=37 data-nosnippet>37</a>    SessionPlanSemanticMutation, SessionPlanSemanticMutationRequest,
+<a href=#38 id=38 data-nosnippet>38</a>};
+<a href=#39 id=39 data-nosnippet>39</a><span class="attr">#[path = <span class="string">"session/execution.rs"</span>]
+<a href=#40 id=40 data-nosnippet>40</a></span><span class="kw">mod </span>execution;
+<a href=#41 id=41 data-nosnippet>41</a><span class="kw">pub use </span>execution::{SessionExecutionChange, SessionExecutionSelection, SessionReadResponse};
 </code></pre></div></section></main></body></html>

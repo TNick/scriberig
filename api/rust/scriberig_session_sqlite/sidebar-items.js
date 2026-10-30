@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["SqliteSessionStore"]};
+window.SIDEBAR_ITEMS = {"struct":["LegacyExecutionRecord","SqliteSessionStore"]};

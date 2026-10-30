@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ClipboardPolicy","CursorMotion","PaletteColor","Tone"],"fn":["display_width","render_markdown","style_for"],"struct":["Composer","ExternalText","SelectionOption","StableSelector","StyleToken","TerminalPolicy","TextBlock"]};

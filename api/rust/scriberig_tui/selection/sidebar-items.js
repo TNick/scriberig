@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["PrimaryView"],"struct":["EntitySelection","NavigationLocation","SemanticReference","ViewContext"]};
+window.SIDEBAR_ITEMS = {"enum":["PrimaryView","SemanticRowIdentity"],"struct":["EntitySelection","NavigationLocation","PlanSelection","SemanticReference","ViewContext"]};

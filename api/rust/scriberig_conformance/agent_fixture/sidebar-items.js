@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ProviderStep"],"struct":["ScriptedProvider"]};
