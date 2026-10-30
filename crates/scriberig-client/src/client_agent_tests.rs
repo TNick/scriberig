@@ -99,6 +99,48 @@ fn plan_attempt_history_method_preserves_snapshot_and_page_fields() {
     ));
 }
 
+/// Sends bounded node gate/evidence requests and preserves their page fields.
+#[test]
+fn plan_node_details_method_preserves_snapshot_and_page_fields() {
+    let observed = Arc::new(Mutex::new(None));
+    let client = Client::new(FixtureTransport {
+        response: Response::PlanNodeDetails(scriberig_protocol::SessionPlanNodeDetailsPage {
+            offset: 3,
+            gates: Vec::new(),
+            evidence: Vec::new(),
+        }),
+        request: Arc::clone(&observed),
+    });
+
+    let page = client
+        .plan_node_details(scriberig_protocol::SessionPlanNodeDetailsRequest {
+            session: scriberig_protocol::SessionReference {
+                id: "session-1".to_owned(),
+            },
+            plan: "plan-1".to_owned(),
+            node: "node-1".to_owned(),
+            snapshot: "snapshot-1".to_owned(),
+            offset: 3,
+            limit: 12,
+        })
+        .expect("node details page");
+
+    assert_eq!(page.offset, 3);
+    assert_eq!(
+        page.gates,
+        Vec::<scriberig_protocol::SessionPlanGate>::new()
+    );
+    assert_eq!(
+        page.evidence,
+        Vec::<scriberig_protocol::SessionPlanEvidenceAssociation>::new()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanNodeDetails(request))
+            if request.snapshot == "snapshot-1" && request.offset == 3 && request.limit == 12
+    ));
+}
+
 /// Verifies semantic selection calls use revision-bearing protocol requests.
 #[test]
 fn selection_methods_preserve_mutation_revisions() {

@@ -209,6 +209,23 @@ pub struct PlanAttemptHistoryRequest {
     pub limit: usize,
 }
 
+/// Requests a bounded page of gate and evidence details at an exact snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanNodeDetailsRequest {
+    /// Owning session identity.
+    pub session: EntityId,
+    /// Stable plan identity.
+    pub plan: EntityId,
+    /// Stable plan-node identity.
+    pub node: EntityId,
+    /// Exact semantic snapshot to resolve.
+    pub snapshot: SnapshotId,
+    /// Number of matching records to skip in each category.
+    pub offset: usize,
+    /// Maximum gates and evidence records returned in each category.
+    pub limit: usize,
+}
+
 /// Selects a durable lifecycle transition for a plan.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PlanLifecycleAction {

@@ -7,9 +7,9 @@ use crate::{
     ModelLibraryRequest, ModelRequestDetailRequest, ProjectRequest, QueryRequest,
     SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanAttemptHistoryRequest,
     SessionPlanCreateRequest, SessionPlanDecomposeRequest, SessionPlanLifecycleRequest,
-    SessionPlanNextStepRequest, SessionPlanReplanRequest, SessionPlanRetryRequest,
-    SessionPlanSemanticMutationRequest, SessionReadRequest, SessionThinkingSelectionRequest,
-    SubscribeRequest, ToolResultDetailRequest,
+    SessionPlanNextStepRequest, SessionPlanNodeDetailsRequest, SessionPlanReplanRequest,
+    SessionPlanRetryRequest, SessionPlanSemanticMutationRequest, SessionReadRequest,
+    SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -62,6 +62,8 @@ pub enum Request {
     PlanRetry(SessionPlanRetryRequest),
     /// Read one bounded page of a node's attempt history.
     PlanAttemptHistory(SessionPlanAttemptHistoryRequest),
+    /// Read one bounded page of a node's gates and evidence.
+    PlanNodeDetails(SessionPlanNodeDetailsRequest),
     /// Add ordinary work to a running plan.
     PlanNextStep(SessionPlanNextStepRequest),
     /// Decompose one plan node into structural children.
@@ -115,6 +117,8 @@ pub enum Response {
     Plan(crate::SessionPlan),
     /// Bounded per-node worker attempt history.
     PlanAttemptHistory(crate::SessionPlanAttemptHistoryPage),
+    /// Bounded gates and evidence for one plan node.
+    PlanNodeDetails(crate::SessionPlanNodeDetailsPage),
     /// Safe normalized request captured for one model invocation.
     ModelRequestDetail(crate::ModelRequestDetailResponse),
     /// Bounded safe detail for one tool result.

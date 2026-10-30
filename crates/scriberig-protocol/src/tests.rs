@@ -390,4 +390,6 @@ fn session_plan_contracts_round_trip() {
 mod tests_additional;
 #[path = "tests_models.rs"]
 mod tests_models;
+#[path = "tests_plan_details.rs"]
+mod tests_plan_details;
 use tests_models::model_metadata_snapshot;

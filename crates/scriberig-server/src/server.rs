@@ -18,6 +18,9 @@ mod server_session_operations;
 #[macro_use]
 #[path = "server_plan_operations.rs"]
 mod server_plan_operations;
+#[macro_use]
+#[path = "server_plan_node_detail_contract.rs"]
+mod server_plan_node_detail_contract;
 
 use scriberig_app::{
     ApplicationContext, ApplicationError, ApplicationEvent, ApplicationRequest, ApplyRequest,
@@ -96,21 +99,7 @@ pub trait ApplicationService {
         })
     }
 
-    /// Reads a bounded plan-node attempt page at an exact snapshot.
-    /// - `_context`: Trusted request context.
-    /// - `_request`: Authorized session, node, snapshot, and page range.
-    /// # Returns Exact semantic attempt records.
-    /// # Errors
-    /// Returns authorization, history, or persistence failures.
-    fn read_plan_attempt_history(
-        &self,
-        _context: &ApplicationContext,
-        _request: &scriberig_app::PlanAttemptHistoryRequest,
-    ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "plan attempt history read".to_owned(),
-        })
-    }
+    server_plan_node_detail_contract!();
 
     /// Starts a session through the shared application service.
     ///

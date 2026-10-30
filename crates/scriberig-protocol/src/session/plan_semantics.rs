@@ -128,6 +128,17 @@ pub struct SessionPlanAttemptHistoryPage {
     pub attempts: Vec<SessionPlanAttempt>,
 }
 
+/// Returns one bounded page of node gates and associated evidence.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionPlanNodeDetailsPage {
+    /// Offset used to select each category's page.
+    pub offset: usize,
+    /// Gates owned by the selected node.
+    pub gates: Vec<SessionPlanGate>,
+    /// Evidence associated with the node or its gates.
+    pub evidence: Vec<SessionPlanEvidenceAssociation>,
+}
+
 /// Identifies whether evidence supports, contradicts, or informs an owner.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub enum SessionPlanEvidenceRole {

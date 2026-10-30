@@ -4,8 +4,8 @@ use super::{
     AgentCommandRequest, AgentContinuationAccepted, AgentContinueAtRequest, ApplicationContext,
     ApplicationError, EntityId, NewSessionAgentRequest, NewSessionAgentStart, OperationId,
     PlanAssignmentRequest, PlanAttemptHistoryRequest, PlanCreateRequest, PlanDecomposeRequest,
-    PlanLifecycleAction, PlanLifecycleRequest, PlanNextStepRequest, PlanReplanRequest,
-    PlanRetryRequest, PlanSemanticMutationRequest, Session, SessionRequest,
+    PlanLifecycleAction, PlanLifecycleRequest, PlanNextStepRequest, PlanNodeDetailsRequest,
+    PlanReplanRequest, PlanRetryRequest, PlanSemanticMutationRequest, Session, SessionRequest,
 };
 
 /// Owns session and agent operations at the application boundary.
@@ -131,6 +131,25 @@ pub trait SessionBackend {
     ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "plan attempt history read".to_owned(),
+        })
+    }
+
+    /// Reads a bounded page of one node's gate and evidence details.
+    ///
+    /// - `_context`: Authorized caller context.
+    /// - `_request`: Node, exact snapshot, and page range to resolve.
+    ///
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns authorization, not-found, or persistence failures.
+    fn read_plan_node_details(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanNodeDetailsRequest,
+    ) -> Result<scriberig_session::PlanSemanticNodeDetails, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan node detail read".to_owned(),
         })
     }
 

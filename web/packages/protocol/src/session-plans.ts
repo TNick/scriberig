@@ -260,6 +260,23 @@ export interface SessionPlanAttemptHistoryRequest {
   limit: number;
 }
 
+/** Reads a bounded page of node gates and evidence at an exact snapshot. */
+export interface SessionPlanNodeDetailsRequest {
+  session: { id: string };
+  plan: string;
+  node: string;
+  snapshot: string;
+  offset: number;
+  limit: number;
+}
+
+/** One bounded page of gates and their node evidence. */
+export interface SessionPlanNodeDetailsPage {
+  offset: number;
+  gates: readonly SessionPlanGate[];
+  evidence: readonly SessionPlanEvidenceAssociation[];
+}
+
 /** One durable worker attempt with exact semantic identities. */
 export interface SessionPlanAttempt {
   id: string;

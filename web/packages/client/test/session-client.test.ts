@@ -75,6 +75,41 @@ describe("session client projections", () => {
     });
   });
 
+  it("loads bounded gate and evidence detail at the requested snapshot", async () => {
+    const requests: { operation: string; payload: unknown }[] = [];
+    const transport = {
+      request: async <T>(operation: string, payload: unknown): Promise<T> => {
+        requests.push({ operation, payload });
+        return { offset: 1, gates: [], evidence: [] } as T;
+      },
+      subscribe: () => () => undefined,
+    };
+    const client = new ScriberigClient(transport);
+    const page = await client.getPlanNodeDetails({
+      session: { id: "session-1" },
+      plan: "plan-1",
+      node: "node-1",
+      snapshot: "snapshot-1",
+      offset: 1,
+      limit: 5,
+    });
+
+    expect(page).toEqual({ offset: 1, gates: [], evidence: [] });
+    expect(requests).toEqual([
+      {
+        operation: "plan_node_details",
+        payload: {
+          session: { id: "session-1" },
+          plan: "plan-1",
+          node: "node-1",
+          snapshot: "snapshot-1",
+          offset: 1,
+          limit: 5,
+        },
+      },
+    ]);
+  });
+
   it("reads exact-snapshot plan attempt pages through the shared route", async () => {
     const requests: { operation: string; payload: unknown }[] = [];
     const transport = {

@@ -81,6 +81,24 @@ impl<S: crate::SessionBackend> crate::SessionBackend for GuardedQueryService<S> 
         self.inner.read_plan_attempt_history(context, request)
     }
 
+    /// Delegates bounded node details through the wrapped session boundary.
+    ///
+    /// - `context`: Caller authorization and snapshot context.
+    /// - `request`: Stable node identity, exact snapshot, and page range.
+    ///
+    /// The requested gates and evidence.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns the wrapped session backend error.
+    fn read_plan_node_details(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanNodeDetailsRequest,
+    ) -> Result<scriberig_session::PlanSemanticNodeDetails, ApplicationError> {
+        self.inner.read_plan_node_details(context, request)
+    }
+
     /// Delegates durable plan creation through the guarded service.
     ///
     /// - `context`: Caller authorization and snapshot context.

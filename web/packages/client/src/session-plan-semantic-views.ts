@@ -10,6 +10,7 @@ import type {
   SessionPlanGatePhase,
   SessionPlanGateRequirement,
   SessionPlanGateWaiver,
+  SessionPlanNodeDetailsPage,
   SessionPlanSemanticPredicate,
   SessionPlanSummary,
   SessionSemanticReference,
@@ -39,6 +40,20 @@ export function normalizePlanEvidence(value: unknown): SessionPlanEvidenceAssoci
         return evidence === undefined ? [] : [evidence];
       })
     : [];
+}
+
+/** Normalizes a bounded exact-snapshot node detail page.
+ * @param value Unknown detail page from the transport.
+ * @returns Validated page with malformed records removed.
+ */
+export function normalizePlanNodeDetails(value: unknown): SessionPlanNodeDetailsPage {
+  const source = isObject(value) ? value : {};
+  const offset = source.offset;
+  return {
+    offset: typeof offset === "number" && Number.isInteger(offset) && offset >= 0 ? offset : 0,
+    gates: normalizePlanGates(source.gates),
+    evidence: normalizePlanEvidence(source.evidence),
+  };
 }
 
 /** Normalizes concise summaries and their exact source references.

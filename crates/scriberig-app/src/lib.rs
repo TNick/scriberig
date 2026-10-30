@@ -86,10 +86,10 @@ pub use session::{
     AgentResult, AgentSelection, CandidateChange, LocalAgentHandle, LocalChildAgentHandle,
     NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanAttemptHistoryRequest,
     PlanChildDraft, PlanCreateRequest, PlanDecomposeRequest, PlanLifecycleAction,
-    PlanLifecycleRequest, PlanNextStepRequest, PlanNodeDraft, PlanNodeReference, PlanReplanRequest,
-    PlanRetryRequest, PlanSemanticMutation, PlanSemanticMutationRequest, SessionBackend,
-    SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
-    ToolExecutionEvidence,
+    PlanLifecycleRequest, PlanNextStepRequest, PlanNodeDetailsRequest, PlanNodeDraft,
+    PlanNodeReference, PlanReplanRequest, PlanRetryRequest, PlanSemanticMutation,
+    PlanSemanticMutationRequest, SessionBackend, SessionModelSelectionRequest, SessionRequest,
+    SessionThinkingSelectionRequest, ToolExecutionEvidence,
 };
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,

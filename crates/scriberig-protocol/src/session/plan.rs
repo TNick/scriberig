@@ -308,6 +308,23 @@ pub struct SessionPlanAttemptHistoryRequest {
     pub limit: usize,
 }
 
+/// Reads one bounded page of gates and evidence at an exact plan snapshot.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionPlanNodeDetailsRequest {
+    /// Owning session identity.
+    pub session: SessionReference,
+    /// Stable plan identity.
+    pub plan: String,
+    /// Stable plan-node identity.
+    pub node: String,
+    /// Exact universal snapshot identity.
+    pub snapshot: String,
+    /// Number of matching records to skip in each category.
+    pub offset: usize,
+    /// Maximum records to return in each category.
+    pub limit: usize,
+}
+
 /// Changes one unstarted node's safe model assignment.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct SessionPlanAssignmentRequest {

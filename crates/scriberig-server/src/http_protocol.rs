@@ -162,6 +162,9 @@ fn decode_request(
         "plan_attempt_history" => scriberig_protocol::Request::PlanAttemptHistory(
             serde_json::from_str(body).map_err(invalid)?,
         ),
+        "plan_node_details" => scriberig_protocol::Request::PlanNodeDetails(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
         "plan_next_step" => {
             scriberig_protocol::Request::PlanNextStep(serde_json::from_str(body).map_err(invalid)?)
         }
@@ -243,6 +246,13 @@ mod tests {
                 r#"{"session":{"id":"session-1"},"plan":"plan-1","node":"node-1","snapshot":"snapshot-1","offset":0,"limit":20}"#
             ),
             Ok(scriberig_protocol::Request::PlanAttemptHistory(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "plan_node_details",
+                r#"{"session":{"id":"session-1"},"plan":"plan-1","node":"node-1","snapshot":"snapshot-1","offset":0,"limit":20}"#
+            ),
+            Ok(scriberig_protocol::Request::PlanNodeDetails(_))
         ));
         assert!(matches!(
             decode_request(

@@ -5,6 +5,7 @@ mod helpers;
 mod inspect;
 mod plan;
 mod plan_attempt_history;
+mod plan_node_details;
 mod query;
 #[path = "dispatch/session.rs"]
 mod session;
@@ -217,6 +218,7 @@ impl<S: ApplicationService> Dispatcher<S> {
             Request::PlanAttemptHistory(request) => {
                 self.plan_attempt_history(&request, correlation_id)
             }
+            Request::PlanNodeDetails(request) => self.plan_node_details(&request, correlation_id),
             Request::PlanNextStep(request) => {
                 self.plan_request(&Request::PlanNextStep(request), correlation_id, None)
             }

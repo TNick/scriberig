@@ -10,6 +10,7 @@ mod event;
 #[path = "server_helpers_session_plan.rs"]
 pub(super) mod session_plan;
 pub(crate) use session_plan::project as project_session_plan;
+pub(crate) use session_plan::project_details as project_session_plan_details;
 
 pub(super) use event::event_from_application;
 

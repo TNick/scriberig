@@ -41,14 +41,14 @@ import { normalizeExecutionSelection, normalizeModelLibrary } from "./model-view
 import { normalizeSessionPlan } from "./session-plan-views";
 import { readPresentationPreferences, replacePresentationPreferences } from "./presentation-views";
 import type { TransportConnectionState } from "./transport";
-import { PlanAttemptHistoryClient } from "./plan-attempt-history-client";
+import { PlanNodeDetailsClient } from "./plan-node-details-client";
 
 /** Durable agent and session operations on top of semantic operations.
  *
  * Public members: agent, session, model, branch, and event methods.
  * Private members: inherited semantic transport.
  */
-export class SessionClient extends PlanAttemptHistoryClient {
+export class SessionClient extends PlanNodeDetailsClient {
   /** Starts an agent operation and returns durable accepted handles. */
   startAgent(request: AgentStartRequest, signal?: AbortSignal): Promise<AgentAcceptedResponse> {
     return this.transport

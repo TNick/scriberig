@@ -74,6 +74,25 @@ pub(crate) fn project(
     })
 }
 
+/// Projects bounded per-node gate and evidence records into protocol values.
+///
+/// # Parameters
+/// - `offset`: Offset applied to both detail categories.
+/// - `details`: Shared semantic records returned by the repository.
+///
+/// # Returns
+/// Protocol-safe detail page without physical storage metadata.
+pub(crate) fn project_details(
+    offset: usize,
+    details: &scriberig_session::PlanSemanticNodeDetails,
+) -> scriberig_protocol::SessionPlanNodeDetailsPage {
+    scriberig_protocol::SessionPlanNodeDetailsPage {
+        offset,
+        gates: details.gates.iter().map(semantics::gate).collect(),
+        evidence: details.evidence.iter().map(semantics::evidence).collect(),
+    }
+}
+
 /// Converts one immutable plan revision.
 ///
 /// - `value`: Historical session-domain revision.

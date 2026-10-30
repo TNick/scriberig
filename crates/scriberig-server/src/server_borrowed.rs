@@ -91,6 +91,23 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).read_plan_attempt_history(context, request)
     }
 
+    /// Delegates bounded per-node details to the borrowed service.
+    ///
+    /// - `context`: Trusted request context.
+    /// - `request`: Exact session, plan, node, snapshot, and page range.
+    ///
+    /// # Returns
+    ///
+    /// # Errors
+    /// Returns the wrapped service's structured failure.
+    fn read_plan_node_details(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanNodeDetailsRequest,
+    ) -> Result<scriberig_session::PlanSemanticNodeDetails, ApplicationError> {
+        (**self).read_plan_node_details(context, request)
+    }
+
     /// Delegates model request detail reads to the borrowed service.
     ///
     /// - `context`: Trusted request context.

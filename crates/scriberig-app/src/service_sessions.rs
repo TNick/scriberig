@@ -16,6 +16,9 @@ mod agent_submission;
 mod management;
 #[path = "service_sessions/plan_attempts.rs"]
 mod plan_attempts;
+#[macro_use]
+#[path = "service_sessions/plan_node_details.rs"]
+mod plan_node_details;
 #[path = "service_sessions/plan_store.rs"]
 mod plan_store;
 
@@ -162,6 +165,8 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
     ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
         plan_attempts::read(self, context, request)
     }
+
+    application_plan_node_details_method!();
 
     /// Persists a complete changed session through the backend or local store.
     ///

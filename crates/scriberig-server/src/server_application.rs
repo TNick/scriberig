@@ -121,6 +121,24 @@ where
         scriberig_app::SessionBackend::read_plan_attempt_history(self, context, request)
     }
 
+    /// Reads bounded per-node gate and evidence details.
+    ///
+    /// - `context`: Trusted request context.
+    /// - `request`: Exact session, plan, node, snapshot, and page range.
+    ///
+    /// # Returns
+    /// Semantic gate and evidence records.
+    ///
+    /// # Errors
+    /// Returns authorization, history, or persistence failures.
+    fn read_plan_node_details(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanNodeDetailsRequest,
+    ) -> Result<scriberig_session::PlanSemanticNodeDetails, ApplicationError> {
+        scriberig_app::SessionBackend::read_plan_node_details(self, context, request)
+    }
+
     /// Reads a previously captured model request from an authorized session.
     ///
     /// - `context`: Trusted request context.
