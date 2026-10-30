@@ -7638,9 +7638,11 @@ plan under a deterministic session/plan root in <code>scriberig-store-sqlite</co
 plan-local CAS promotes that root and reads hydrate the aggregate compatibility
 projection from the root. Snapshot ancestry reconstructs historical plan
 states, while separate revision metadata retains safe mutation reasons. Legacy
-aggregate plans are imported as an ordered snapshot chain on first read. The
-SQLite session JSON still carries a compatibility projection and branch/session
-records; it no longer accepts plan mutations when a semantic root exists.</p>
+aggregate plans are imported as an ordered snapshot chain on first read. Session
+payloads omit plan contents; an ordered session-to-plan root index locates
+independently stored semantic plans. Reads assemble the public <code>Session</code> plan
+projection from those roots. Legacy aggregate input is migration-only, and
+stale aggregate saves cannot override an existing semantic root.</p>
 <p>Implementation update (2026-10-30): exact plan snapshot reads now reject
 snapshots outside the plan root's ancestry and preserve historical membership.
 Plan-attempt outcomes are independently revisioned semantic objects. Plan
@@ -8202,7 +8204,7 @@ writer succeeds and the competing writer receives <code>PromotionError::Root</co
 <p>so they produce/validate semantic change batches rather than relying on aggregate persistence.</p>
 <ul>
 <li>[ ] Existing behavior remains available through shared application operations.</li>
-<li>[ ] Aggregate Rust structs may remain as in-memory/view helpers but are no longer canonical persistence units.</li>
+<li>[x] Aggregate Rust structs may remain as in-memory/view helpers but are no longer canonical persistence units. SQLite session payloads omit plans; reads reconstruct them from semantic roots, including after restart.</li>
 </ul>
 <hr />
 <h1 id="10-phase-5-live-plan-growth-summary-evidence-and-gates">10. Phase 5 — Live Plan Growth, Summary, Evidence, and Gates<a class="headerlink" href="#10-phase-5-live-plan-growth-summary-evidence-and-gates" title="Permanent link">&para;</a></h1>
