@@ -380,6 +380,8 @@ mod legacy_plan_migration;
 mod part1;
 #[path = "durable_parts/plan_attempt_recovery.rs"]
 mod plan_attempt_recovery;
+#[path = "durable_parts/plan_node_index.rs"]
+mod plan_node_index;
 #[path = "durable_parts/plan_projection.rs"]
 mod plan_projection;
 #[path = "durable_parts/plan_settlement_rollback.rs"]

@@ -252,16 +252,26 @@ impl SessionStore for SqliteSessionStore {
     /// # Errors
     /// Returns an error when SQLite cannot delete the record.
     fn remove(&self, session: EntityId) -> Result<(), String> {
-        let connection = self
+        let mut connection = self
             .connection
             .lock()
             .map_err(|_| "session repository lock poisoned".to_owned())?;
-        connection
+        let transaction = connection
+            .transaction()
+            .map_err(|error| error.to_string())?;
+        transaction
             .execute(
                 "DELETE FROM session_records WHERE session_id=?1",
                 params![session.as_bytes().as_slice()],
             )
             .map_err(|error| error.to_string())?;
+        transaction
+            .execute(
+                "DELETE FROM plan_node_index WHERE session_id=?1",
+                params![session.as_bytes().as_slice()],
+            )
+            .map_err(|error| error.to_string())?;
+        transaction.commit().map_err(|error| error.to_string())?;
         Ok(())
     }
 

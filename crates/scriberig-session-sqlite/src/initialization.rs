@@ -58,7 +58,20 @@ impl SqliteSessionStore {
             "CREATE TABLE IF NOT EXISTS session_records (
                  session_id BLOB PRIMARY KEY,
                  payload BLOB NOT NULL
-             );",
+             );
+             CREATE TABLE IF NOT EXISTS plan_node_index (
+                 session_id BLOB NOT NULL,
+                 plan_id BLOB NOT NULL,
+                 node_id BLOB NOT NULL,
+                 parent_node_id BLOB,
+                 parent_branch_id BLOB,
+                 current_revision_id BLOB NOT NULL,
+                 direct_status TEXT NOT NULL,
+                 source_snapshot BLOB NOT NULL,
+                 PRIMARY KEY (session_id, plan_id, node_id)
+             );
+             CREATE INDEX IF NOT EXISTS plan_node_index_parent
+                 ON plan_node_index (session_id, plan_id, parent_node_id, node_id);",
         )?;
         drop(connection_guard);
         Ok(Self {

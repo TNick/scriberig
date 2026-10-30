@@ -4,6 +4,8 @@
 mod history;
 #[path = "semantic_plans/node_details.rs"]
 mod node_details;
+#[path = "semantic_plans/node_index.rs"]
+mod node_index;
 #[path = "semantic_plans/reads.rs"]
 mod reads;
 use history::{plan_at_revision, plan_revision, semantic_writes};
@@ -124,6 +126,9 @@ impl SqliteSessionStore {
         }
         let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(proposed)
             .map_err(|error| plan_persistence(format!("plan encoding failed: {error:?}")))?;
+        let indexed_nodes = encoded.node_refs().map_err(|error| {
+            plan_persistence(format!("plan node index encode failed: {error:?}"))
+        })?;
         let old_entries = self
             .semantic_store
             .iter(current_snapshot)
@@ -146,18 +151,30 @@ impl SqliteSessionStore {
             changes.push(SnapshotChange::Set(object.entity, revision.id()));
             revisions.push(revision);
         }
-        for (entity, _) in old_entries {
-            if !new_entities.contains(&entity) {
-                changes.push(SnapshotChange::Remove(entity));
+        for (entity, _) in &old_entries {
+            if !new_entities.contains(entity) {
+                changes.push(SnapshotChange::Remove(*entity));
             }
         }
+        let successor_snapshot = Snapshot::from_entries(old_entries.iter().copied().collect())
+            .apply(changes.iter().copied())
+            .id();
         match self.semantic_store.apply_revisions_and_promote_with(
             root,
             Some(current_snapshot),
             current_snapshot,
             &revisions,
             &changes,
-            |transaction| commit_related(transaction, &current),
+            |transaction| {
+                commit_related(transaction, &current)?;
+                node_index::replace_in_transaction(
+                    transaction,
+                    session,
+                    proposed.id,
+                    successor_snapshot,
+                    &indexed_nodes,
+                )
+            },
         ) {
             Ok(_) => Ok(()),
             Err(PromotionError::Root(scriberig_store::RootError::Conflict { actual, .. })) => {
@@ -235,6 +252,9 @@ impl SqliteSessionStore {
                 .map_err(|error| format!("plan semantic migration failed: {error:?}"))?;
             base = promoted;
             expected = Some(promoted);
+        }
+        if expected.is_some() {
+            node_index::rebuild_plan_node_index(self, session, plan.id)?;
         }
         Ok(())
     }
