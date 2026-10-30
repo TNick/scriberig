@@ -236,6 +236,109 @@ fn legacy_plan_migration_preserves_historical_completed_result() {
     let _ = std::fs::remove_file(path);
 }
 
+/// Recovers legacy runtime claims instead of restoring them as active work.
+#[test]
+fn legacy_plan_migration_recovers_stale_worker_and_coordinator_claims() {
+    let path = std::env::temp_dir().join(format!(
+        "scriberig-legacy-plan-claims-{}.sqlite",
+        EntityId::new()
+    ));
+    let session_id = EntityId::from_bytes([101; 16]);
+    let root_branch = EntityId::from_bytes([102; 16]);
+    let plan_id = EntityId::from_bytes([103; 16]);
+    let node_id = EntityId::from_bytes([104; 16]);
+    let worker_branch = EntityId::from_bytes([105; 16]);
+    let mut plan = Plan::new(
+        plan_id,
+        session_id,
+        ContinuationAnchor::BranchHead {
+            branch: root_branch,
+        },
+        "recover imported claims",
+    )
+    .expect("plan");
+    plan.add_node(PlanNode {
+        id: node_id,
+        parent: Some(PlanNodeParent::Branch(root_branch)),
+        title: "in-flight work".to_owned(),
+        purpose: "must not be blindly resumed".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("node");
+    plan.transition(PlanStatus::Planned).expect("plan ready");
+    plan.start_with_coordinator_claim(EntityId::from_bytes([106; 16]), "old-coordinator", None)
+        .expect("coordinator claim");
+    plan.start_node(
+        node_id,
+        worker_branch,
+        EntityId::from_bytes([107; 16]),
+        "old-worker",
+        &[],
+    )
+    .expect("worker claim");
+    let original_revision = plan.revision;
+    let session = Session {
+        id: session_id,
+        branches: vec![
+            Branch::new(root_branch, "root").expect("root branch"),
+            Branch::new(worker_branch, "worker").expect("worker branch"),
+        ],
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        plans: vec![plan],
+        execution: scriberig_session::SessionExecutionSelection::default(),
+    };
+    let raw_payload = serde_json::to_value(&session).expect("legacy aggregate payload");
+    let store = SqliteSessionStore::open(&path).expect("open store");
+    insert_legacy_payload(&path, session_id, &raw_payload);
+
+    let loaded = store
+        .load(session_id)
+        .expect("migrate legacy session")
+        .expect("session exists");
+    let migrated = &loaded.plans[0];
+    let node = &migrated.nodes[0];
+
+    assert_eq!(migrated.revision, original_revision + 1);
+    assert!(migrated.coordinator_claim.is_none());
+    assert_eq!(node.status, PlanNodeStatus::Failed);
+    assert!(node.claim.is_none());
+    assert_eq!(node.branch, Some(worker_branch));
+    assert!(migrated.history.iter().any(|revision| {
+        revision.revision == original_revision
+            && revision
+                .nodes
+                .iter()
+                .any(|historical| historical.status == PlanNodeStatus::Running)
+    }));
+    let connection = Connection::open(&path).expect("open marker assertion connection");
+    let recovery_pending: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM plan_legacy_migration_pending
+             WHERE session_id=?1 AND plan_id=?2)",
+            rusqlite::params![
+                session_id.as_bytes().as_slice(),
+                plan_id.as_bytes().as_slice()
+            ],
+            |row| row.get(0),
+        )
+        .expect("read migration marker");
+    assert!(!recovery_pending);
+
+    drop(store);
+    let _ = std::fs::remove_file(path);
+}
+
 /// Inserts a raw unversioned session payload as an older repository would.
 ///
 /// # Parameters

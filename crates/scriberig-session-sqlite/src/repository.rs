@@ -41,7 +41,7 @@ impl SessionStore for SqliteSessionStore {
         let mut rewrites = Vec::new();
         for (session_id, payload) in records {
             let mut decoded = payload::decode(&payload)?;
-            self.hydrate_semantic_plans(&mut decoded.session)?;
+            self.hydrate_semantic_plans(&mut decoded.session, true)?;
             if decoded.requires_rewrite {
                 rewrites.push((
                     session_id,
@@ -103,7 +103,7 @@ impl SessionStore for SqliteSessionStore {
             return Ok(None);
         };
         let mut decoded = payload::decode(&payload)?;
-        self.hydrate_semantic_plans(&mut decoded.session)?;
+        self.hydrate_semantic_plans(&mut decoded.session, true)?;
         if !decoded.requires_rewrite {
             return Ok(Some(decoded.session));
         }
@@ -317,7 +317,7 @@ impl SessionStore for SqliteSessionStore {
             .map(|decoded| decoded.legacy_execution.clone())
             .unwrap_or_default();
         let mut projection = self.prepare_session_projection(session, prior)?;
-        self.hydrate_semantic_plans(&mut projection)?;
+        self.hydrate_semantic_plans(&mut projection, false)?;
         let mut connection = self
             .connection
             .lock()

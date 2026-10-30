@@ -89,6 +89,11 @@ impl SqliteSessionStore {
                  evaluator_version INTEGER NOT NULL,
                  source_snapshot BLOB NOT NULL,
                  PRIMARY KEY (session_id, plan_id, node_id)
+             );
+             CREATE TABLE IF NOT EXISTS plan_legacy_migration_pending (
+                 session_id BLOB NOT NULL,
+                 plan_id BLOB NOT NULL,
+                 PRIMARY KEY (session_id, plan_id)
              );",
         )?;
         drop(connection_guard);

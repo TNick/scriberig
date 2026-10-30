@@ -2,6 +2,8 @@
 
 #[path = "semantic_plans/history.rs"]
 mod history;
+#[path = "semantic_plans/migration_marker.rs"]
+mod migration_marker;
 #[path = "semantic_plans/node_details.rs"]
 mod node_details;
 #[path = "semantic_plans/node_index.rs"]
@@ -27,16 +29,21 @@ impl SqliteSessionStore {
     ///
     /// # Parameters
     /// - `session`: Session projection whose plans are hydrated.
+    /// - `recover_legacy_claims`: Whether claims imported from legacy data are stale.
     ///
     /// # Errors
     /// Returns a persistence diagnostic when migration or semantic loading
     /// fails.
     /// # Returns
     /// Unit after all plan projections are hydrated.
-    pub(super) fn hydrate_semantic_plans(&self, session: &mut Session) -> Result<(), String> {
+    pub(super) fn hydrate_semantic_plans(
+        &self,
+        session: &mut Session,
+        recover_legacy_claims: bool,
+    ) -> Result<(), String> {
         let mut plans = Vec::with_capacity(session.plans.len());
         for legacy_plan in &session.plans {
-            self.migrate_plan_history(session.id, legacy_plan)?;
+            self.migrate_plan_history(session.id, legacy_plan, recover_legacy_claims)?;
             plans.push(self.load_semantic_plan(session.id, legacy_plan.id)?);
         }
         session.plans = plans;
@@ -68,7 +75,7 @@ impl SqliteSessionStore {
             for old_plan in prior.session.plans {
                 let root = plan_root(proposed.id, old_plan.id)?;
                 if self.semantic_store.read_root(&root).is_none() {
-                    self.migrate_plan_history(proposed.id, &old_plan)?;
+                    self.migrate_plan_history(proposed.id, &old_plan, false)?;
                 }
                 if !projection.plans.iter().any(|plan| plan.id == old_plan.id) {
                     projection
@@ -77,7 +84,7 @@ impl SqliteSessionStore {
                 }
             }
         }
-        self.hydrate_semantic_plans(&mut projection)?;
+        self.hydrate_semantic_plans(&mut projection, false)?;
         Ok(projection)
     }
 
@@ -104,7 +111,7 @@ impl SqliteSessionStore {
     {
         let root = plan_root(session, proposed.id).map_err(plan_persistence)?;
         if self.semantic_store.read_root(&root).is_none() {
-            self.migrate_plan_history(session, proposed)
+            self.migrate_plan_history(session, proposed, false)
                 .map_err(plan_persistence)?;
         }
         let current_snapshot = self
@@ -205,12 +212,18 @@ impl SqliteSessionStore {
     /// # Parameters
     /// - `session`: Owning session identity.
     /// - `plan`: Legacy or newly authored plan to migrate.
+    /// - `recover_legacy_claims`: Whether imported claims are stale by policy.
     ///
     /// # Errors
     /// Returns a persistence diagnostic when a universal root promotion fails.
     /// # Returns
     /// Unit after all legacy revisions are imported.
-    fn migrate_plan_history(&self, session: EntityId, plan: &Plan) -> Result<(), String> {
+    fn migrate_plan_history(
+        &self,
+        session: EntityId,
+        plan: &Plan,
+        recover_legacy_claims: bool,
+    ) -> Result<(), String> {
         let root = plan_root(session, plan.id)?;
         let mut expected = self.semantic_store.read_root(&root);
         let mut base = expected.unwrap_or_else(|| Snapshot::empty().id());
@@ -218,6 +231,11 @@ impl SqliteSessionStore {
             .map(|snapshot| self.load_plan_at_snapshot(session, plan.id, snapshot))
             .transpose()?
             .map(|stored| stored.revision);
+        let mut recovery_pending = self.legacy_migration_pending(session, plan.id)?;
+        if recover_legacy_claims && expected.is_none() {
+            self.set_legacy_migration_pending(session, plan.id, true)?;
+            recovery_pending = true;
+        }
         let mut history = plan.history.clone();
         history.sort_by_key(|record| record.revision);
         history.dedup_by_key(|record| record.revision);
@@ -259,8 +277,33 @@ impl SqliteSessionStore {
             base = promoted;
             expected = Some(promoted);
         }
+        if recovery_pending
+            && (plan.coordinator_claim.is_some()
+                || plan.nodes.iter().any(|node| {
+                    node.status == scriberig_session::PlanNodeStatus::Running
+                        && node.claim.is_some()
+                }))
+        {
+            let mut recovered = plan.clone();
+            let count = recovered
+                .recover_stale_claims(|_| false)
+                .map_err(|error| format!("legacy plan claim recovery failed: {error:?}"))?;
+            if count > 0 && current_revision.is_none_or(|revision| revision < recovered.revision) {
+                let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(&recovered)
+                    .map_err(|error| format!("recovered plan encoding failed: {error:?}"))?;
+                let (revisions, changes) = semantic_writes(encoded.objects)?;
+                let promoted = self
+                    .semantic_store
+                    .apply_revisions_and_promote(root, expected, base, &revisions, &changes)
+                    .map_err(|error| format!("recovered plan migration failed: {error:?}"))?;
+                expected = Some(promoted);
+            }
+        }
         if expected.is_some() {
             node_index::rebuild_plan_node_index(self, session, plan.id)?;
+        }
+        if recovery_pending {
+            self.set_legacy_migration_pending(session, plan.id, false)?;
         }
         Ok(())
     }
