@@ -42,6 +42,20 @@ pub trait RootStore {
     /// # Returns
     /// The operation result.
     fn read_root(&self, name: &RootName) -> Option<SnapshotId>;
+
+    /// Lists named roots and their current immutable snapshots.
+    ///
+    /// Results are ordered by root name so callers receive deterministic
+    /// output across storage backends.
+    ///
+    /// # Returns
+    /// Every currently registered root paired with its snapshot.
+    ///
+    /// # Errors
+    /// Returns a backend error when root records cannot be enumerated or
+    /// decoded.
+    fn list_roots(&self) -> Result<Vec<(RootName, SnapshotId)>, RootError>;
+
     /// - `name`: Operation input.
     /// - `expected`: Operation input.
     /// - `new`: Operation input.

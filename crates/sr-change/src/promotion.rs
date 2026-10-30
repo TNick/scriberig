@@ -81,6 +81,20 @@ mod tests {
             self.0
         }
 
+        /// Lists the fixture root when it is present.
+        ///
+        /// # Returns
+        /// The fixture root paired with its snapshot, or an empty list.
+        ///
+        /// # Errors
+        /// This in-memory fixture cannot fail to enumerate roots.
+        fn list_roots(&self) -> Result<Vec<(RootName, SnapshotId)>, RootError> {
+            Ok(self
+                .0
+                .map(|snapshot| vec![(RootName::new("fixture").expect("valid root"), snapshot)])
+                .unwrap_or_default())
+        }
+
         /// Sets the fixture root unconditionally.
         /// - `_name`: Argument named `_name`.
         /// - `_snapshot`: Argument named `_snapshot`.

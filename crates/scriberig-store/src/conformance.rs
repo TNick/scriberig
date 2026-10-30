@@ -178,6 +178,12 @@ pub fn run_core_conformance<S: ConformanceStore>(store: &S) -> Result<(), String
     if store.read_root(&root) != Some(first) {
         return Err("stale root update changed the root".to_owned());
     }
+    let roots = store.list_roots().map_err(|error| format!("{error:?}"))?;
+    if !roots.contains(&(root.clone(), first))
+        || roots.windows(2).any(|pair| pair[0].0 >= pair[1].0)
+    {
+        return Err("named-root enumeration is incomplete or unordered".to_owned());
+    }
     Ok(())
 }
 

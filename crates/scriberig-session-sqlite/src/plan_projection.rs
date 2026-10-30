@@ -2,6 +2,9 @@
 
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
 use scriberig_core::EntityId;
+use scriberig_store::RootStore;
+use std::collections::BTreeSet;
+use std::str::FromStr;
 
 use crate::SqliteSessionStore;
 
@@ -47,11 +50,61 @@ impl SqliteSessionStore {
     /// # Errors
     /// Returns a SQLite diagnostic when the registry cannot be read.
     pub(crate) fn registered_plans(&self, session: EntityId) -> Result<Vec<EntityId>, String> {
+        let prefix = format!("scriberig-plan-{session}-");
+        let root_plans = self
+            .semantic_store
+            .list_roots()
+            .map_err(|error| format!("semantic plan-root enumeration failed: {error:?}"))?
+            .into_iter()
+            .filter_map(|(name, _)| name.as_str().strip_prefix(&prefix).map(str::to_owned))
+            .map(|plan| {
+                EntityId::from_str(&plan)
+                    .map_err(|error| format!("semantic plan root has invalid identity: {error}"))
+            })
+            .collect::<Result<BTreeSet<_>, _>>()?;
         let connection = self
             .connection
             .lock()
             .map_err(|_| "session repository lock poisoned".to_owned())?;
-        read(&connection, session)
+        let stored = read(&connection, session)?;
+        let mut plans = stored
+            .iter()
+            .copied()
+            .filter(|plan| root_plans.contains(plan))
+            .collect::<Vec<_>>();
+        let mut seen = plans.iter().copied().collect::<BTreeSet<_>>();
+        let missing = root_plans.difference(&seen).copied().collect::<Vec<_>>();
+        let stale = stored
+            .iter()
+            .copied()
+            .filter(|plan| !root_plans.contains(plan))
+            .collect::<Vec<_>>();
+        if missing.is_empty() && stale.is_empty() {
+            return Ok(plans);
+        }
+
+        let mut connection = connection;
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|error| error.to_string())?;
+        for plan in stale {
+            transaction
+                .execute(
+                    "DELETE FROM session_plan_records WHERE session_id=?1 AND plan_id=?2",
+                    params![session.as_bytes().as_slice(), plan.as_bytes().as_slice()],
+                )
+                .map_err(|error| error.to_string())?;
+        }
+        for plan in missing {
+            let ordinal =
+                i64::try_from(plans.len()).map_err(|_| "plan order exceeds SQLite range")?;
+            write(&transaction, session, plan, ordinal)?;
+            if seen.insert(plan) {
+                plans.push(plan);
+            }
+        }
+        transaction.commit().map_err(|error| error.to_string())?;
+        Ok(plans)
     }
 }
 

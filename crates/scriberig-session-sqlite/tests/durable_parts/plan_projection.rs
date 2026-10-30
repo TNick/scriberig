@@ -128,6 +128,63 @@ fn semantic_plan_mutation_persists_reordered_plan_projection() {
     let _ = std::fs::remove_file(path);
 }
 
+/// Rebuilds a missing session-to-plan locator from deterministic semantic roots.
+#[test]
+fn missing_plan_locator_is_rebuilt_from_semantic_roots() {
+    let path =
+        std::env::temp_dir().join(format!("scriberig-plan-locator-{}.sqlite", EntityId::new()));
+    let session_id = EntityId::from_bytes([111; 16]);
+    let branch_id = EntityId::from_bytes([112; 16]);
+    let plan_id = EntityId::from_bytes([113; 16]);
+    let store = SqliteSessionStore::open(&path).expect("open store");
+    let plan = Plan::new(
+        plan_id,
+        session_id,
+        ContinuationAnchor::BranchHead { branch: branch_id },
+        "semantic root survives locator loss",
+    )
+    .expect("plan");
+    let session = Session {
+        id: session_id,
+        branches: vec![Branch::new(branch_id, "root").expect("branch")],
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        plans: vec![plan],
+        execution: scriberig_session::SessionExecutionSelection::default(),
+    };
+    store.save(&session).expect("save session");
+    let connection = rusqlite::Connection::open(&path).expect("open locator inspection");
+    connection
+        .execute(
+            "DELETE FROM session_plan_records WHERE session_id=?1",
+            rusqlite::params![session_id.as_bytes().as_slice()],
+        )
+        .expect("remove derived locator row");
+    drop(connection);
+    drop(store);
+
+    let reopened = SqliteSessionStore::open(&path).expect("reopen store");
+    let loaded = reopened
+        .load(session_id)
+        .expect("load session after locator loss")
+        .expect("session exists");
+    assert_eq!(loaded.plans.len(), 1);
+    assert_eq!(loaded.plans[0].id, plan_id);
+    assert_eq!(loaded.plans[0].goal, "semantic root survives locator loss");
+    let connection = rusqlite::Connection::open(&path).expect("inspect rebuilt locator");
+    let registered: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM session_plan_records WHERE session_id=?1",
+            rusqlite::params![session_id.as_bytes().as_slice()],
+            |row| row.get(0),
+        )
+        .expect("count rebuilt locator rows");
+    assert_eq!(registered, 1);
+    drop(connection);
+    drop(reopened);
+    let _ = std::fs::remove_file(path);
+}
+
 /// Confirms session payloads contain no embedded plan contents.
 ///
 /// # Parameters
