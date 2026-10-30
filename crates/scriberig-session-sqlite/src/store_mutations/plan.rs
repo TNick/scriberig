@@ -4,7 +4,7 @@ use rusqlite::params;
 use scriberig_core::EntityId;
 use scriberig_session::{PlanStoreError, Session};
 
-use crate::{OptionalRow, SqliteSessionStore, branch_projection, payload};
+use crate::{OptionalRow, SqliteSessionStore, branch_projection, payload, plan_projection};
 
 impl SqliteSessionStore {
     /// Atomically replaces a plan and merges new branch records.
@@ -34,6 +34,12 @@ impl SqliteSessionStore {
             proposed,
             expected_revision,
             |transaction, current_plan| {
+                plan_projection::write_proposed_order(
+                    transaction,
+                    session.id,
+                    &session.plans,
+                    plan_id,
+                )?;
                 let current_payload = transaction
                     .query_row(
                         "SELECT payload FROM session_records WHERE session_id=?1",

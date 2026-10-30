@@ -46,11 +46,16 @@ impl SqliteSessionStore {
         session: &mut Session,
         recover_legacy_claims: bool,
     ) -> Result<(), String> {
-        let mut plans = Vec::with_capacity(session.plans.len());
-        for legacy_plan in &session.plans {
+        let legacy_plans = std::mem::take(&mut session.plans);
+        for (ordinal, legacy_plan) in legacy_plans.iter().enumerate() {
             self.migrate_plan_history(session.id, legacy_plan, recover_legacy_claims)?;
-            plans.push(self.load_semantic_plan(session.id, legacy_plan.id)?);
+            self.register_plan(session.id, legacy_plan.id, ordinal)?;
         }
+        let plan_ids = self.registered_plans(session.id)?;
+        let plans = plan_ids
+            .into_iter()
+            .map(|plan| self.load_semantic_plan(session.id, plan))
+            .collect::<Result<Vec<_>, _>>()?;
         session.plans = plans;
         Ok(())
     }

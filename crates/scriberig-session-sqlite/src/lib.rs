@@ -7,6 +7,7 @@ mod payload;
 mod plan_indexes;
 #[path = "store_mutations/plan.rs"]
 mod plan_mutation;
+mod plan_projection;
 mod recovery;
 mod repository;
 #[path = "store_mutations/selection.rs"]

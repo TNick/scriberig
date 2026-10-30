@@ -295,6 +295,12 @@ impl SessionStore for SqliteSessionStore {
             )
             .map_err(|error| error.to_string())?;
         plan_indexes::delete_session_plan_indexes(&transaction, session)?;
+        transaction
+            .execute(
+                "DELETE FROM session_plan_records WHERE session_id=?1",
+                params![session.as_bytes().as_slice()],
+            )
+            .map_err(|error| error.to_string())?;
         transaction.commit().map_err(|error| error.to_string())?;
         Ok(())
     }

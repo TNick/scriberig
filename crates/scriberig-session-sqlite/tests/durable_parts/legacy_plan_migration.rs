@@ -170,6 +170,19 @@ fn legacy_plan_migration_preserves_historical_completed_result() {
         .expect("session exists");
     let migrated = &loaded.plans[0];
 
+    let connection = Connection::open(&path).expect("inspect migrated compatibility payload");
+    let stored_payload = connection
+        .query_row(
+            "SELECT payload FROM session_records WHERE session_id=?1",
+            params![session_id.as_bytes().as_slice()],
+            |row| row.get::<_, Vec<u8>>(0),
+        )
+        .expect("read migrated payload");
+    let stored_value: serde_json::Value =
+        serde_json::from_slice(&stored_payload).expect("decode migrated payload");
+    assert_eq!(stored_value["plans"], serde_json::json!([]));
+    drop(connection);
+
     assert_eq!(migrated.id, plan_id);
     assert_eq!(migrated.revision, expected_plan.revision);
     assert_eq!(migrated.goal, expected_plan.goal);

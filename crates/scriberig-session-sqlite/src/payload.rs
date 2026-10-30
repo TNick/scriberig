@@ -100,12 +100,14 @@ pub(crate) fn encode(
     session: &Session,
     legacy_execution: &[LegacyExecutionRecord],
 ) -> Result<Vec<u8>, String> {
+    let mut projection = session.clone();
+    projection.plans.clear();
     if legacy_execution.is_empty() {
-        return serde_json::to_vec(session).map_err(|error| error.to_string());
+        return serde_json::to_vec(&projection).map_err(|error| error.to_string());
     }
     let envelope = VersionedSessionPayload {
         version: LEGACY_PAYLOAD_VERSION,
-        session: session.clone(),
+        session: projection,
         legacy_execution: legacy_execution.to_vec(),
     };
     serde_json::to_vec(&envelope).map_err(|error| error.to_string())
@@ -312,12 +314,14 @@ fn normalized_value(
     session: &Session,
     legacy_execution: &[LegacyExecutionRecord],
 ) -> Result<Value, String> {
+    let mut projection = session.clone();
+    projection.plans.clear();
     if legacy_execution.is_empty() {
-        serde_json::to_value(session).map_err(|error| error.to_string())
+        serde_json::to_value(projection).map_err(|error| error.to_string())
     } else {
         serde_json::to_value(VersionedSessionPayload {
             version: LEGACY_PAYLOAD_VERSION,
-            session: session.clone(),
+            session: projection,
             legacy_execution: legacy_execution.to_vec(),
         })
         .map_err(|error| error.to_string())
