@@ -1,5 +1,7 @@
 /** @file Defines navigation-oriented session and branch summaries. */
 import type { BranchId, EntityId, MigrationId, OperationId, SessionId, SnapshotId } from "./ids";
+import type { SessionPlan } from "./session-plans";
+export * from "./session-plans";
 /** Session summary for navigation. */
 export interface SessionSummary {
   sessionId: SessionId;
@@ -101,96 +103,6 @@ export interface SessionExecutionChange {
   providerId?: string;
   modelId?: string;
   thinkingLevel?: string;
-}
-/** Durable lifecycle state for a planned work item. */
-export type SessionPlanNodeStatus =
-  "Planned" | "Ready" | "Running" | "Completed" | "Failed" | "Abandoned";
-/** Safe model-library configuration assigned to one plan node. */
-export interface SessionModelAssignment {
-  providerId: string;
-  modelId: string;
-  thinkingLevel?: string;
-}
-/** Durable planned work node located in a session tree. */
-export interface SessionPlanNode {
-  id: string;
-  parent: string;
-  title: string;
-  purpose: string;
-  status: SessionPlanNodeStatus;
-  branch?: BranchId;
-  result?: string;
-  supersededBy?: string;
-  expectedResult?: SessionExpectedResult;
-  semanticScope: readonly string[];
-  assignment?: SessionModelAssignment;
-  claim?: SessionWorkerClaim;
-}
-
-/** Exact result contract expected from one plan node. */
-export interface SessionExpectedResult {
-  kind: string;
-  requiresHandle: boolean;
-}
-
-/** Exclusive runtime claim for an active plan node. */
-export interface SessionWorkerClaim {
-  id: string;
-  node: string;
-  branch: BranchId;
-  owner: string;
-  generation: number;
-  assignment?: SessionModelAssignment;
-}
-/** Result-based dependency edge between plan nodes. */
-export interface SessionPlanDependency {
-  prerequisite: string;
-  dependent: string;
-  fulfilledBy?: string;
-}
-
-/** Durable plan lifecycle state. */
-export type SessionPlanStatus =
-  "Draft" | "Planned" | "Running" | "Paused" | "Completed" | "Failed" | "Cancelled";
-
-/** Exact durable conversation location where a plan was created. */
-export type SessionContinuationAnchor =
-  | { BranchHead: { branch: BranchId } }
-  | { AssistantOutput: { branch: BranchId; turn: string } }
-  | { HumanInput: { branch: BranchId; turn: string } }
-  | { BranchResult: { branch: BranchId; result: string } };
-
-/** Safe identity and generation of the active plan coordinator. */
-export interface SessionCoordinatorClaim {
-  id: string;
-  operation?: string;
-  owner: string;
-  generation: number;
-}
-
-/** Immutable earlier plan revision. */
-export interface SessionPlanRevision {
-  revision: number;
-  goal: string;
-  status: SessionPlanStatus;
-  nodes: readonly SessionPlanNode[];
-  dependencies: readonly SessionPlanDependency[];
-  reason?: string;
-}
-/** Plan projection with structural nodes and a distinct dependency DAG. */
-export interface SessionPlan {
-  id: string;
-  revision: number;
-  goal: string;
-  status: SessionPlanStatus;
-  anchor?: SessionContinuationAnchor;
-  rootBranch: BranchId;
-  nodes: readonly SessionPlanNode[];
-  dependencies: readonly SessionPlanDependency[];
-  coordinator?: BranchId;
-  coordinatorCursor?: string;
-  coordinatorClaim?: SessionCoordinatorClaim;
-  history: readonly SessionPlanRevision[];
 }
 /** Compact durable session tree returned by the public protocol. */
 export interface SessionReadResponse {

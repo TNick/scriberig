@@ -1,8 +1,103 @@
 /** @file Verifies Rust session reads and derived branch views. */
 import { describe, expect, it } from "vitest";
 import { ScriberigClient } from "../src";
+import { normalizeSessionPlan } from "../src/session-plan-views";
 
 describe("session views", () => {
+  it("preserves shared semantic plan and node view fields", () => {
+    const plan = normalizeSessionPlan({
+      id: "plan-1",
+      revision: 5,
+      exact_revision: "plan-revision-5",
+      snapshot: "snapshot-5",
+      goal: "Ship the feature",
+      status: "Running",
+      root_branch: "branch-1",
+      root_nodes: ["node-1"],
+      status_counts: { planned: 0, ready: 0, running: 1, completed: 0 },
+      nodes: [
+        {
+          id: "node-1",
+          parent: "branch:branch-1",
+          title: "Implement",
+          purpose: "Implement the feature",
+          status: "Running",
+          exact_revision: "node-revision-2",
+          effective_status: "Running",
+          contains_ignored: true,
+          summary_id: "summary-1",
+          summary_preview: "Halfway done",
+          dependency_blockers: ["node-0"],
+          entry_gates: { pending: 1 },
+          completion_gates: {},
+          evidence_count: 2,
+          can_retry: false,
+        },
+      ],
+      dependencies: [],
+      gates: [
+        {
+          id: "gate-1",
+          owner: "node-1",
+          phase: "Entry",
+          requirement: { ValidationPassed: { profile: "lint" } },
+        },
+      ],
+      evidence: [
+        {
+          id: "evidence-1",
+          owner: { Gate: "gate-1" },
+          role: "Supports",
+          evidence: {
+            kind: "ValidationResult",
+            reference: { entity: "validation-1", revision: "revision-1" },
+            attributes: { profile: "lint" },
+          },
+        },
+      ],
+      summaries: [
+        {
+          id: "summary-1",
+          node: "node-1",
+          text: "Halfway done",
+          sources: [{ entity: "validation-1", revision: "revision-1" }],
+        },
+      ],
+      history: [
+        {
+          revision: 4,
+          goal: "Ship the feature",
+          status: "Planned",
+          nodes: [],
+          dependencies: [],
+          summaries: [{ id: "old-summary", node: "node-1", text: "Earlier" }],
+        },
+      ],
+    });
+
+    expect(plan).toMatchObject({
+      exactRevision: "plan-revision-5",
+      snapshot: "snapshot-5",
+      rootNodes: ["node-1"],
+      statusCounts: { running: 1, completed: 0 },
+      gates: [{ id: "gate-1", requirement: { ValidationPassed: { profile: "lint" } } }],
+      evidence: [{ id: "evidence-1", owner: { Gate: "gate-1" } }],
+      summaries: [{ id: "summary-1", node: "node-1", text: "Halfway done" }],
+      nodes: [
+        {
+          exactRevision: "node-revision-2",
+          effectiveStatus: "Running",
+          containsIgnored: true,
+          summaryPreview: "Halfway done",
+          dependencyBlockers: ["node-0"],
+          entryGates: { pending: 1, satisfied: 0, failed: 0, waived: 0 },
+          evidenceCount: 2,
+        },
+      ],
+      history: [{ summaries: [{ id: "old-summary", node: "node-1" }] }],
+    });
+  });
+
   it("normalizes Rust session reads and derives branch views", async () => {
     const transport = {
       request: async <T>(): Promise<T> =>

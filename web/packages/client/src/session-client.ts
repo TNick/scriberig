@@ -9,6 +9,8 @@ import type {
   BranchResultReference,
   SessionId,
   SessionReadResponse,
+  SessionPlan,
+  SessionPlanSemanticMutation,
   ModelRequestDetailResponse,
   ModelRequestDetailPageRequest,
   ToolResultDetailResponse,
@@ -36,6 +38,7 @@ import {
   resultFromSession,
 } from "./session-views";
 import { normalizeExecutionSelection, normalizeModelLibrary } from "./model-views";
+import { normalizeSessionPlan } from "./session-plan-views";
 import { readPresentationPreferences, replacePresentationPreferences } from "./presentation-views";
 import type { TransportConnectionState } from "./transport";
 import { SemanticClient } from "./semantic-client";
@@ -257,6 +260,62 @@ export class SessionClient extends SemanticClient {
         signal,
       )
       .then(normalizeExecutionSelection);
+  }
+  /** Applies a typed plan summary, evidence, gate, or waiver mutation.
+   * @param sessionId Owning durable session.
+   * @param planId Stable plan identity.
+   * @param expectedRevision Plan mutation revision observed by the caller.
+   * @param mutation Shared semantic mutation to apply.
+   * @param signal Optional request cancellation signal.
+   * @returns The authoritative updated plan projection.
+   */
+  mutatePlanSemantics(
+    sessionId: SessionId,
+    planId: string,
+    expectedRevision: number,
+    mutation: SessionPlanSemanticMutation,
+    signal?: AbortSignal,
+  ): Promise<SessionPlan> {
+    return this.transport
+      .request(
+        "plan_semantic_mutation",
+        {
+          session: { id: sessionId },
+          plan: planId,
+          expected_revision: expectedRevision,
+          mutation,
+        },
+        signal,
+      )
+      .then(normalizeSessionPlan);
+  }
+  /** Retries a failed node through the shared plan recovery operation.
+   * @param sessionId Owning durable session.
+   * @param planId Stable plan identity.
+   * @param nodeId Failed node identity.
+   * @param expectedRevision Plan mutation revision observed by the caller.
+   * @param signal Optional request cancellation signal.
+   * @returns The authoritative updated plan projection.
+   */
+  retryPlanNode(
+    sessionId: SessionId,
+    planId: string,
+    nodeId: string,
+    expectedRevision: number,
+    signal?: AbortSignal,
+  ): Promise<SessionPlan> {
+    return this.transport
+      .request(
+        "plan_retry",
+        {
+          session: { id: sessionId },
+          plan: planId,
+          node: nodeId,
+          expected_revision: expectedRevision,
+        },
+        signal,
+      )
+      .then(normalizeSessionPlan);
   }
   /** Reads one branch from the authoritative session tree. */
   getBranch(
