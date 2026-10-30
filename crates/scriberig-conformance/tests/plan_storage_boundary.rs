@@ -37,7 +37,12 @@ fn plan_writes_stay_behind_shared_storage_operations() {
             .unwrap_or_else(|error| panic!("read {}: {error}", source.display()));
         assert_no_private_plan_tables(files);
     }
-    for product_source in [root.join("web/apps"), root.join("web/packages")] {
+    for product_source in [
+        root.join("apps/scriberig/src"),
+        root.join("crates/scriberig-server/src"),
+        root.join("web/apps"),
+        root.join("web/packages"),
+    ] {
         let mut files = Vec::new();
         collect_source_files(&product_source, &mut files)
             .unwrap_or_else(|error| panic!("read {}: {error}", product_source.display()));
