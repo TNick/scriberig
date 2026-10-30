@@ -86,9 +86,35 @@ fn disjoint_worker_settlements_conflict_then_retry_without_losing_results() {
         right_claim,
         &right_result,
     );
+    let trigger_connection =
+        rusqlite::Connection::open(&path).expect("open settlement trigger connection");
+    trigger_connection
+        .execute_batch(
+            "CREATE TRIGGER reject_plan_session_payload_rewrite
+             BEFORE UPDATE ON session_records
+             BEGIN SELECT RAISE(ABORT, 'plan settlement rewrote the session payload'); END;",
+        )
+        .expect("reject whole-session settlement rewrite");
+    let mut allowed_branch = String::new();
+    for byte in left_branch.as_bytes() {
+        std::fmt::Write::write_fmt(&mut allowed_branch, format_args!("{byte:02x}"))
+            .expect("format branch identity");
+    }
+    trigger_connection
+        .execute_batch(&format!(
+            "CREATE TRIGGER reject_unrelated_branch_projection_update
+             BEFORE UPDATE ON session_branch_records
+             WHEN OLD.branch_id != X'{allowed_branch}'
+             BEGIN SELECT RAISE(ABORT, 'settlement rewrote an unrelated branch row'); END;"
+        ))
+        .expect("reject unrelated branch row updates");
     first_store
         .compare_and_swap_plan(&left, plan_id, expected)
         .expect("first sibling settlement wins");
+    trigger_connection
+        .execute_batch("DROP TRIGGER reject_unrelated_branch_projection_update")
+        .expect("allow the retry to update its own branch row");
+    drop(trigger_connection);
     let conflict = second_store
         .compare_and_swap_plan(&right, plan_id, expected)
         .expect_err("stale sibling settlement conflicts");

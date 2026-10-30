@@ -59,6 +59,16 @@ impl SqliteSessionStore {
                  session_id BLOB PRIMARY KEY,
                  payload BLOB NOT NULL
              );
+             CREATE TABLE IF NOT EXISTS session_branch_records (
+                 session_id BLOB NOT NULL,
+                 branch_id BLOB NOT NULL,
+                 ordinal INTEGER NOT NULL,
+                 payload BLOB NOT NULL,
+                 PRIMARY KEY (session_id, branch_id)
+             );
+             CREATE TABLE IF NOT EXISTS session_branch_meta (
+                 session_id BLOB PRIMARY KEY
+             );
              CREATE TABLE IF NOT EXISTS plan_node_index (
                  session_id BLOB NOT NULL,
                  plan_id BLOB NOT NULL,

@@ -4,7 +4,7 @@ use rusqlite::params;
 use scriberig_core::EntityId;
 use scriberig_session::{PlanStoreError, Session};
 
-use crate::{OptionalRow, SqliteSessionStore, payload};
+use crate::{OptionalRow, SqliteSessionStore, branch_projection, payload};
 
 impl SqliteSessionStore {
     /// Atomically replaces a plan and merges new branch records.
@@ -45,11 +45,19 @@ impl SqliteSessionStore {
                     .ok_or_else(|| "session is not stored".to_owned())?;
                 let decoded = payload::decode(&current_payload)?;
                 let mut stored = decoded.session;
+                branch_projection::initialize_if_missing(
+                    transaction,
+                    session.id,
+                    &stored.branches,
+                )?;
+                stored.branches = branch_projection::read(transaction, session.id)?;
+                let mut changed_branches = std::collections::BTreeSet::new();
                 for branch in &session.branches {
                     if stored.branches.iter().any(|known| known.id == branch.id) {
                         continue;
                     }
                     stored.branches.push(branch.clone());
+                    changed_branches.insert(branch.id);
                     if let Some(parent_id) = branch.parent
                         && let Some(parent) = stored
                             .branches
@@ -58,6 +66,7 @@ impl SqliteSessionStore {
                         && !parent.children.contains(&branch.id)
                     {
                         parent.children.push(branch.id);
+                        changed_branches.insert(parent.id);
                     }
                 }
                 let settled_results = proposed.settlement_result_refs_since(current_plan);
@@ -79,16 +88,26 @@ impl SqliteSessionStore {
                         .find(|branch| branch.id == branch_id)
                         .ok_or_else(|| "settled worker branch is not stored".to_owned())?;
                     *stored_branch = proposed_branch.clone();
+                    changed_branches.insert(branch_id);
                 }
-                let updated_payload = payload::encode(&stored, &decoded.legacy_execution)?;
-                let updated = transaction
-                    .execute(
-                        "UPDATE session_records SET payload=?2 WHERE session_id=?1",
-                        params![session.id.as_bytes().as_slice(), updated_payload],
-                    )
-                    .map_err(|error| error.to_string())?;
-                if updated != 1 {
-                    return Err("session record disappeared during plan update".to_owned());
+                for branch_id in changed_branches {
+                    let changed = stored
+                        .branches
+                        .iter()
+                        .find(|branch| branch.id == branch_id)
+                        .ok_or_else(|| "changed branch projection is absent".to_owned())?;
+                    let ordinal = session
+                        .branches
+                        .iter()
+                        .position(|branch| branch.id == branch_id)
+                        .or_else(|| {
+                            stored
+                                .branches
+                                .iter()
+                                .position(|branch| branch.id == branch_id)
+                        })
+                        .ok_or_else(|| "changed branch position is absent".to_owned())?;
+                    branch_projection::upsert(transaction, session.id, changed, ordinal)?;
                 }
                 Ok(())
             },

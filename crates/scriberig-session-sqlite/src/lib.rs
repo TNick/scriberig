@@ -1,5 +1,6 @@
 //! Persists complete provider-neutral session graphs in SQLite.
 
+mod branch_projection;
 mod initialization;
 mod payload;
 #[path = "store_mutations/plan_indexes.rs"]

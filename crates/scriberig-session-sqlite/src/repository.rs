@@ -4,7 +4,7 @@ use rusqlite::{TransactionBehavior, params};
 use scriberig_core::{EntityId, SnapshotId};
 use scriberig_session::{PlanStoreError, SelectionStoreError, Session, SessionStore};
 
-use crate::{OptionalRow, SqliteSessionStore, payload, plan_indexes};
+use crate::{OptionalRow, SqliteSessionStore, branch_projection, payload, plan_indexes};
 
 impl SessionStore for SqliteSessionStore {
     /// Loads all stored sessions in deterministic identity order.
@@ -41,6 +41,7 @@ impl SessionStore for SqliteSessionStore {
         let mut rewrites = Vec::new();
         for (session_id, payload) in records {
             let mut decoded = payload::decode(&payload)?;
+            branch_projection::hydrate(self, &mut decoded.session)?;
             self.hydrate_semantic_plans(&mut decoded.session, true)?;
             if decoded.requires_rewrite {
                 rewrites.push((
@@ -103,6 +104,7 @@ impl SessionStore for SqliteSessionStore {
             return Ok(None);
         };
         let mut decoded = payload::decode(&payload)?;
+        branch_projection::hydrate(self, &mut decoded.session)?;
         self.hydrate_semantic_plans(&mut decoded.session, true)?;
         if !decoded.requires_rewrite {
             return Ok(Some(decoded.session));
@@ -280,6 +282,18 @@ impl SessionStore for SqliteSessionStore {
                 params![session.as_bytes().as_slice()],
             )
             .map_err(|error| error.to_string())?;
+        transaction
+            .execute(
+                "DELETE FROM session_branch_records WHERE session_id=?1",
+                params![session.as_bytes().as_slice()],
+            )
+            .map_err(|error| error.to_string())?;
+        transaction
+            .execute(
+                "DELETE FROM session_branch_meta WHERE session_id=?1",
+                params![session.as_bytes().as_slice()],
+            )
+            .map_err(|error| error.to_string())?;
         plan_indexes::delete_session_plan_indexes(&transaction, session)?;
         transaction.commit().map_err(|error| error.to_string())?;
         Ok(())
@@ -333,6 +347,7 @@ impl SessionStore for SqliteSessionStore {
                 params![session.id.as_bytes().as_slice(), payload],
             )
             .map_err(|error| error.to_string())?;
+        branch_projection::replace_all(&transaction, session.id, &projection.branches)?;
         transaction.commit().map_err(|error| error.to_string())
     }
 
