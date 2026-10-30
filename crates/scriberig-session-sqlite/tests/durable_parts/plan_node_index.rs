@@ -139,6 +139,42 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
             .as_bytes()
     );
     assert_eq!(indexed_rollup.5, 1);
+    let stored_rollups = store
+        .load_plan_rollups_at_snapshot(
+            session_id,
+            plan_id,
+            stored_plan.source_snapshot.expect("source snapshot"),
+        )
+        .expect("load exact-snapshot rollups")
+        .expect("current rollup cache");
+    assert_eq!(
+        stored_rollups,
+        stored_plan.node_rollups().expect("reference rollups")
+    );
+    connection
+        .execute(
+            "DELETE FROM plan_node_rollup_index
+             WHERE session_id=?1 AND plan_id=?2 AND node_id=?3",
+            rusqlite::params![
+                session_id.as_bytes().as_slice(),
+                plan_id.as_bytes().as_slice(),
+                child_id.as_bytes().as_slice(),
+            ],
+        )
+        .expect("damage derived rollup cache");
+    assert!(
+        store
+            .load_plan_rollups_at_snapshot(
+                session_id,
+                plan_id,
+                stored_plan.source_snapshot.expect("source snapshot"),
+            )
+            .expect("check incomplete cache")
+            .is_none()
+    );
+    store
+        .rebuild_plan_node_index(session_id, plan_id)
+        .expect("rebuild incomplete cache");
 
     let mut changed_session = store
         .load(session_id)
@@ -189,6 +225,21 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
         )
         .expect("read updated rollup snapshot");
     assert_eq!(rollup_snapshot.as_slice(), updated_snapshot.as_bytes());
+    assert!(
+        store
+            .load_plan_rollups_at_snapshot(
+                session_id,
+                plan_id,
+                stored_plan.source_snapshot.expect("old snapshot"),
+            )
+            .expect("read stale rollup cache")
+            .is_none()
+    );
+    let refreshed_rollups = store
+        .load_plan_rollups_at_snapshot(session_id, plan_id, updated_snapshot)
+        .expect("load refreshed rollups")
+        .expect("refreshed rollup cache");
+    assert_eq!(refreshed_rollups.len(), 2);
 
     connection
         .execute(
@@ -233,6 +284,14 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
         )
         .expect("count rebuilt rollups");
     assert_eq!(rollup_count, 2);
+    assert_eq!(
+        store
+            .load_plan_rollups_at_snapshot(session_id, plan_id, updated_snapshot)
+            .expect("load rebuilt cache")
+            .expect("rebuilt rollup cache")
+            .len(),
+        2
+    );
     drop(connection);
     drop(store);
     let _ = std::fs::remove_file(path);
