@@ -2,12 +2,12 @@
     service: &amp;'a ApplicationService&lt;B&gt;,
     context: &amp;'a ApplicationContext,
     session: EntityId,
-    scope: &amp;'a <a class="struct" href="../../../../scriberig_agent_runtime/struct.ChildExecutionScope.html" title="struct scriberig_agent_runtime::ChildExecutionScope">ChildExecutionScope</a>,
-    invocation: &amp;'a <a class="struct" href="../../../../scriberig_agent_runtime/upstream_invocation/types/struct.UpstreamBranchInvocation.html" title="struct scriberig_agent_runtime::upstream_invocation::types::UpstreamBranchInvocation">UpstreamBranchInvocation</a>,
+    scope: &amp;'a ChildExecutionScope,
+    invocation: &amp;'a UpstreamBranchInvocation,
     request: &amp;'a <a class="struct" href="../struct.ToolRequest.html" title="struct srig::native_tui_agent::upstream_execution::ToolRequest">ToolRequest</a>,
     project_store: <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;SqliteStore&gt;,
     cancellation: CancellationToken,
-    output_callback: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="type" href="../../../../scriberig_agent_runtime/type.OutputCallback.html" title="type scriberig_agent_runtime::OutputCallback">OutputCallback</a>&gt;,
+    output_callback: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;OutputCallback&gt;,
 ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.99.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;(<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;EntityId&gt;), AgentError&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'a&gt;&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Creates, recursively executes, and durably finalizes one child branch.</p>
 <h2 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h2>
 <ul>
