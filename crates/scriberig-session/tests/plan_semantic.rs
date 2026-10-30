@@ -2,10 +2,11 @@
 
 use scriberig_core::EntityId;
 use scriberig_session::{
-    ContinuationAnchor, Plan, PlanEvidenceAssociation, PlanEvidenceKind, PlanEvidenceOwner,
-    PlanEvidenceReference, PlanEvidenceRole, PlanGate, PlanGatePhase, PlanGateRequirement,
-    PlanGateStatus, PlanGateWaiver, PlanNode, PlanNodeParent, PlanNodeRollupIndex, PlanNodeStatus,
-    PlanNodeSummary, PlanSemanticReference, PlanSemanticSnapshot, PlanStatus,
+    ContinuationAnchor, ExpectedResult, Plan, PlanEvidenceAssociation, PlanEvidenceKind,
+    PlanEvidenceOwner, PlanEvidenceReference, PlanEvidenceRole, PlanGate, PlanGatePhase,
+    PlanGateRequirement, PlanGateStatus, PlanGateWaiver, PlanNode, PlanNodeParent,
+    PlanNodeRollupIndex, PlanNodeStatus, PlanNodeSummary, PlanNodeView, PlanSemanticReference,
+    PlanSemanticSnapshot, PlanStatus,
 };
 
 /// Creates a valid unstarted plan node with a stable identity.
@@ -366,6 +367,9 @@ fn semantic_encoder_rejects_structural_cycles() {
 
 #[path = "plan_semantic_parts/rollup_views.rs"]
 mod rollup_views;
+
+#[path = "plan_semantic_parts/conformance_fixture.rs"]
+mod conformance_fixture;
 
 #[path = "plan_semantic_parts/rollup_conformance.rs"]
 mod rollup_conformance;
