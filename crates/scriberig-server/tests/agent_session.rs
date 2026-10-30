@@ -279,3 +279,6 @@ fn model_selection_mutation_round_trips_through_server() {
 
 #[path = "agent_session_parts/part1.rs"]
 mod part1;
+
+#[path = "agent_session_parts/plan_semantic_reconnect.rs"]
+mod plan_semantic_reconnect;
