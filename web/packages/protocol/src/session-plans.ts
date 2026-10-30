@@ -249,3 +249,32 @@ export interface SessionPlanSemanticMutationRequest {
   expected_revision: number;
   mutation: SessionPlanSemanticMutation;
 }
+
+/** Reads a bounded page of node attempts at an exact semantic snapshot. */
+export interface SessionPlanAttemptHistoryRequest {
+  session: { id: string };
+  plan: string;
+  node: string;
+  snapshot: string;
+  offset: number;
+  limit: number;
+}
+
+/** One durable worker attempt with exact semantic identities. */
+export interface SessionPlanAttempt {
+  id: string;
+  exactRevision: string;
+  node: string;
+  branch: string;
+  claimGeneration: number;
+  claim?: string;
+  status: SessionPlanNodeStatus;
+  result?: string;
+  failure?: SessionPlanEvidenceReference;
+}
+
+/** One bounded page of a node's attempt history. */
+export interface SessionPlanAttemptHistoryPage {
+  offset: number;
+  attempts: readonly SessionPlanAttempt[];
+}

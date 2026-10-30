@@ -75,6 +75,70 @@ describe("session client projections", () => {
     });
   });
 
+  it("reads exact-snapshot plan attempt pages through the shared route", async () => {
+    const requests: { operation: string; payload: unknown }[] = [];
+    const transport = {
+      request: async <T>(operation: string, payload: unknown): Promise<T> => {
+        requests.push({ operation, payload });
+        return {
+          offset: 2,
+          attempts: [
+            {
+              id: "attempt-1",
+              exact_revision: "revision-1",
+              node: "node-1",
+              branch: "branch-1",
+              claim_generation: 3,
+              claim: "claim-3",
+              status: "Completed",
+              result: "result-1",
+              failure: null,
+            },
+          ],
+        } as T;
+      },
+      subscribe: () => () => undefined,
+    };
+    const client = new ScriberigClient(transport);
+    const page = await client.getPlanAttemptHistory({
+      session: { id: "session-1" },
+      plan: "plan-1",
+      node: "node-1",
+      snapshot: "snapshot-1",
+      offset: 2,
+      limit: 8,
+    });
+
+    expect(page).toEqual({
+      offset: 2,
+      attempts: [
+        {
+          id: "attempt-1",
+          exactRevision: "revision-1",
+          node: "node-1",
+          branch: "branch-1",
+          claimGeneration: 3,
+          claim: "claim-3",
+          status: "Completed",
+          result: "result-1",
+        },
+      ],
+    });
+    expect(requests).toEqual([
+      {
+        operation: "plan_attempt_history",
+        payload: {
+          session: { id: "session-1" },
+          plan: "plan-1",
+          node: "node-1",
+          snapshot: "snapshot-1",
+          offset: 2,
+          limit: 8,
+        },
+      },
+    ]);
+  });
+
   it("reads and revision-checks shared presentation preferences", async () => {
     const requests: { operation: string; payload: unknown }[] = [];
     const transport = {
