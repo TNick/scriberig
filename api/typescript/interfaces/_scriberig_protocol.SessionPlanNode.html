@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">SessionPlanNode</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#abandonreason">abandonReason</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">&quot;Ignored&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;Superseded&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;Cancelled&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;Obsolete&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#assignment">assignment</a><span class="tsd-signature-symbol">?:</span> <a href="_scriberig_protocol.SessionModelAssignment.html" class="tsd-signature-type tsd-kind-interface">SessionModelAssignment</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#branch">branch</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.BranchId.html" class="tsd-signature-type tsd-kind-type-alias">BranchId</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#canretry">canRetry</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#claim">claim</a><span class="tsd-signature-symbol">?:</span> <a href="_scriberig_protocol.SessionWorkerClaim.html" class="tsd-signature-type tsd-kind-interface">SessionWorkerClaim</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#completiongates">completionGates</a><span class="tsd-signature-symbol">:</span> <a href="_scriberig_protocol.SessionPlanGateCounts.html" class="tsd-signature-type tsd-kind-interface">SessionPlanGateCounts</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#containsabandoned">containsAbandoned</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#containsignored">containsIgnored</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#dependencyblockers">dependencyBlockers</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#effectivestatus">effectiveStatus</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.SessionPlanNodeStatus.html" class="tsd-signature-type tsd-kind-type-alias">SessionPlanNodeStatus</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#entrygates">entryGates</a><span class="tsd-signature-symbol">:</span> <a href="_scriberig_protocol.SessionPlanGateCounts.html" class="tsd-signature-type tsd-kind-interface">SessionPlanGateCounts</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#evidencecount">evidenceCount</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#exactrevision">exactRevision</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#expectedresult">expectedResult</a><span class="tsd-signature-symbol">?:</span> <a href="_scriberig_protocol.SessionExpectedResult.html" class="tsd-signature-type tsd-kind-interface">SessionExpectedResult</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#id">id</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#lastfailure">lastFailure</a><span class="tsd-signature-symbol">?:</span> <a href="_scriberig_protocol.SessionPlanEvidenceReference.html" class="tsd-signature-type tsd-kind-interface">SessionPlanEvidenceReference</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#parent">parent</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#purpose">purpose</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#result">result</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#semanticscope">semanticScope</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#status">status</a><span class="tsd-signature-symbol">:</span> <a href="../types/_scriberig_protocol.SessionPlanNodeStatus.html" class="tsd-signature-type tsd-kind-type-alias">SessionPlanNodeStatus</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#summaryid">summaryId</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#summarypreview">summaryPreview</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#supersededby">supersededBy</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#title">title</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L135">session-plans.ts:135</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L135">session-plans.ts:135</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -57,127 +57,127 @@
 <h3 class="tsd-anchor-link" id="abandonreason"><code class="tsd-tag">Optional</code><span>abandon<wbr/>Reason</span><a href="#abandonreason" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">abandonReason</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">&quot;Ignored&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;Superseded&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;Cancelled&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;Obsolete&quot;</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L145">session-plans.ts:145</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L145">session-plans.ts:145</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="assignment"><code class="tsd-tag">Optional</code><span>assignment</span><a href="#assignment" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">assignment</span><span class="tsd-signature-symbol">?:</span> <a href="_scriberig_protocol.SessionModelAssignment.html" class="tsd-signature-type tsd-kind-interface">SessionModelAssignment</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L151">session-plans.ts:151</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L151">session-plans.ts:151</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="branch"><code class="tsd-tag">Optional</code><span>branch</span><a href="#branch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">branch</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.BranchId.html" class="tsd-signature-type tsd-kind-type-alias">BranchId</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L146">session-plans.ts:146</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L146">session-plans.ts:146</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="canretry"><span>can<wbr/>Retry</span><a href="#canretry" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">canRetry</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L159">session-plans.ts:159</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L159">session-plans.ts:159</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="claim"><code class="tsd-tag">Optional</code><span>claim</span><a href="#claim" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">claim</span><span class="tsd-signature-symbol">?:</span> <a href="_scriberig_protocol.SessionWorkerClaim.html" class="tsd-signature-type tsd-kind-interface">SessionWorkerClaim</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L152">session-plans.ts:152</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L152">session-plans.ts:152</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="completiongates"><span>completion<wbr/>Gates</span><a href="#completiongates" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">completionGates</span><span class="tsd-signature-symbol">:</span> <a href="_scriberig_protocol.SessionPlanGateCounts.html" class="tsd-signature-type tsd-kind-interface">SessionPlanGateCounts</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L157">session-plans.ts:157</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L157">session-plans.ts:157</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="containsabandoned"><span>contains<wbr/>Abandoned</span><a href="#containsabandoned" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">containsAbandoned</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L144">session-plans.ts:144</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L144">session-plans.ts:144</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="containsignored"><span>contains<wbr/>Ignored</span><a href="#containsignored" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">containsIgnored</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L143">session-plans.ts:143</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L143">session-plans.ts:143</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="dependencyblockers"><span>dependency<wbr/>Blockers</span><a href="#dependencyblockers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">dependencyBlockers</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L155">session-plans.ts:155</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L155">session-plans.ts:155</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="effectivestatus"><code class="tsd-tag">Optional</code><span>effective<wbr/>Status</span><a href="#effectivestatus" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">effectiveStatus</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.SessionPlanNodeStatus.html" class="tsd-signature-type tsd-kind-type-alias">SessionPlanNodeStatus</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L142">session-plans.ts:142</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L142">session-plans.ts:142</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="entrygates"><span>entry<wbr/>Gates</span><a href="#entrygates" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">entryGates</span><span class="tsd-signature-symbol">:</span> <a href="_scriberig_protocol.SessionPlanGateCounts.html" class="tsd-signature-type tsd-kind-interface">SessionPlanGateCounts</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L156">session-plans.ts:156</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L156">session-plans.ts:156</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="evidencecount"><span>evidence<wbr/>Count</span><a href="#evidencecount" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">evidenceCount</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L158">session-plans.ts:158</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L158">session-plans.ts:158</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="exactrevision"><code class="tsd-tag">Optional</code><span>exact<wbr/>Revision</span><a href="#exactrevision" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">exactRevision</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L141">session-plans.ts:141</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L141">session-plans.ts:141</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="expectedresult"><code class="tsd-tag">Optional</code><span>expected<wbr/>Result</span><a href="#expectedresult" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">expectedResult</span><span class="tsd-signature-symbol">?:</span> <a href="_scriberig_protocol.SessionExpectedResult.html" class="tsd-signature-type tsd-kind-interface">SessionExpectedResult</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L149">session-plans.ts:149</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L149">session-plans.ts:149</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="id"><span>id</span><a href="#id" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">id</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L136">session-plans.ts:136</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L136">session-plans.ts:136</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="lastfailure"><code class="tsd-tag">Optional</code><span>last<wbr/>Failure</span><a href="#lastfailure" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">lastFailure</span><span class="tsd-signature-symbol">?:</span> <a href="_scriberig_protocol.SessionPlanEvidenceReference.html" class="tsd-signature-type tsd-kind-interface">SessionPlanEvidenceReference</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L160">session-plans.ts:160</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L160">session-plans.ts:160</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="parent"><span>parent</span><a href="#parent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">parent</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L137">session-plans.ts:137</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L137">session-plans.ts:137</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="purpose"><span>purpose</span><a href="#purpose" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">purpose</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L139">session-plans.ts:139</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L139">session-plans.ts:139</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="result"><code class="tsd-tag">Optional</code><span>result</span><a href="#result" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">result</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L147">session-plans.ts:147</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L147">session-plans.ts:147</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="semanticscope"><span>semantic<wbr/>Scope</span><a href="#semanticscope" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">semanticScope</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L150">session-plans.ts:150</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L150">session-plans.ts:150</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="status"><span>status</span><a href="#status" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">status</span><span class="tsd-signature-symbol">:</span> <a href="../types/_scriberig_protocol.SessionPlanNodeStatus.html" class="tsd-signature-type tsd-kind-type-alias">SessionPlanNodeStatus</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L140">session-plans.ts:140</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L140">session-plans.ts:140</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="summaryid"><code class="tsd-tag">Optional</code><span>summary<wbr/>Id</span><a href="#summaryid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">summaryId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L153">session-plans.ts:153</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L153">session-plans.ts:153</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="summarypreview"><code class="tsd-tag">Optional</code><span>summary<wbr/>Preview</span><a href="#summarypreview" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">summaryPreview</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L154">session-plans.ts:154</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L154">session-plans.ts:154</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="supersededby"><code class="tsd-tag">Optional</code><span>superseded<wbr/>By</span><a href="#supersededby" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">supersededBy</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L148">session-plans.ts:148</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L148">session-plans.ts:148</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="title"><span>title</span><a href="#title" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">title</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/e4038565a3bb3aa0379e8a980b0cda96d9885cab/web/packages/protocol/src/session-plans.ts#L138">session-plans.ts:138</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/protocol/src/session-plans.ts#L138">session-plans.ts:138</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
