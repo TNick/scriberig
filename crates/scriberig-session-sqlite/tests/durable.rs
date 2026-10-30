@@ -389,5 +389,7 @@ mod plan_settlement_rollback;
 #[path = "durable_parts/request_provenance.rs"]
 mod request_provenance;
 
+#[path = "durable_parts/disjoint_settlement_retry.rs"]
+mod disjoint_settlement_retry;
 #[path = "durable_parts/plan_atomic_settlement.rs"]
 mod plan_atomic_settlement;
