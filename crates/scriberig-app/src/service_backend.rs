@@ -160,6 +160,8 @@ pub trait ApplicationBackend {
     }
 
     /// Atomically replaces one plan at its observed durable revision.
+    /// Newly settled worker results are committed on their exact branches with
+    /// the semantic plan revision; unrelated branch records remain untouched.
     ///
     /// - `_context`: Authorized application context.
     /// - `_session`: Complete snapshot containing the proposed plan.

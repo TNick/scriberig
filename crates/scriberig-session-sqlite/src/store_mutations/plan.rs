@@ -33,7 +33,7 @@ impl SqliteSessionStore {
             session.id,
             proposed,
             expected_revision,
-            |transaction| {
+            |transaction, current_plan| {
                 let current_payload = transaction
                     .query_row(
                         "SELECT payload FROM session_records WHERE session_id=?1",
@@ -59,6 +59,26 @@ impl SqliteSessionStore {
                     {
                         parent.children.push(branch.id);
                     }
+                }
+                let settled_results = proposed.settlement_result_refs_since(current_plan);
+                for (branch_id, result_id) in settled_results {
+                    let proposed_branch = session
+                        .branches
+                        .iter()
+                        .find(|branch| branch.id == branch_id)
+                        .ok_or_else(|| "settled worker branch is absent".to_owned())?;
+                    if proposed_branch.result.as_ref().map(|result| result.id) != Some(result_id)
+                        || proposed_branch.result.as_ref().map(|result| result.branch)
+                            != Some(branch_id)
+                    {
+                        return Err("settled worker result does not match its plan".to_owned());
+                    }
+                    let stored_branch = stored
+                        .branches
+                        .iter_mut()
+                        .find(|branch| branch.id == branch_id)
+                        .ok_or_else(|| "settled worker branch is not stored".to_owned())?;
+                    *stored_branch = proposed_branch.clone();
                 }
                 let updated_payload = payload::encode(&stored, &decoded.legacy_execution)?;
                 let updated = transaction

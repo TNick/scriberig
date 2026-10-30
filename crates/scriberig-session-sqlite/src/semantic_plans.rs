@@ -94,7 +94,7 @@ impl SqliteSessionStore {
         commit_related: F,
     ) -> Result<(), PlanStoreError>
     where
-        F: FnOnce(&rusqlite::Transaction<'_>) -> Result<(), String>,
+        F: FnOnce(&rusqlite::Transaction<'_>, &Plan) -> Result<(), String>,
     {
         let root = plan_root(session, proposed.id).map_err(plan_persistence)?;
         if self.semantic_store.read_root(&root).is_none() {
@@ -155,7 +155,7 @@ impl SqliteSessionStore {
             current_snapshot,
             &revisions,
             &changes,
-            commit_related,
+            |transaction| commit_related(transaction, &current),
         ) {
             Ok(_) => Ok(()),
             Err(PromotionError::Root(scriberig_store::RootError::Conflict { actual, .. })) => {

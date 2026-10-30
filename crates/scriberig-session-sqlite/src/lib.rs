@@ -346,8 +346,8 @@ impl SessionStore for SqliteSessionStore {
         self.compare_and_swap_execution_selection_inner(session, expected_revision)
     }
 
-    /// Atomically replaces one plan without overwriting concurrent branch updates.
-    /// New branch records in the proposal are merged in the same transaction.
+    /// Atomically replaces one plan and commits newly settled worker results.
+    /// Unrelated branch records remain untouched.
     ///
     /// - `session`: Snapshot containing the proposed plan.
     /// - `plan_id`: Stable plan identity being replaced.

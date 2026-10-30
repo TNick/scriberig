@@ -3,6 +3,50 @@
 use super::{EntityId, Plan, PlanError, PlanNodeStatus, PlanStatus};
 
 impl Plan {
+    /// Lists worker branches settled between two consecutive plan revisions.
+    ///
+    /// Only prior active claims that now have an exact successful result or
+    /// failure reference are returned. The repository uses these identities
+    /// to commit branch outcomes with the semantic plan revision.
+    ///
+    /// - `self`: Proposed plan after worker settlement.
+    /// - `previous`: Exact plan revision containing the active claims.
+    ///
+    /// Branch and result identities for newly settled workers.
+    ///
+    /// # Returns
+    /// Settled `(branch, result)` pairs in stable plan-node order.
+    #[must_use]
+    pub fn settlement_result_refs_since(&self, previous: &Plan) -> Vec<(EntityId, EntityId)> {
+        if self.id != previous.id {
+            return Vec::new();
+        }
+        previous
+            .nodes
+            .iter()
+            .filter_map(|prior| {
+                if prior.status != PlanNodeStatus::Running {
+                    return None;
+                }
+                let claim = prior.claim.as_ref()?;
+                let settled = self.nodes.iter().find(|node| node.id == prior.id)?;
+                if settled.branch != Some(claim.branch) {
+                    return None;
+                }
+                let result = match settled.status {
+                    PlanNodeStatus::Completed => settled.result,
+                    PlanNodeStatus::Failed => settled
+                        .last_failure
+                        .as_ref()
+                        .filter(|failure| failure.kind == crate::PlanEvidenceKind::Failure)
+                        .map(|failure| failure.reference.entity),
+                    _ => None,
+                }?;
+                Some((claim.branch, result))
+            })
+            .collect()
+    }
+
     /// Completes a running node with its committed durable branch result.
     ///
     /// This operation settles only the node claim. Plan-wide completion is

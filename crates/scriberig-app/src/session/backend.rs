@@ -137,9 +137,9 @@ pub trait SessionBackend {
         })
     }
 
-    /// Atomically replaces one plan while preserving other session changes.
-    /// Newly added branch records are merged and linked to their parent in the
-    /// same operation; existing branches are never overwritten.
+    /// Atomically replaces one plan while preserving unrelated session data.
+    /// New branches are merged with their parent links. A branch is updated
+    /// only when its prior active worker claim settles in the proposed plan.
     ///
     /// - `context`: Authorized caller context.
     /// - `session`: Snapshot containing the proposed plan.

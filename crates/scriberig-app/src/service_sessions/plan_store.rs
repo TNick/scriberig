@@ -72,11 +72,33 @@ pub(super) fn compare_and_swap_plan<B: ApplicationBackend>(
             },
         ));
     }
+    let previous_plan = stored_plan.clone();
+    let settled_results = proposed_plan.settlement_result_refs_since(&previous_plan);
     if proposed_plan.revision != expected_revision.saturating_add(1) {
         return Err(ApplicationError::Internal {
             message: "proposed plan has an unexpected revision".to_owned(),
         });
     }
+    let settled_updates = settled_results
+        .into_iter()
+        .map(|(branch_id, result_id)| {
+            let branch = session
+                .branches
+                .iter()
+                .find(|branch| branch.id == branch_id)
+                .ok_or_else(|| ApplicationError::Internal {
+                    message: "settled worker branch is absent".to_owned(),
+                })?;
+            if branch.result.as_ref().map(|result| result.id) != Some(result_id)
+                || branch.result.as_ref().map(|result| result.branch) != Some(branch_id)
+            {
+                return Err(ApplicationError::Internal {
+                    message: "settled worker result does not match its plan".to_owned(),
+                });
+            }
+            Ok(branch.clone())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     *stored_plan = proposed_plan.clone();
     for branch in &session.branches {
         if stored.branches.iter().any(|known| known.id == branch.id) {
@@ -91,6 +113,15 @@ pub(super) fn compare_and_swap_plan<B: ApplicationBackend>(
             && !parent.children.contains(&branch.id)
         {
             parent.children.push(branch.id);
+        }
+    }
+    for proposed_branch in settled_updates {
+        if let Some(stored_branch) = stored
+            .branches
+            .iter_mut()
+            .find(|branch| branch.id == proposed_branch.id)
+        {
+            *stored_branch = proposed_branch;
         }
     }
     Ok(())

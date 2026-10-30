@@ -162,9 +162,9 @@ pub mod repository {
         /// Atomically replaces one plan at its observed revision.
         ///
         /// The repository must preserve unrelated session and branch updates.
-        /// New branch records in the proposal are merged and linked to their
-        /// existing parents in the same transaction. Existing branch records
-        /// are never overwritten by this operation.
+        /// New branch records are merged and linked to their parents. Existing
+        /// branches are updated only when a prior active worker claim settles;
+        /// that result-bearing branch and the plan revision commit together.
         ///
         /// - `_session`: Snapshot containing the proposed plan.
         /// - `_plan`: Stable plan identity being replaced.

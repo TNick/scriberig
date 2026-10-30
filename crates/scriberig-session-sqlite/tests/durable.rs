@@ -382,5 +382,10 @@ mod part1;
 mod plan_attempt_recovery;
 #[path = "durable_parts/plan_projection.rs"]
 mod plan_projection;
+#[path = "durable_parts/plan_settlement_rollback.rs"]
+mod plan_settlement_rollback;
 #[path = "durable_parts/request_provenance.rs"]
 mod request_provenance;
+
+#[path = "durable_parts/plan_atomic_settlement.rs"]
+mod plan_atomic_settlement;

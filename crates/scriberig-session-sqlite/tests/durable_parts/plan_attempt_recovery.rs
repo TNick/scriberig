@@ -76,7 +76,17 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
         .expect("start first attempt");
     let mut first_branch_record = Branch::new(first_branch, "first attempt").expect("branch");
     first_branch_record.parent = Some(root_id);
-    first_branch_record.result = Some(BranchResult {
+    first_attempt.branches.push(first_branch_record);
+    store
+        .compare_and_swap_plan(&first_attempt, plan_id, expected)
+        .expect("persist first claim");
+
+    let mut failed_attempt = store
+        .load(session_id)
+        .expect("load first attempt")
+        .expect("session exists");
+    let expected = failed_attempt.plans[0].revision;
+    let failure = BranchResult {
         id: failure_id,
         branch: first_branch,
         status: BranchStatus::Abandoned,
@@ -89,21 +99,19 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
         produced_changes: Vec::new(),
         validations: Vec::new(),
         unresolved_questions: Vec::new(),
-    });
-    first_attempt.branches.push(first_branch_record);
-    store
-        .compare_and_swap_plan(&first_attempt, plan_id, expected)
-        .expect("persist first attempt");
-
-    let mut failed_attempt = store
-        .load(session_id)
-        .expect("load first attempt")
-        .expect("session exists");
-    let expected = failed_attempt.plans[0].revision;
-    let failure = failed_attempt.branches[1]
-        .result
-        .clone()
-        .expect("failure result");
+    };
+    let failed_branch = failed_attempt
+        .branches
+        .iter_mut()
+        .find(|branch| branch.id == first_branch)
+        .expect("first worker branch");
+    failed_branch.result = Some(failure.clone());
+    failed_branch.status = BranchStatus::Abandoned;
+    failed_branch
+        .activity
+        .push(scriberig_session::ExecutionActivity::BranchResult(
+            failure_id,
+        ));
     failed_attempt.plans[0]
         .settle_workers(&[], &[(node_id, first_claim, Some(failure))], &[])
         .expect("settle first attempt as failed");
@@ -158,8 +166,24 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
         unresolved_questions: Vec::new(),
     };
     completed.plans[0]
-        .settle_workers(&[(node_id, second_claim, success.clone())], &[], &[success])
+        .settle_workers(
+            &[(node_id, second_claim, success.clone())],
+            &[],
+            std::slice::from_ref(&success),
+        )
         .expect("complete second attempt");
+    let second_branch_record = completed
+        .branches
+        .iter_mut()
+        .find(|branch| branch.id == second_branch)
+        .expect("second worker branch");
+    second_branch_record.result = Some(success.clone());
+    second_branch_record.status = BranchStatus::Completed;
+    second_branch_record
+        .activity
+        .push(scriberig_session::ExecutionActivity::BranchResult(
+            success_id,
+        ));
     store
         .compare_and_swap_plan(&completed, plan_id, expected)
         .expect("persist successful retry");
@@ -187,6 +211,14 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
     assert_eq!(attempts[1].status, PlanNodeStatus::Completed);
     assert_eq!(attempts[1].result, Some(success_id));
     assert_eq!(attempts[1].failure, None);
+    assert_eq!(
+        reloaded.branches[1].result.as_ref().map(|result| result.id),
+        Some(failure_id)
+    );
+    assert_eq!(
+        reloaded.branches[2].result.as_ref().map(|result| result.id),
+        Some(success_id)
+    );
 
     let semantic_store =
         scriberig_store_sqlite::SqliteStore::open(&path).expect("open semantic store");
