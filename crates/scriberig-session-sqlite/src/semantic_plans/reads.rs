@@ -198,6 +198,115 @@ impl SqliteSessionStore {
             .map_err(|error| format!("compact plan view decode failed: {error:?}"))
     }
 
+    /// Loads a bounded page of attempts for one node at an exact snapshot.
+    ///
+    /// # Parameters
+    /// - `session`: Owning durable session identity.
+    /// - `plan`: Stable plan identity.
+    /// - `node`: Stable plan-node identity.
+    /// - `snapshot`: Exact semantic snapshot to resolve.
+    /// - `offset`: Number of matching attempts to skip in stable order.
+    /// - `limit`: Maximum number of matching attempts to return.
+    ///
+    /// The requested attempt page, or `None` when the snapshot is outside the
+    /// plan's retained history.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns a diagnostic when attempt revisions cannot be read or decoded.
+    pub(crate) fn load_plan_attempts_snapshot(
+        &self,
+        session: EntityId,
+        plan: EntityId,
+        node: EntityId,
+        snapshot: SnapshotId,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Option<Vec<scriberig_session::PlanSemanticAttempt>>, String> {
+        let root = plan_root(session, plan)?;
+        let current = self
+            .semantic_store
+            .read_root(&root)
+            .ok_or_else(|| "plan semantic root is absent".to_owned())?;
+        if snapshot != current
+            && !self
+                .semantic_store
+                .ancestors(current)
+                .map_err(|error| format!("plan history read failed: {error:?}"))?
+                .contains(&snapshot)
+        {
+            return Ok(None);
+        }
+        if limit == 0 {
+            return Ok(Some(Vec::new()));
+        }
+        let entries = self
+            .semantic_store
+            .iter(snapshot)
+            .map_err(|error| format!("plan snapshot read failed: {error:?}"))?;
+        let revision_ids = entries
+            .iter()
+            .map(|(_, revision)| *revision)
+            .collect::<Vec<_>>();
+        let object_types = self
+            .semantic_store
+            .get_object_types(&revision_ids)
+            .map_err(|error| format!("plan revision metadata read failed: {error:?}"))?;
+        let attempt_entries = entries
+            .into_iter()
+            .filter(|(_, revision)| {
+                object_types.get(revision).is_some_and(|object_type| {
+                    object_type.as_str()
+                        == scriberig_session::schema::SessionEntityType::PlanAttempt.as_str()
+                })
+            })
+            .collect::<Vec<_>>();
+        let attempt_revision_ids = attempt_entries
+            .iter()
+            .map(|(_, revision)| *revision)
+            .collect::<Vec<_>>();
+        let revisions = self
+            .semantic_store
+            .get_many(&attempt_revision_ids)
+            .map_err(|error| format!("plan attempt read failed: {error:?}"))?;
+        let mut objects = Vec::with_capacity(attempt_entries.len());
+        for (entity, revision_id) in attempt_entries {
+            let Some(revision) = revisions.get(&revision_id) else {
+                return Err(format!("plan attempt revision {revision_id} is missing"));
+            };
+            let Some(object_type) = object_types.get(&revision_id) else {
+                return Err(format!("plan attempt revision {revision_id} has no type"));
+            };
+            if revision.object_type() != object_type {
+                return Err(format!(
+                    "plan attempt revision {revision_id} has mismatched type"
+                ));
+            }
+            objects.push(scriberig_session::PlanSemanticRevision {
+                entity,
+                object_type: object_type.clone(),
+                revision: revision.id(),
+                payload: revision.payload().to_vec(),
+            });
+        }
+        let snapshot = scriberig_session::PlanSemanticSnapshot {
+            plan,
+            snapshot: Some(snapshot),
+            objects,
+        };
+        let attempts = snapshot
+            .attempts()
+            .map_err(|error| format!("plan attempt decode failed: {error:?}"))?;
+        Ok(Some(
+            attempts
+                .into_iter()
+                .filter(|attempt| attempt.node == node)
+                .skip(offset)
+                .take(limit)
+                .collect(),
+        ))
+    }
+
     /// Loads semantic objects for one exact plan snapshot.
     ///
     /// # Parameters

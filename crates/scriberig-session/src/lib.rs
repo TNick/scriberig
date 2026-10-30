@@ -14,7 +14,7 @@ pub mod views;
 
 /// Defines the durable session repository boundary.
 pub mod repository {
-    use crate::{Plan, PlanView, Session};
+    use crate::{Plan, PlanSemanticAttempt, PlanView, Session};
     use scriberig_core::{EntityId, SnapshotId};
 
     /// Reports durable execution-selection update failures.
@@ -107,6 +107,37 @@ pub mod repository {
             _snapshot: SnapshotId,
         ) -> Result<Option<PlanView>, String> {
             Err("compact plan snapshot reads are unsupported".to_owned())
+        }
+
+        /// Loads one page of worker attempts for a node at an exact snapshot.
+        ///
+        /// Attempt records are read independently from node evidence and gate
+        /// detail so callers can request history only when needed.
+        ///
+        /// - `_session`: Owning durable session identity.
+        /// - `_plan`: Stable plan identity.
+        /// - `_node`: Stable plan-node identity.
+        /// - `_snapshot`: Exact semantic snapshot to resolve.
+        /// - `_offset`: Number of matching attempts to skip in stable order.
+        /// - `_limit`: Maximum number of attempts to return.
+        ///
+        /// The requested page, or `None` when the snapshot is outside the
+        /// selected plan's retained history.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns a bounded persistence diagnostic when attempt records cannot
+        /// be read or decoded.
+        fn load_plan_attempts_at_snapshot(
+            &self,
+            _session: EntityId,
+            _plan: EntityId,
+            _node: EntityId,
+            _snapshot: SnapshotId,
+            _offset: usize,
+            _limit: usize,
+        ) -> Result<Option<Vec<PlanSemanticAttempt>>, String> {
+            Err("plan attempt history reads are unsupported".to_owned())
         }
 
         /// Removes one exact durable session graph.

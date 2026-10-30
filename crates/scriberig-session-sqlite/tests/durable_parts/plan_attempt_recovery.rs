@@ -248,7 +248,20 @@ fn semantic_retry_keeps_attempt_outcomes_across_reload() {
     };
     let semantic_attempts = semantic_snapshot.attempts().expect("semantic attempts");
 
+    let first_page = store
+        .load_plan_attempts_at_snapshot(session_id, plan_id, node_id, snapshot, 0, 1)
+        .expect("read first attempt page")
+        .expect("snapshot belongs to plan");
+    let second_page = store
+        .load_plan_attempts_at_snapshot(session_id, plan_id, node_id, snapshot, 1, 1)
+        .expect("read second attempt page")
+        .expect("snapshot belongs to plan");
+
     assert_eq!(semantic_attempts.len(), 2);
+    assert_eq!(first_page.len(), 1);
+    assert_eq!(first_page[0].branch, first_branch);
+    assert_eq!(second_page.len(), 1);
+    assert_eq!(second_page[0].branch, second_branch);
     assert_eq!(semantic_attempts[0].branch, first_branch);
     assert_eq!(semantic_attempts[0].status, PlanNodeStatus::Failed);
     assert_eq!(

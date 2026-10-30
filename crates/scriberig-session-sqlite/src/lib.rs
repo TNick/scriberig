@@ -1,5 +1,6 @@
 //! Persists complete provider-neutral session graphs in SQLite.
 
+mod initialization;
 mod payload;
 #[path = "store_mutations/plan.rs"]
 mod plan_mutation;
@@ -10,7 +11,6 @@ mod semantic_plans;
 
 pub use payload::LegacyExecutionRecord;
 
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use rusqlite::{Connection, TransactionBehavior, params};
@@ -24,69 +24,6 @@ pub struct SqliteSessionStore {
     connection: Arc<Mutex<Connection>>,
     /// Universal immutable store used as canonical plan persistence.
     semantic_store: SqliteStore,
-}
-
-impl SqliteSessionStore {
-    /// Opens or creates a session repository at `path`.
-    ///
-    /// - `path`: SQLite database path.
-    ///
-    /// An initialized session repository.
-    ///
-    /// Returns a SQLite initialization error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn open(path: impl AsRef<Path>) -> rusqlite::Result<Self> {
-        let path = path.as_ref();
-        let semantic_store = SqliteStore::open(path)?;
-        Self::from_semantic_store(semantic_store)
-    }
-
-    /// Creates an isolated in-memory session repository.
-    ///
-    /// An initialized repository.
-    ///
-    /// Returns a SQLite initialization error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn open_in_memory() -> rusqlite::Result<Self> {
-        let semantic_store = SqliteStore::open_in_memory()?;
-        Self::from_semantic_store(semantic_store)
-    }
-
-    /// Initializes the repository schema and universal semantic store.
-    ///
-    /// - `connection`: SQLite connection to initialize.
-    /// - `semantic_store`: Universal store for immutable semantic records.
-    ///
-    /// An initialized session repository.
-    ///
-    /// Returns a SQLite schema error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn from_semantic_store(semantic_store: SqliteStore) -> rusqlite::Result<Self> {
-        let connection = semantic_store.shared_connection();
-        let connection_guard = connection
-            .lock()
-            .map_err(|_| rusqlite::Error::InvalidQuery)?;
-        connection_guard.execute_batch(
-            "CREATE TABLE IF NOT EXISTS session_records (
-                 session_id BLOB PRIMARY KEY,
-                 payload BLOB NOT NULL
-             );",
-        )?;
-        drop(connection_guard);
-        Ok(Self {
-            connection,
-            semantic_store,
-        })
-    }
 }
 
 impl SessionStore for SqliteSessionStore {
@@ -248,6 +185,33 @@ impl SessionStore for SqliteSessionStore {
         snapshot: SnapshotId,
     ) -> Result<Option<scriberig_session::PlanView>, String> {
         self.load_plan_view_snapshot(session, plan, snapshot)
+    }
+
+    /// Loads a page of attempts for one node without fetching other plan details.
+    ///
+    /// - `session`: Owning durable session identity.
+    /// - `plan`: Stable plan identity.
+    /// - `node`: Stable plan-node identity.
+    /// - `snapshot`: Exact semantic snapshot to resolve.
+    /// - `offset`: Number of attempts to skip in stable order.
+    /// - `limit`: Maximum number of attempts to return.
+    ///
+    /// The requested attempt page, or `None` outside retained plan history.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns a bounded persistence diagnostic when attempt records cannot
+    /// be read or decoded.
+    fn load_plan_attempts_at_snapshot(
+        &self,
+        session: EntityId,
+        plan: EntityId,
+        node: EntityId,
+        snapshot: SnapshotId,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Option<Vec<scriberig_session::PlanSemanticAttempt>>, String> {
+        self.load_plan_attempts_snapshot(session, plan, node, snapshot, offset, limit)
     }
 
     /// Removes one exact session graph from the SQLite repository.
