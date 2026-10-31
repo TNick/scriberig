@@ -1,0 +1,14 @@
+# Build the integrated browser application and serve it with an API proxy.
+FROM node:24-bookworm-slim AS build
+WORKDIR /src
+RUN corepack enable
+COPY web ./web
+WORKDIR /src/web
+RUN node -e 'const fs=require("node:fs"); const p="pnpm-lock.yaml"; const s=fs.readFileSync(p,"utf8"); fs.writeFileSync(p,s.replace(/http:\/\/127\.0\.0\.1:4873\/([^,}\s]+)/g,(_,x)=>"https://registry.npmjs.org/"+decodeURIComponent(x)))' \
+    && pnpm install --no-frozen-lockfile \
+    && pnpm run build
+
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /src/web/apps/scriberig/dist /usr/share/nginx/html
+EXPOSE 8080

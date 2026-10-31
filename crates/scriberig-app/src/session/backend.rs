@@ -3,8 +3,9 @@
 use super::{
     AgentCommandRequest, AgentContinuationAccepted, AgentContinueAtRequest, ApplicationContext,
     ApplicationError, EntityId, NewSessionAgentRequest, NewSessionAgentStart, OperationId,
-    PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest,
-    PlanMutationRequest, PlanReplanRequest, Session, SessionRequest,
+    PlanAssignmentRequest, PlanAttemptHistoryRequest, PlanCreateRequest, PlanLifecycleAction,
+    PlanLifecycleRequest, PlanMutationRequest, PlanNodeDetailsRequest, PlanReplanRequest, Session,
+    SessionRequest,
 };
 
 /// Owns session and agent operations at the application boundary.
@@ -112,6 +113,48 @@ pub trait SessionBackend {
         context: &crate::ApplicationContext,
         request: &SessionRequest,
     ) -> Result<Session, crate::ApplicationError>;
+
+    /// Reads one bounded exact-snapshot page of attempts for a plan node.
+    ///
+    /// # Parameters
+    /// - `_context`: Authorized application request context.
+    /// - `_request`: Node, exact snapshot, and page range to resolve.
+    ///
+    /// # Returns
+    /// The transcript-free attempt page.
+    ///
+    /// # Errors
+    /// Returns authorization, not-found, unsupported, or persistence failures.
+    fn read_plan_attempt_history(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanAttemptHistoryRequest,
+    ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan attempt history read".to_owned(),
+        })
+    }
+
+    /// Reads one bounded exact-snapshot page of gates and evidence for a node.
+    ///
+    /// # Parameters
+    /// - `_context`: Authorized application request context.
+    /// - `_request`: Node, exact snapshot, and page range to resolve.
+    ///
+    /// # Returns
+    /// The requested gate and evidence records.
+    ///
+    /// # Errors
+    /// Returns authorization, not-found, unsupported, or persistence failures.
+    fn read_plan_node_details(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanNodeDetailsRequest,
+    ) -> Result<scriberig_session::PlanSemanticNodeDetails, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan node detail read".to_owned(),
+        })
+    }
 
     /// Reads a compact session projection for routine product tree views.
     ///

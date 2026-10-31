@@ -62,7 +62,7 @@ fn tui_pty_edits_an_upstream_model_property() {
     assert!(tui.screen().contains("east"), "{}", tui.diagnostic());
     tui.send(b"\r");
     assert!(
-        tui.read_until("Model property updated for this process."),
+        tui.read_until("Model property updated"),
         "{}",
         tui.diagnostic()
     );

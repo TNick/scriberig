@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help init build install tui doctor onboard clean-temp test-tui product-golden docs format lint test check dev dev-stop
+.PHONY: help init build install tui doctor onboard clean-temp test-tui product-golden docs format lint test check dev dev-stop docker-cli-image docker-web-image docker-web docker-web-stop
 
 ONBOARD_DB ?= playground/dev-app-runtime/scriberig.sqlite
 
@@ -28,6 +28,9 @@ help:
 	@echo   make check      Run the full quality gate.
 	@echo   make dev        Idempotently start API and web app, then open browser.
 	@echo   make dev-stop   Stop processes started by make dev.
+	@echo   make docker-cli-image Build the CLI container image.
+	@echo   make docker-web Start the local containerized web app.
+	@echo   make docker-web-stop Stop the containerized web app.
 
 # Install the workspace's web and pre-commit dependencies.
 init:
@@ -109,3 +112,19 @@ dev:
 # Stop the services managed by make dev.
 dev-stop:
 	$(PYTHON) tools/dev.py stop
+
+# Build the reusable CLI and API image.
+docker-cli-image:
+	docker build -f docker/Dockerfile.cli -t scriberig-cli:local .
+
+# Build the static web and reverse-proxy image.
+docker-web-image:
+	docker build -f docker/Dockerfile.web -t scriberig-web:local .
+
+# Start the local web application and private API.
+docker-web:
+	docker compose up --build -d
+
+# Stop the local web application without deleting persistent state.
+docker-web-stop:
+	docker compose down

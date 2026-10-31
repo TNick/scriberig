@@ -274,11 +274,18 @@ fn claim_mutation_revises_only_the_claimed_node_and_plan_mutation_revision() {
         .filter(|entity| !before.contains_key(*entity))
         .copied()
         .collect::<Vec<_>>();
-    assert_eq!(added.len(), 1, "the claim adds one semantic object");
+    let mut added_types = added
+        .iter()
+        .map(|entity| stored_object_type(&semantic, after[entity]))
+        .collect::<Vec<_>>();
+    added_types.sort();
     assert_eq!(
-        stored_object_type(&semantic, after[&added[0]]),
-        SessionEntityType::PlanRevision.as_str(),
-        "the added object is the new plan mutation revision record"
+        added_types,
+        [
+            SessionEntityType::PlanAttempt.as_str().to_owned(),
+            SessionEntityType::PlanRevision.as_str().to_owned(),
+        ],
+        "a claim adds its immutable attempt and plan mutation record"
     );
     assert!(
         before.keys().all(|entity| after.contains_key(entity)),

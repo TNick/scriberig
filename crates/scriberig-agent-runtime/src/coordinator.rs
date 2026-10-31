@@ -27,8 +27,8 @@ impl PlanCoordinator {
     /// Runs ready plan work until the plan has no immediately dispatchable node.
     ///
     /// Each batch acquires worker claims with optimistic persistence before
-    /// entering the executor. Results are written to the session before plan
-    /// dependency edges are fulfilled.
+    /// entering the executor. Worker results and their plan transitions commit
+    /// together through the plan compare-and-swap boundary.
     ///
     /// - `service`: Shared application service owning durable session state.
     /// - `context`: Authorized application context for reads and mutations.

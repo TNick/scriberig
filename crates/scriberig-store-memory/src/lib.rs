@@ -107,6 +107,25 @@ impl RootStore for MemoryStore {
         self.roots.read().ok()?.get(name).copied()
     }
 
+    /// Lists the roots in deterministic name order.
+    ///
+    /// # Returns
+    /// Every currently registered root paired with its snapshot.
+    ///
+    /// # Errors
+    /// Returns an error when the root map cannot be read.
+    fn list_roots(&self) -> Result<Vec<(RootName, SnapshotId)>, RootError> {
+        self.roots
+            .read()
+            .map(|roots| {
+                roots
+                    .iter()
+                    .map(|(name, snapshot)| (name.clone(), *snapshot))
+                    .collect()
+            })
+            .map_err(|_| RootError::Backend("lock poisoned".to_owned()))
+    }
+
     /// Unconditionally points a named root at an immutable snapshot.
     /// - `name`: Argument named `name`.
     /// - `snapshot`: Argument named `snapshot`.

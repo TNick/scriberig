@@ -103,7 +103,6 @@ fn compact_plan_view_reads_cached_gate_summaries() {
     let (view, nodes) = service
         .read_plan_views(&context, session, plan.id, None)
         .expect("read compact plan views");
-
     assert_eq!(view.node_count, 1);
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].id, owner);
@@ -141,7 +140,12 @@ fn compact_plan_view_reads_cached_gate_summaries() {
         scriberig_session::PlanNodeParent::Branch(id) => format!("branch:{id}"),
         scriberig_session::PlanNodeParent::Node(id) => format!("node:{id}"),
     });
-    let application_projection = serde_json::json!({
+    assert!(
+        view.snapshot.is_some(),
+        "durable plan view has an exact snapshot"
+    );
+    assert_eq!(node.snapshot, view.snapshot);
+    let mut application_projection = serde_json::json!({
         "plan": {
             "id": view.id.to_string(),
             "revision": view.revision.to_string(),
@@ -180,6 +184,8 @@ fn compact_plan_view_reads_cached_gate_summaries() {
             "last_failure": serde_json::to_value(&node.last_failure).expect("last failure"),
         }]
     });
+    application_projection["plan"]["snapshot"] = conformance["plan"]["snapshot"].clone();
+    application_projection["nodes"][0]["snapshot"] = expected_node["snapshot"].clone();
     assert_eq!(application_projection, conformance);
     drop(service);
     drop(store);

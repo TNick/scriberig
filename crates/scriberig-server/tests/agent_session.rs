@@ -297,3 +297,6 @@ mod attempts;
 mod details;
 #[path = "agent_session_parts/part1.rs"]
 mod part1;
+
+#[path = "agent_session_parts/plan_semantic_reconnect.rs"]
+mod plan_semantic_reconnect;

@@ -1,7 +1,8 @@
 //! Defines backend-independent immutable revision storage behavior.
 
 use crate::Revision;
-use scriberig_core::{EncodingError, RevisionId};
+use scriberig_core::{EncodingError, RevisionId, TypeId};
+use std::collections::BTreeMap;
 
 /// Reports a revision storage failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -62,6 +63,73 @@ pub trait RevisionStore {
     /// # Errors
     /// Returns an error when the operation fails.
     fn get(&self, id: RevisionId) -> Result<Option<Revision>, StoreError>;
+
+    /// Reads a batch of immutable revisions.
+    ///
+    /// Backends may use a bulk query. The default preserves compatibility by
+    /// reading revisions individually.
+    ///
+    /// # Parameters
+    /// - `ids`: Immutable revision identities to load.
+    ///
+    /// # Returns
+    /// Retained revisions keyed by identity; missing IDs are omitted.
+    ///
+    /// # Errors
+    /// Returns a storage or integrity error.
+    fn get_many(&self, ids: &[RevisionId]) -> Result<BTreeMap<RevisionId, Revision>, StoreError> {
+        let mut revisions = BTreeMap::new();
+        for id in ids {
+            if let Some(revision) = self.get(*id)? {
+                revisions.insert(*id, revision);
+            }
+        }
+        Ok(revisions)
+    }
+
+    /// Reads only the declared type of an immutable revision.
+    ///
+    /// Backends may use a metadata-only index to avoid reading revision
+    /// payloads. The default preserves compatibility by loading the revision.
+    ///
+    /// # Parameters
+    /// - `id`: Immutable revision identity.
+    ///
+    /// # Returns
+    /// The declared object type, or `None` when the revision is absent.
+    ///
+    /// # Errors
+    /// Returns a storage or metadata validation error.
+    fn get_object_type(&self, id: RevisionId) -> Result<Option<TypeId>, StoreError> {
+        self.get(id)
+            .map(|revision| revision.map(|value| value.object_type().clone()))
+    }
+
+    /// Reads declared types for a batch of revisions without loading payloads.
+    ///
+    /// Backends may use a bulk metadata query. The default preserves
+    /// compatibility by reading metadata one revision at a time.
+    ///
+    /// # Parameters
+    /// - `ids`: Immutable revision identities to inspect.
+    ///
+    /// # Returns
+    /// Types for retained revisions, keyed by revision identity.
+    ///
+    /// # Errors
+    /// Returns a storage or metadata validation error.
+    fn get_object_types(
+        &self,
+        ids: &[RevisionId],
+    ) -> Result<BTreeMap<RevisionId, TypeId>, StoreError> {
+        let mut types = BTreeMap::new();
+        for id in ids {
+            if let Some(object_type) = self.get_object_type(*id)? {
+                types.insert(*id, object_type);
+            }
+        }
+        Ok(types)
+    }
 
     /// Reads an immutable revision and reports absence as a typed error.
     ///

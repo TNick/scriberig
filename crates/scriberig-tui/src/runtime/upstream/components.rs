@@ -34,6 +34,8 @@ pub(super) use session_list::SessionListPanel;
 pub(super) struct ComposerAdapter {
     /// Upstream multiline editor used for cursor and text behavior.
     pub(super) editor: Arc<Editor>,
+    /// Shared `ScribeRig` view state used for Escape navigation.
+    state: Arc<Mutex<TuiState>>,
     /// Channel used to request shutdown after Ctrl-C.
     input_sender: std::sync::mpsc::Sender<ComposerInput>,
     /// Shared upstream bindings used for controls and help text.
@@ -45,12 +47,14 @@ impl ComposerAdapter {
     ///
     /// # Parameters
     /// - `editor`: Upstream multiline editor.
+    /// - `state`: Shared presentation state used for view navigation.
     /// - `input_sender`: Channel used to deliver drafts to the reducer.
     /// - `keybindings`: Upstream bindings for `ScribeRig` controls.
     ///
     /// # Returns
     /// An adapter that forwards input and editor changes.
     pub(super) fn new(
+        state: Arc<Mutex<TuiState>>,
         editor: Arc<Editor>,
         input_sender: std::sync::mpsc::Sender<ComposerInput>,
         keybindings: Arc<Keybindings>,
@@ -65,6 +69,7 @@ impl ComposerAdapter {
         }));
         Self {
             editor,
+            state,
             input_sender,
             keybindings,
         }
@@ -99,6 +104,22 @@ impl Component for ComposerAdapter {
     /// `true` when the composer consumed the event.
     fn handle_event(&self, event: &InputEvent) -> bool {
         if let InputEvent::Key(key) = event {
+            if self
+                .keybindings
+                .matches(key, rpi_tui::keybindings::keys::SELECT_CANCEL)
+                && self.state.lock().is_ok_and(|state| {
+                    state.primary_view != crate::selection::PrimaryView::Conversation
+                })
+            {
+                let _ = self
+                    .input_sender
+                    .send(ComposerInput::PresentationAction(Box::new(
+                        crate::action::Action::ViewSelected(
+                            crate::selection::PrimaryView::Conversation,
+                        ),
+                    )));
+                return true;
+            }
             if self.keybindings.matches(key, super::controls::BROWSE) {
                 let _ = self
                     .input_sender
@@ -232,6 +253,24 @@ impl SelectionStatusPanel {
     /// Safe status text for the upstream footer renderer.
     fn content(state: &TuiState) -> String {
         let mut content = String::new();
+        if !state.shell_message.is_empty() {
+            content.push_str(&crate::inspector::sanitize(&state.shell_message));
+        }
+        if state.conversation_browsing {
+            if !content.is_empty() {
+                content.push_str(" · ");
+            }
+            content.push_str("Enter pin reply target");
+        }
+        let project = state.project.as_ref().map_or_else(
+            || "No active project is selected".to_owned(),
+            |project| format!("Project {}", crate::inspector::sanitize(project)),
+        );
+        if !content.is_empty() {
+            content.push_str(" · ");
+        }
+        content.push_str(&project);
+        content.push_str(" · ");
         if let crate::inspector::LoadState::Ready(session) = &state.session {
             let provider = session
                 .execution
@@ -295,18 +334,6 @@ impl SelectionStatusPanel {
             }
         } else {
             content.push_str("No active session assignment");
-        }
-        if state.conversation_browsing {
-            if !content.is_empty() {
-                content.push_str(" · ");
-            }
-            content.push_str("Enter pin reply target");
-        }
-        if !state.shell_message.is_empty() {
-            if !content.is_empty() {
-                content.push_str(" · ");
-            }
-            content.push_str(&crate::inspector::sanitize(&state.shell_message));
         }
         content
     }

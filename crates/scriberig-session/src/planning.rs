@@ -316,3 +316,4 @@ pub mod semantic;
 pub use plan_requirement_types::*;
 pub use plan_requirements::{PlanNodeRollup, PlanNodeRollupIndex, PlanNodeStatusCounts};
 pub use plan_views::{PlanGateCounts, PlanNodeView, PlanView};
+pub use semantic::{PlanSemanticAttempt, PlanSemanticNodeDetails};

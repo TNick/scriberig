@@ -22,6 +22,8 @@ mod tui_pty_observability;
 mod tui_pty_plan_relations;
 #[path = "tui_pty/plan_view.rs"]
 mod tui_pty_plan_view;
+#[path = "tui_pty/plugin_refresh.rs"]
+mod tui_pty_plugin_refresh;
 #[path = "tui_pty/rich_project.rs"]
 mod tui_pty_rich_project;
 mod tui_pty_support;
@@ -284,9 +286,11 @@ fn tui_pty_resizes_without_losing_project_context() {
 #[test]
 fn tui_pty_browse_returns_to_composer() {
     let _lock = test_lock();
-    let mut tui = TuiPty::start();
+    let mut tui = TuiPty::start_with_arithmetic_model();
 
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
+    tui.send_slow(b"1+1\r");
+    assert!(tui.read_until("You: 1+1"), "{}", tui.diagnostic());
     tui.send(b"\x1b[18~");
     assert!(
         tui.read_until_next("Enter pin reply target"),

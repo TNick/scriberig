@@ -1,6 +1,7 @@
 //! Reads raw durable rows so plan write and read scope can be measured directly.
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::Path;
 
 use rusqlite::{Connection, params};
@@ -28,8 +29,23 @@ pub(super) struct RollupRow {
     pub(super) effective_status: String,
     /// Canonical snapshot the cache row is valid for.
     pub(super) source_snapshot: String,
-    /// Encoded derived rollup payload.
-    pub(super) payload: Vec<u8>,
+    /// Normalized derived fields, encoded in column order for equality checks.
+    pub(super) rollup_values: Vec<i64>,
+}
+
+/// Encodes SQLite identity bytes as stable lowercase hexadecimal text.
+///
+/// # Parameters
+/// - `bytes`: Stored identity or snapshot bytes.
+///
+/// # Returns
+/// Lowercase hexadecimal text for the supplied bytes.
+pub(super) fn hex(bytes: &[u8]) -> String {
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(encoded, "{byte:02x}").expect("write to string");
+    }
+    encoded
 }
 
 /// Reads every durable revision row keyed by its immutable revision ID.
@@ -109,7 +125,7 @@ pub(super) fn snapshot_object_counts(path: &Path, snapshot: &SnapshotId) -> BTre
         .expect("collect durable object counts")
 }
 
-/// Reads the raw derived rollup rows for one session plan.
+/// Reads normalized rollup rows joined with direct node metadata.
 ///
 /// # Parameters
 /// - `path`: Database holding the session projection tables.
@@ -117,7 +133,7 @@ pub(super) fn snapshot_object_counts(path: &Path, snapshot: &SnapshotId) -> BTre
 /// - `plan`: Stable semantic plan identity.
 ///
 /// # Returns
-/// Rollup rows keyed by stored node identity text.
+/// Rollup rows keyed by hexadecimal node identity.
 pub(super) fn rollup_rows(
     path: &Path,
     session: EntityId,
@@ -126,25 +142,48 @@ pub(super) fn rollup_rows(
     let connection = Connection::open(path).expect("open durable rollup reader");
     let mut statement = connection
         .prepare(
-            "SELECT node_id, parent_node_id, node_revision, direct_status,
-                    effective_status, source_snapshot, payload
-             FROM plan_node_rollup_index WHERE session_id=?1 AND plan_id=?2",
+            "SELECT rollup.node_id, node.parent_node_id, node.current_revision_id,
+                    node.direct_status, rollup.effective_status,
+                    rollup.source_snapshot, rollup.contains_ignored,
+                    rollup.contains_abandoned, rollup.child_planned,
+                    rollup.child_ready, rollup.child_running, rollup.child_completed,
+                    rollup.child_failed, rollup.child_abandoned,
+                    rollup.unsatisfied_completion_gates, rollup.entry_pending,
+                    rollup.entry_satisfied, rollup.entry_failed, rollup.entry_waived,
+                    rollup.completion_pending, rollup.completion_satisfied,
+                    rollup.completion_failed, rollup.completion_waived,
+                    rollup.evidence_count, rollup.evaluator_version
+             FROM plan_node_rollup_index AS rollup
+             JOIN plan_node_index AS node
+               ON node.session_id=rollup.session_id
+              AND node.plan_id=rollup.plan_id AND node.node_id=rollup.node_id
+             WHERE rollup.session_id=?1 AND rollup.plan_id=?2",
         )
         .expect("prepare durable rollup query");
     statement
-        .query_map(params![session.to_string(), plan.to_string()], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                RollupRow {
-                    parent_node_id: row.get(1)?,
-                    node_revision: row.get(2)?,
-                    direct_status: row.get(3)?,
-                    effective_status: row.get(4)?,
-                    source_snapshot: row.get(5)?,
-                    payload: row.get(6)?,
-                },
-            ))
-        })
+        .query_map(
+            params![session.as_bytes().as_slice(), plan.as_bytes().as_slice()],
+            |row| {
+                let node = row.get::<_, Vec<u8>>(0)?;
+                let parent = row.get::<_, Option<Vec<u8>>>(1)?;
+                let revision = row.get::<_, Vec<u8>>(2)?;
+                let snapshot = row.get::<_, Vec<u8>>(5)?;
+                let rollup_values = (6..25)
+                    .map(|index| row.get::<_, i64>(index))
+                    .collect::<rusqlite::Result<Vec<_>>>()?;
+                Ok((
+                    hex(&node),
+                    RollupRow {
+                        parent_node_id: parent.as_deref().map(hex),
+                        node_revision: hex(&revision),
+                        direct_status: row.get(3)?,
+                        effective_status: row.get(4)?,
+                        source_snapshot: hex(&snapshot),
+                        rollup_values,
+                    },
+                ))
+            },
+        )
         .expect("read durable rollup rows")
         .collect::<rusqlite::Result<BTreeMap<_, _>>>()
         .expect("collect durable rollup rows")

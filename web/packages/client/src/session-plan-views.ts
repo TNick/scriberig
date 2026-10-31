@@ -197,6 +197,8 @@ function normalizePlanNode(value: unknown): SessionPlanNode {
   const effectiveStatus = node.effectiveStatus ?? node.effective_status;
   const entryGates = normalizeGateCounts(node.entryGates ?? node.entry_gates);
   const completionGates = normalizeGateCounts(node.completionGates ?? node.completion_gates);
+  const summaryId = node.summaryId ?? node.summary_id;
+  const summaryPreview = node.summaryPreview ?? node.summary_preview;
   return {
     id: typeof node.id === "string" ? node.id : "",
     ...(typeof exactRevision === "string" ? { exactRevision } : {}),
@@ -215,20 +217,18 @@ function normalizePlanNode(value: unknown): SessionPlanNode {
     ...(statuses.includes(effectiveStatus as SessionPlanNodeStatus)
       ? { effectiveStatus: effectiveStatus as SessionPlanNodeStatus }
       : {}),
-    ...(typeof (node.containsIgnored ?? node.contains_ignored) === "boolean"
-      ? { containsIgnored: Boolean(node.containsIgnored ?? node.contains_ignored) }
-      : {}),
-    ...(typeof (node.containsAbandoned ?? node.contains_abandoned) === "boolean"
-      ? { containsAbandoned: Boolean(node.containsAbandoned ?? node.contains_abandoned) }
-      : {}),
-    ...(entryGates === undefined ? {} : { entryGates }),
-    ...(completionGates === undefined ? {} : { completionGates }),
-    ...(typeof (node.evidenceCount ?? node.evidence_count) === "number"
-      ? { evidenceCount: Number(node.evidenceCount ?? node.evidence_count) }
-      : {}),
-    ...(typeof (node.canRetry ?? node.can_retry) === "boolean"
-      ? { canRetry: Boolean(node.canRetry ?? node.can_retry) }
-      : {}),
+    containsIgnored: Boolean(node.containsIgnored ?? node.contains_ignored),
+    containsAbandoned: Boolean(node.containsAbandoned ?? node.contains_abandoned),
+    entryGates: entryGates ?? { pending: 0, satisfied: 0, failed: 0, waived: 0 },
+    completionGates: completionGates ?? { pending: 0, satisfied: 0, failed: 0, waived: 0 },
+    evidenceCount:
+      typeof (node.evidenceCount ?? node.evidence_count) === "number"
+        ? Number(node.evidenceCount ?? node.evidence_count)
+        : 0,
+    canRetry: Boolean(node.canRetry ?? node.can_retry),
+    dependencyBlockers: normalizeStrings(node.dependencyBlockers ?? node.dependency_blockers),
+    ...(typeof summaryId === "string" ? { summaryId } : {}),
+    ...(typeof summaryPreview === "string" ? { summaryPreview } : {}),
     ...(expected === undefined
       ? {}
       : {

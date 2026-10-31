@@ -84,11 +84,11 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
             branch: None,
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment,
             claim: None,
             claim_generation: 0,
-            abandon_reason: None,
-            last_failure: None,
         })
         .expect("node");
     }

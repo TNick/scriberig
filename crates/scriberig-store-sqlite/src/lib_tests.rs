@@ -2,7 +2,7 @@
 
 use super::*;
 use scriberig_core::{EntityId, ProjectId, RevisionId, RootName};
-use scriberig_store::{RootStore, SnapshotChange};
+use scriberig_store::{RootStore, Snapshot, SnapshotChange};
 
 /// Verifies the store exposes its resolved database path to sandbox policy.
 #[test]

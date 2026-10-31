@@ -1,7 +1,7 @@
 /** @file Normalizes bounded safe plan-attempt pages from the protocol. */
 
 import type {
-  SessionPlanAttempt,
+  SessionPlanAttemptSummary,
   SessionPlanAttemptsResponse,
   SessionPlanNodeStatus,
 } from "@scriberig/protocol";
@@ -39,7 +39,7 @@ export function normalizePlanAttempts(value: unknown): SessionPlanAttemptsRespon
  * @param value Untrusted attempt value from the transport.
  * @returns A safe normalized attempt.
  */
-function normalizeAttempt(value: unknown): SessionPlanAttempt {
+function normalizeAttempt(value: unknown): SessionPlanAttemptSummary {
   const record = asRecord(value);
   const status = text(record.status) as SessionPlanNodeStatus;
   const failure =
@@ -47,7 +47,7 @@ function normalizeAttempt(value: unknown): SessionPlanAttempt {
       ? undefined
       : normalizeEvidenceReference(record.failure);
   return {
-    branch: text(record.branch) as SessionPlanAttempt["branch"],
+    branch: text(record.branch) as SessionPlanAttemptSummary["branch"],
     claimGeneration: count(record.claim_generation),
     ...(record.claim == null ? {} : { claim: text(record.claim) }),
     status: statuses.includes(status) ? status : "Planned",

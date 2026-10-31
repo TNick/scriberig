@@ -6,7 +6,7 @@ import type { BranchId, SessionId } from "./ids";
 export type SessionPlanNodeStatus =
   "Planned" | "Ready" | "Running" | "Completed" | "Failed" | "Abandoned";
 /** Safe attempt metadata without worker transcript content. */
-export interface SessionPlanAttempt {
+export interface SessionPlanAttemptSummary {
   branch: BranchId;
   claimGeneration: number;
   claim?: string;
@@ -20,7 +20,7 @@ export interface SessionPlanAttemptsResponse {
   node: string;
   total: number;
   offset: number;
-  attempts: readonly SessionPlanAttempt[];
+  attempts: readonly SessionPlanAttemptSummary[];
   nextOffset?: number;
 }
 /** Selects a bounded page from one plan node's attempt history. */

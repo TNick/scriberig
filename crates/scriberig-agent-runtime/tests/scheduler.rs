@@ -7,8 +7,8 @@ use scriberig_core::EntityId;
 mod worker;
 
 use scriberig_session::{
-    BranchResult, BranchStatus, ModelAssignment, Plan, PlanNode, PlanNodeParent, PlanNodeStatus,
-    PlanStatus, WorkerClaim,
+    BranchResult, BranchStatus, ModelAssignment, Plan, PlanGate, PlanGatePhase,
+    PlanGateRequirement, PlanNode, PlanNodeParent, PlanNodeStatus, PlanStatus, WorkerClaim,
 };
 
 /// Builds the upstream catalog used by scheduler assignment tests.
@@ -75,11 +75,11 @@ fn scheduler_plan() -> (Plan, EntityId, EntityId, EntityId) {
             branch: None,
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: None,
             claim: None,
             claim_generation: 0,
-            abandon_reason: None,
-            last_failure: None,
         })
         .expect("add node");
     }
@@ -124,6 +124,8 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
             branch: None,
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: Some(ModelAssignment {
                 provider_id: "provider".to_owned(),
                 model_id: model.to_owned(),
@@ -131,8 +133,6 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
             }),
             claim: None,
             claim_generation: 0,
-            abandon_reason: None,
-            last_failure: None,
         })
         .expect("add sibling");
     }
@@ -204,14 +204,42 @@ fn failed_candidate_integration_retains_structured_conflict_code() {
         failure.summary.as_deref(),
         Some("notes.txt has conflicting updates")
     );
+    let failed_node = plan
+        .nodes
+        .iter()
+        .find(|node| node.id == ready)
+        .expect("failed node");
+    assert_eq!(failed_node.status, PlanNodeStatus::Failed);
     assert_eq!(
-        plan.nodes
-            .iter()
-            .find(|node| node.id == ready)
-            .unwrap()
-            .status,
-        PlanNodeStatus::Failed
+        failed_node
+            .last_failure
+            .as_ref()
+            .map(|reference| reference.reference.entity),
+        Some(failure.id)
     );
+}
+
+/// Rechecks canonical entry gates before dispatching a node with stale Ready status.
+#[test]
+fn pending_entry_gate_blocks_dispatch_even_when_node_status_is_stale_ready() {
+    let (mut plan, _, ready, _) = scheduler_plan();
+    plan.add_gate(PlanGate {
+        id: EntityId::from_bytes([230; 16]),
+        owner: ready,
+        phase: PlanGatePhase::Entry,
+        requirement: PlanGateRequirement::ValidationPassed {
+            profile: Some("fresh-validation".to_owned()),
+        },
+        waiver: None,
+    })
+    .expect("add canonical entry gate");
+    let node = plan.nodes.iter_mut().find(|node| node.id == ready).unwrap();
+    node.status = PlanNodeStatus::Ready;
+
+    let tick = PlanScheduler::tick(&plan, &[], 4, |_| true);
+
+    assert_eq!(tick.dispatch, Vec::<EntityId>::new());
+    assert!(tick.blocked.contains(&ready));
 }
 
 /// Synchronizes fake workers so the test proves overlapping execution.

@@ -393,3 +393,6 @@ fn unique_test_suffix() -> u128 {
         .expect("clock")
         .as_nanos()
 }
+
+#[path = "durable_parts/root_cas.rs"]
+mod root_cas;

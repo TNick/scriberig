@@ -966,7 +966,7 @@ Authoritative:
 
 - `level-1/025. compound artifacts scalable collections and rich domain editing.md`
 - `level-2/035. rich project artifacts office cad and geospatial implementation plan.md`
-- tasks 153–162
+- tasks 155–162
 
 # 32. Recommended 20-File ChatGPT Project Attachment Set
 

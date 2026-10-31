@@ -46,7 +46,10 @@ fn shared_agent_session_fixture_preserves_cross_surface_semantics() {
             .map(|result| result.result_handles.as_slice()),
         Some(["validation-1".to_owned()].as_slice())
     );
-    assert_eq!(dependency.fulfilled_by.as_deref(), Some("branch-result-1"));
+    assert_eq!(
+        dependency.fulfilled_by.as_deref(),
+        fixture["session"]["plans"][0]["dependencies"][0]["fulfilled_by"].as_str()
+    );
     assert!(session.branches[0].activity.iter().any(|activity| {
         activity.kind == SessionActivityKind::SemanticOperation
             && activity.durable_ref.as_deref() == Some("migration-parser-1")
@@ -374,5 +377,9 @@ use tests_models::model_metadata_snapshot;
 
 #[path = "agent_selection_tests.rs"]
 mod agent_selection_tests;
+#[path = "tests_plan_details.rs"]
+mod plan_details_tests;
 #[path = "reference_tests.rs"]
 mod reference_tests;
+#[path = "tests_session_fixture.rs"]
+mod session_fixture_tests;

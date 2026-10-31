@@ -7,6 +7,7 @@ import {
   AgentOperationPanel,
   SessionPlanPanel,
   BranchActivityView,
+  PlanPanel,
   SessionBranchTree,
 } from "@scriberig/agent-ui";
 import { ProjectCandidateReview } from "@scriberig/components";
@@ -313,6 +314,12 @@ export function SessionAgentView({
         branches={visibleBranches}
         busy={planMutationPending}
         onMutation={mutatePlan}
+      />
+      <PlanPanel
+        sessionId={sessionId}
+        plans={agentState.plans}
+        branches={visibleBranches}
+        onPlanUpdated={async () => model.setAgentSession(await client.getSession(sessionId))}
       />
       {showConfiguration && modelLibrary ? (
         <AgentModelControls

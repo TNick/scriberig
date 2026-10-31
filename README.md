@@ -192,6 +192,8 @@ make install
 
 ## Local app
 
+For Docker-based CLI and web usage, see [Docker usage](docker/README.md).
+
 Start or reuse the API and web application, create the ignored SQLite database
 under `playground/dev-app-runtime/`, and open the editor in your browser with:
 

@@ -317,9 +317,12 @@ fn incremental_rollup_tracks_leaf_changes_and_reparenting() {
     let moved = index
         .apply_change(&plan, second_snapshot, third_snapshot, &[moved_node])
         .expect("propagate reparenting");
-    assert!(moved.contains(&moved_node));
-    assert!(moved.contains(&EntityId::from_bytes([10; 16])));
-    assert!(moved.contains(&new_parent));
+    assert_eq!(
+        moved.into_iter().collect::<std::collections::BTreeSet<_>>(),
+        [EntityId::from_bytes([10; 16]), new_parent]
+            .into_iter()
+            .collect()
+    );
     assert_eq!(
         index.all(),
         &plan.node_rollups().expect("reference rollups")

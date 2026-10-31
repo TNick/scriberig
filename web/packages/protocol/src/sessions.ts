@@ -1,9 +1,9 @@
 /** @file Defines navigation-oriented session and branch summaries. */
-import type { SessionPlan } from "./plan-semantics";
+import type { SessionPlan } from "./session-plans";
 export type {
   SessionContinuationAnchor,
   SessionCoordinatorClaim,
-  SessionPlanAttempt,
+  SessionPlanAttemptSummary,
   SessionPlanAttemptsResponse,
   SessionPlanAttemptsRequest,
   SessionPlanDetailsRequest,
@@ -14,7 +14,6 @@ export type {
   SessionPlanViewRequest,
   SessionExpectedResult,
   SessionModelAssignment,
-  SessionPlan,
   SessionPlanDependency,
   SessionPlanEvidenceAssociation,
   SessionPlanEvidenceKind,
@@ -28,10 +27,8 @@ export type {
   SessionPlanGateWaiver,
   SessionPlanMutation,
   SessionPlanMutationRequest,
-  SessionPlanNode,
   SessionPlanNodeDraft,
   SessionPlanNodeStatus,
-  SessionPlanRevision,
   SessionPlanSemanticPredicate,
   SessionPlanStatus,
   SessionPlanStatusCounts,
@@ -40,6 +37,7 @@ export type {
   SessionWorkerClaim,
 } from "./plan-semantics";
 import type { BranchId, EntityId, MigrationId, OperationId, SessionId, SnapshotId } from "./ids";
+export * from "./session-plans";
 /** Session summary for navigation. */
 export interface SessionSummary {
   sessionId: SessionId;

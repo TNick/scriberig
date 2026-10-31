@@ -110,7 +110,13 @@ impl Plan {
         if self.status != PlanStatus::Running {
             return Err(PlanError::InvalidTransition);
         }
-        self.add_node(node)
+        let mut proposed = self.clone();
+        proposed.add_node(node)?;
+        if let Some(revision) = proposed.history.last_mut() {
+            revision.reason = Some("ordinary next step added".to_owned());
+        }
+        *self = proposed;
+        Ok(())
     }
 
     /// Adds an edge after checking that it will not create a cycle.

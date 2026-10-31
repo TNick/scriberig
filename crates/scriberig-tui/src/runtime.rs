@@ -121,6 +121,7 @@ fn worker_loop<'scope, S: TuiService + Sync>(
                     | Effect::StartNewConversation { .. }
                     | Effect::ContinueConversation { .. }
                     | Effect::PlanLifecycle { .. }
+                    | Effect::PlanMutation(_)
             )
         {
             let sender = sender.clone();

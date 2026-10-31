@@ -76,8 +76,8 @@ fn assert_claim_write_scope(
         );
     }
 
-    // Exactly three new revision rows appear: the claimed node, the plan
-    // record whose mutation revision advanced, and the new mutation revision.
+    // Exactly four new revision rows appear: the attempt, claimed node, plan,
+    // and mutation-revision record.
     let mut appended_types = after
         .revisions
         .iter()
@@ -89,6 +89,7 @@ fn assert_claim_write_scope(
         appended_types,
         [
             SessionEntityType::Plan.as_str().to_owned(),
+            SessionEntityType::PlanAttempt.as_str().to_owned(),
             SessionEntityType::PlanNode.as_str().to_owned(),
             SessionEntityType::PlanRevision.as_str().to_owned(),
         ],
@@ -118,8 +119,8 @@ fn assert_claim_write_scope(
     );
     assert_eq!(
         after.entries.len(),
-        before.entries.len() + 1,
-        "a claim adds exactly the new plan-revision record"
+        before.entries.len() + 2,
+        "a claim adds its plan-revision and attempt records"
     );
     for (entity, revision) in &after.entries {
         if let Some(previous) = before.entries.get(entity)
@@ -132,8 +133,7 @@ fn assert_claim_write_scope(
         }
     }
 
-    // Derived rollup rows advance their snapshot provenance but keep the
-    // stored semantics of every node the claim did not touch.
+    // Sparse rollup writes replace only the row whose value changed.
     assert_eq!(
         after.rollups.len(),
         before.rollups.len(),
@@ -141,34 +141,15 @@ fn assert_claim_write_scope(
     );
     for (node, before_row) in &before.rollups {
         let after_row = after.rollups.get(node).expect("rollup row remains present");
-        assert_eq!(
-            after_row.source_snapshot,
-            after.snapshot.to_string(),
-            "every derived rollup row advances to the promoted snapshot"
-        );
-        if node == &claimed.to_string() {
+        if node == &rows::hex(claimed.as_bytes()) {
+            assert_eq!(
+                after_row.source_snapshot,
+                rows::hex(after.snapshot.as_bytes()),
+                "the changed rollup row records its materialization snapshot"
+            );
             continue;
         }
-        assert_eq!(
-            after_row.node_revision, before_row.node_revision,
-            "an untouched node keeps its canonical revision in the rollup row"
-        );
-        assert_eq!(
-            after_row.parent_node_id, before_row.parent_node_id,
-            "an untouched node keeps its structural parent"
-        );
-        assert_eq!(
-            after_row.direct_status, before_row.direct_status,
-            "an untouched node keeps its direct status"
-        );
-        assert_eq!(
-            after_row.effective_status, before_row.effective_status,
-            "an untouched node keeps its effective status"
-        );
-        assert_eq!(
-            after_row.payload, before_row.payload,
-            "an untouched node's derived rollup payload is not rewritten"
-        );
+        assert_eq!(after_row, before_row, "an untouched row is not rewritten");
     }
 }
 
@@ -300,13 +281,14 @@ fn claim_cas_rewrites_only_the_claimed_node_claim_and_plan_rows() {
     let after_first = durable_state(&path, &semantic, session, plan_id);
     assert_claim_write_scope(&before_first, &after_first, plan_id, claimed);
 
-    // The worker claim lives only in the claimed node's row; the coordinator
-    // claim stays in the plan record.
-    assert_eq!(
-        rows::entities_holding_identity(&path, &after_first.snapshot, first_claim),
-        vec![claimed.as_bytes().to_vec()],
-        "exactly the claimed node's row records the worker claim"
-    );
+    // The worker claim remains in the claimed node and independent attempt;
+    // the coordinator claim stays in the plan record.
+    let first_claim_holders =
+        rows::entities_holding_identity(&path, &after_first.snapshot, first_claim)
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+    assert_eq!(first_claim_holders.len(), 2);
+    assert!(first_claim_holders.contains(claimed.as_bytes().as_slice()));
     assert_eq!(
         rows::entities_holding_identity(&path, &after_first.snapshot, coordinator_claim),
         vec![plan_id.as_bytes().to_vec()],
@@ -350,29 +332,31 @@ fn claim_cas_rewrites_only_the_claimed_node_claim_and_plan_rows() {
         after_first.entries.get(claimed.as_bytes().as_slice()),
         "the previously claimed node keeps its exact stored revision"
     );
+    let first_claim_holders =
+        rows::entities_holding_identity(&path, &after_second.snapshot, first_claim)
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+    assert_eq!(first_claim_holders.len(), 2);
+    assert!(first_claim_holders.contains(claimed.as_bytes().as_slice()));
+    let second_claim_holders =
+        rows::entities_holding_identity(&path, &after_second.snapshot, second_claim)
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+    assert_eq!(second_claim_holders.len(), 2);
+    assert!(second_claim_holders.contains(second.as_bytes().as_slice()));
     assert_eq!(
-        rows::entities_holding_identity(&path, &after_second.snapshot, first_claim),
-        vec![claimed.as_bytes().to_vec()],
-        "the first worker claim stays in the first node's row"
-    );
-    assert_eq!(
-        rows::entities_holding_identity(&path, &after_second.snapshot, second_claim),
-        vec![second.as_bytes().to_vec()],
-        "exactly the second claimed node's row records the second worker claim"
-    );
-    assert_eq!(
-        after_second.rollups[&claimed.to_string()].direct_status,
-        format!("{:?}", PlanNodeStatus::Running),
+        after_second.rollups[&rows::hex(claimed.as_bytes())].direct_status,
+        "running",
         "the first claim's derived rollup row stays advanced"
     );
     assert_eq!(
-        after_second.rollups[&second.to_string()].direct_status,
-        format!("{:?}", PlanNodeStatus::Running),
+        after_second.rollups[&rows::hex(second.as_bytes())].direct_status,
+        "running",
         "the second claim advances only its own rollup row"
     );
     assert_eq!(
-        after_second.rollups[&untouched.to_string()].direct_status,
-        format!("{:?}", PlanNodeStatus::Planned),
+        after_second.rollups[&rows::hex(untouched.as_bytes())].direct_status,
+        "planned",
         "the unrelated node's derived rollup row stays Planned"
     );
 

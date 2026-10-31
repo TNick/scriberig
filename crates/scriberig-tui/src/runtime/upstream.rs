@@ -271,6 +271,7 @@ pub(super) fn run<S: TuiService + Sync>(
         Arc::clone(&keybindings),
     ));
     let composer = Arc::new(ComposerAdapter::new(
+        Arc::clone(&shared_state),
         Arc::clone(&editor),
         input_sender.clone(),
         Arc::clone(&keybindings),

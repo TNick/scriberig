@@ -288,6 +288,19 @@ impl<T: RootStore + ?Sized> RootStore for Arc<T> {
         (**self).read_root(name)
     }
 
+    /// Delegates named-root enumeration to the shared backend.
+    ///
+    /// # Returns
+    /// Every currently registered root paired with its snapshot.
+    ///
+    /// # Errors
+    /// Returns the backend error when roots cannot be enumerated.
+    fn list_roots(
+        &self,
+    ) -> Result<Vec<(scriberig_core::RootName, scriberig_core::SnapshotId)>, RootError> {
+        (**self).list_roots()
+    }
+
     /// Delegates compare-and-set root promotion to the shared backend.
     ///
     /// - `name`: Named root to update.

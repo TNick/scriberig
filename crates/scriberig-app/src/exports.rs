@@ -99,9 +99,10 @@ pub use crate::session::{
     AgentCommandRequest, AgentConsoleBackend, AgentContinuationAccepted, AgentContinueAtRequest,
     AgentResult, AgentSelection, CandidateChange, LegacyExecutionMappingRequest,
     LegacyPlanAssignmentMappingRequest, LocalAgentHandle, LocalChildAgentHandle,
-    NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanCreateRequest,
-    PlanLifecycleAction, PlanLifecycleRequest, PlanMutation, PlanMutationRequest, PlanNodeDraft,
-    PlanNodeReference, PlanReplanRequest, SessionBackend, SessionModelSelectionRequest,
+    NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanAttemptHistoryRequest,
+    PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest, PlanMutation,
+    PlanMutationRequest, PlanNodeDetailsRequest, PlanNodeDraft, PlanNodeReference,
+    PlanReplanRequest, PlanRetryRequest, SessionBackend, SessionModelSelectionRequest,
     SessionRequest, SessionThinkingSelectionRequest, ToolExecutionEvidence,
 };
 pub use crate::trust::{

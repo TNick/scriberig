@@ -14,8 +14,10 @@ fn tui_rich_project_imports_and_lists_rich_artifacts() {
     );
     tui.send_slow(b"/explorer\r");
     assert!(tui.read_until("Semantic explorer"), "{}", tui.diagnostic());
+    assert!(tui.read_until("budget.xlsx"), "{}", tui.diagnostic());
+    assert!(tui.read_until("drawing.dxf"), "{}", tui.diagnostic());
     let screen = tui.screen();
-    for evidence in ["Explorer loaded", "budget.xlsx", "drawing.dxf"] {
+    for evidence in ["budget.xlsx", "drawing.dxf"] {
         assert!(
             screen.contains(evidence),
             "missing {evidence}: {}",

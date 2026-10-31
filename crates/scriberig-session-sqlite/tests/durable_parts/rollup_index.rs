@@ -2,9 +2,9 @@
 
 use super::*;
 
-/// Adds node-revision indexing when opening a database with the old cache schema.
+/// Rebuilds an incompatible cache schema while retaining canonical session rows.
 #[test]
-fn existing_rollup_index_schema_gains_node_revision_column() {
+fn existing_rollup_index_schema_is_replaced_without_losing_session_data() {
     let path = std::env::temp_dir().join(format!(
         "scriberig-rollup-schema-{}.sqlite",
         EntityId::new()
@@ -27,7 +27,8 @@ fn existing_rollup_index_schema_gains_node_revision_column() {
                  evaluator_version INTEGER NOT NULL,
                  payload BLOB NOT NULL,
                  PRIMARY KEY (session_id, plan_id, node_id)
-             );",
+             );
+             INSERT INTO session_records(session_id, payload) VALUES (x'01', x'02');",
         )
         .expect("create old schema");
     drop(connection);
@@ -35,17 +36,34 @@ fn existing_rollup_index_schema_gains_node_revision_column() {
     let store = SqliteSessionStore::open(&path).expect("open upgraded repository");
     drop(store);
     let connection = rusqlite::Connection::open(&path).expect("reopen database");
-    let has_node_revision = connection
+    let has_entry_gate_count = connection
         .query_row(
             "SELECT EXISTS(
                  SELECT 1 FROM pragma_table_info('plan_node_rollup_index')
-                 WHERE name='node_revision'
+                 WHERE name='entry_pending'
              )",
             [],
             |row| row.get::<_, bool>(0),
         )
         .expect("inspect rollup schema");
+    let old_payload_column = connection
+        .query_row(
+            "SELECT EXISTS(
+                 SELECT 1 FROM pragma_table_info('plan_node_rollup_index')
+                 WHERE name='payload'
+             )",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .expect("inspect old cache column");
+    let session_row_survived = connection
+        .query_row("SELECT COUNT(*) FROM session_records", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .expect("inspect canonical session data");
 
-    assert!(has_node_revision);
+    assert!(has_entry_gate_count);
+    assert!(!old_payload_column);
+    assert_eq!(session_row_survived, 1);
     let _ = std::fs::remove_file(path);
 }

@@ -51,6 +51,9 @@ pub(super) fn session(state: &TuiState) -> String {
 /// Operation status and bounded result handles.
 pub(super) fn operations(state: &TuiState) -> String {
     let mut output = String::from("# Operations\n\n");
+    if state.operations.is_empty() && state.operation_error.is_none() {
+        append_value(&mut output, "No observed operations.");
+    }
     for (index, operation) in state.operations.iter().take(MAX_ROWS).enumerate() {
         append_value(
             &mut output,

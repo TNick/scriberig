@@ -346,3 +346,17 @@ fn agent_submission_without_capability_is_denied() {
 
 #[path = "part2/failures.rs"]
 mod failures;
+#[path = "part2/plan_attempt_history.rs"]
+mod plan_attempt_history;
+#[path = "part2/plan_decompose.rs"]
+mod plan_decompose;
+#[path = "part2/plan_next_step.rs"]
+mod plan_next_step;
+#[path = "part2/plan_node_details.rs"]
+mod plan_node_details;
+#[path = "part2/plan_retry.rs"]
+mod plan_retry;
+#[path = "part2/plan_rollups.rs"]
+mod plan_rollups;
+#[path = "part2/plan_semantic_mutations.rs"]
+mod plan_semantic_mutations;

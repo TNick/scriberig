@@ -30,6 +30,40 @@ impl RootStore for SqliteStore {
         Some(SnapshotId::new(value))
     }
 
+    /// Lists every durable named root in deterministic name order.
+    ///
+    /// # Returns
+    /// Every valid root name paired with its exact snapshot.
+    ///
+    /// # Errors
+    /// Returns a backend error when a stored root name or snapshot is invalid.
+    fn list_roots(&self) -> Result<Vec<(RootName, SnapshotId)>, RootError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| RootError::Backend("lock poisoned".to_owned()))?;
+        let mut statement = connection
+            .prepare("SELECT name, snapshot_id FROM roots ORDER BY name")
+            .map_err(|error| RootError::Backend(error.to_string()))?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))
+            })
+            .map_err(|error| RootError::Backend(error.to_string()))?;
+        let mut roots = Vec::new();
+        for row in rows {
+            let (name, snapshot) = row.map_err(|error| RootError::Backend(error.to_string()))?;
+            let name = RootName::new(name).map_err(|error| {
+                RootError::Backend(format!("invalid stored root name: {error}"))
+            })?;
+            let snapshot: [u8; 32] = snapshot.try_into().map_err(|_| {
+                RootError::Backend("stored root snapshot has invalid length".to_owned())
+            })?;
+            roots.push((name, SnapshotId::new(snapshot)));
+        }
+        Ok(roots)
+    }
+
     /// Unconditionally points a named root at an immutable snapshot.
     /// - `name`: Argument named `name`.
     /// - `snapshot`: Argument named `snapshot`.

@@ -7,3 +7,4 @@ export * from "./operation-panel";
 export * from "./branch-activity";
 export * from "./model-controls";
 export * from "./plan-panel";
+export * from "./plan-management-panel";

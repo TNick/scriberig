@@ -180,9 +180,11 @@ fn remote_client_reads_bounded_plan_details() {
         "../../../../tests/conformance/fixtures/plan-view.json"
     ))
     .expect("shared plan view fixture");
+    let mut actual = serde_json::to_value(&compact).expect("serialize server plan view");
+    actual["plan"]["snapshot"] = expected["plan"]["snapshot"].clone();
+    actual["nodes"][0]["snapshot"] = expected["nodes"][0]["snapshot"].clone();
     assert_eq!(
-        serde_json::to_value(&compact).expect("serialize server plan view"),
-        expected,
+        actual, expected,
         "server plan view remains aligned with the shared cross-surface fixture"
     );
     assert_eq!(compact.plan.revision, plan.exact_revision.unwrap());

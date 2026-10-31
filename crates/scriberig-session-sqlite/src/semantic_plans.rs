@@ -2,25 +2,28 @@
 
 #[path = "semantic_plans/history.rs"]
 mod history;
-use history::{plan_at_revision, plan_revision, semantic_writes};
-#[path = "semantic_plans/equivalence.rs"]
-mod equivalence;
+#[path = "semantic_plans/migration_marker.rs"]
+mod migration_marker;
+#[path = "semantic_plans/node_details.rs"]
+mod node_details;
+#[path = "semantic_plans/node_index.rs"]
+mod node_index;
+#[path = "semantic_plans/plan_write_set.rs"]
+mod plan_write_set;
 #[path = "semantic_plans/projection.rs"]
 mod projection;
-#[path = "semantic_plans/root.rs"]
-mod root;
-use root::plan_persistence;
-pub(crate) use root::plan_root;
+#[path = "semantic_plans/reads.rs"]
+mod reads;
+#[path = "semantic_plans/rollup_index.rs"]
+mod rollup_index;
+#[path = "semantic_plans/rollup_update.rs"]
+mod rollup_update;
+use history::{plan_at_revision, plan_revision, semantic_writes};
+use plan_write_set::build_plan_write_set;
 
-use std::collections::BTreeMap;
-
-use rusqlite::Transaction;
-
-use scriberig_core::{EncodingVersion, EntityId, SnapshotId};
+use scriberig_core::{EntityId, RootName};
 use scriberig_session::{Plan, PlanStoreError, Session};
-use scriberig_store::{
-    Revision, RevisionStore, RootStore, Snapshot, SnapshotChange, SnapshotStore,
-};
+use scriberig_store::{RootStore, Snapshot};
 use scriberig_store_sqlite::PromotionError;
 
 use crate::SqliteSessionStore;
@@ -33,20 +36,61 @@ impl SqliteSessionStore {
     ///
     /// # Parameters
     /// - `session`: Session projection whose plans are hydrated.
+    /// - `recover_legacy_claims`: Whether claims imported from legacy data are stale.
     ///
     /// # Errors
     /// Returns a persistence diagnostic when migration or semantic loading
     /// fails.
+    /// # Returns
+    /// Unit after all plan projections are hydrated.
+    pub(super) fn hydrate_semantic_plans(
+        &self,
+        session: &mut Session,
+        recover_legacy_claims: bool,
+    ) -> Result<(), String> {
+        let legacy_plans = std::mem::take(&mut session.plans);
+        for (ordinal, legacy_plan) in legacy_plans.iter().enumerate() {
+            self.migrate_plan_history(session.id, legacy_plan, recover_legacy_claims)?;
+            self.register_plan(session.id, legacy_plan.id, ordinal)?;
+        }
+        let plan_ids = self.registered_plans(session.id)?;
+        let plans = plan_ids
+            .into_iter()
+            .map(|plan| self.load_semantic_plan(session.id, plan))
+            .collect::<Result<Vec<_>, _>>()?;
+        session.plans = plans;
+        Ok(())
+    }
+
+    /// Replaces aggregate plan payloads with compact registered plan projections.
+    ///
+    /// # Parameters
+    /// - `session`: Session projection whose plans should be loaded.
+    /// - `recover_legacy_claims`: Whether newly imported legacy claims are stale.
     ///
     /// # Returns
-    /// The value described by the return type.
-    pub(super) fn hydrate_semantic_plans(&self, session: &mut Session) -> Result<(), String> {
-        let mut plans = Vec::with_capacity(session.plans.len());
-        for legacy_plan in &session.plans {
-            self.migrate_plan_history(session.id, legacy_plan)?;
-            plans.push(self.load_semantic_plan(session.id, legacy_plan.id)?);
+    /// Unit after compact plans are assigned to the session.
+    ///
+    /// # Errors
+    /// Returns a diagnostic when migration or compact semantic decoding fails.
+    pub(crate) fn hydrate_semantic_plan_projections(
+        &self,
+        session: &mut Session,
+        recover_legacy_claims: bool,
+    ) -> Result<(), String> {
+        let legacy_plans = std::mem::take(&mut session.plans);
+        for (ordinal, legacy_plan) in legacy_plans.iter().enumerate() {
+            self.migrate_plan_history(session.id, legacy_plan, recover_legacy_claims)?;
+            self.register_plan(session.id, legacy_plan.id, ordinal)?;
         }
-        session.plans = plans;
+        let plan_ids = self.registered_plans(session.id)?;
+        session.plans = plan_ids
+            .into_iter()
+            .map(|plan| {
+                self.load_plan_projection(session.id, plan, None)?
+                    .ok_or_else(|| format!("semantic plan {plan} disappeared"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(())
     }
 
@@ -63,6 +107,8 @@ impl SqliteSessionStore {
     /// # Errors
     /// Returns a persistence diagnostic when plan initialization or loading
     /// fails.
+    /// # Returns
+    /// The session projection with canonical plans loaded.
     pub(super) fn prepare_session_projection(
         &self,
         proposed: &Session,
@@ -73,7 +119,7 @@ impl SqliteSessionStore {
             for old_plan in prior.session.plans {
                 let root = plan_root(proposed.id, old_plan.id)?;
                 if self.semantic_store.read_root(&root).is_none() {
-                    self.migrate_plan_history(proposed.id, &old_plan)?;
+                    self.migrate_plan_history(proposed.id, &old_plan, false)?;
                 }
                 if !projection.plans.iter().any(|plan| plan.id == old_plan.id) {
                     projection
@@ -82,8 +128,7 @@ impl SqliteSessionStore {
                 }
             }
         }
-        self.hydrate_semantic_plans(&mut projection)?;
-        projection.compact_branch_results();
+        self.hydrate_semantic_plans(&mut projection, false)?;
         Ok(projection)
     }
 
@@ -93,24 +138,24 @@ impl SqliteSessionStore {
     /// - `session`: Owning session identity.
     /// - `proposed`: New plan state to promote.
     /// - `expected_revision`: Plan-local revision observed by the caller.
-    /// - `related_write`: Session projection update run before the root
-    ///   promotion transaction commits.
     ///
     /// # Errors
     /// Returns a plan revision conflict or bounded persistence diagnostic.
-    ///
     /// # Returns
-    /// The value described by the return type.
-    pub(super) fn compare_and_swap_semantic_plan(
+    /// Unit after the semantic root is promoted.
+    pub(super) fn compare_and_swap_semantic_plan<F>(
         &self,
         session: EntityId,
         proposed: &Plan,
         expected_revision: u64,
-        related_write: impl FnOnce(&Transaction<'_>) -> Result<(), String>,
-    ) -> Result<(), PlanStoreError> {
+        commit_related: F,
+    ) -> Result<(), PlanStoreError>
+    where
+        F: FnOnce(&rusqlite::Transaction<'_>, &Plan) -> Result<(), String>,
+    {
         let root = plan_root(session, proposed.id).map_err(plan_persistence)?;
         if self.semantic_store.read_root(&root).is_none() {
-            self.migrate_plan_history(session, proposed)
+            self.migrate_plan_history(session, proposed, false)
                 .map_err(plan_persistence)?;
         }
         let current_snapshot = self
@@ -132,42 +177,48 @@ impl SqliteSessionStore {
         if proposed.revision != next_revision {
             return Err(plan_persistence("proposed plan has an unexpected revision"));
         }
-        let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(proposed)
-            .map_err(|error| plan_persistence(format!("plan encoding failed: {error:?}")))?;
-        let old_entries = self
-            .semantic_store
-            .iter(current_snapshot)
-            .map_err(|error| plan_persistence(format!("plan snapshot read failed: {error:?}")))?;
-        let new_entities = encoded
-            .objects
-            .iter()
-            .map(|object| object.entity)
-            .collect::<std::collections::BTreeSet<_>>();
-        let mut revisions = Vec::with_capacity(encoded.objects.len());
-        let mut changes = Vec::with_capacity(encoded.objects.len() + old_entries.len());
-        for object in encoded.objects {
-            let revision = Revision::from_parts(
-                object.revision,
-                EncodingVersion::V1,
-                object.object_type,
-                object.payload,
-            )
-            .map_err(|error| plan_persistence(format!("invalid plan revision: {error:?}")))?;
-            changes.push(SnapshotChange::Set(object.entity, revision.id()));
-            revisions.push(revision);
-        }
-        for (entity, _) in old_entries {
-            if !new_entities.contains(&entity) {
-                changes.push(SnapshotChange::Remove(entity));
-            }
-        }
+        let write_set =
+            build_plan_write_set(self, current_snapshot, proposed).map_err(plan_persistence)?;
+        let staged_rollups = rollup_update::stage_rollup_update(
+            self,
+            session,
+            &current,
+            proposed,
+            current_snapshot,
+            write_set.successor_snapshot,
+        )
+        .map_err(plan_persistence)?;
+        let staged_nodes = node_index::stage_update(
+            self,
+            session,
+            &current,
+            proposed,
+            current_snapshot,
+            write_set.successor_snapshot,
+            write_set.indexed_nodes.clone(),
+        )
+        .map_err(plan_persistence)?;
         match self.semantic_store.apply_revisions_and_promote_with(
             root,
             Some(current_snapshot),
             current_snapshot,
-            &revisions,
-            &changes,
-            related_write,
+            &write_set.revisions,
+            &write_set.changes,
+            |transaction| {
+                commit_related(transaction, &current)?;
+                node_index::persist_in_transaction(
+                    transaction,
+                    session,
+                    proposed.id,
+                    &staged_nodes,
+                )?;
+                rollup_update::persist_in_transaction(
+                    transaction,
+                    session,
+                    proposed.id,
+                    &staged_rollups,
+                )
+            },
         ) {
             Ok(_) => Ok(()),
             Err(PromotionError::Root(scriberig_store::RootError::Conflict { actual, .. })) => {
@@ -192,16 +243,17 @@ impl SqliteSessionStore {
     /// # Parameters
     /// - `session`: Owning session identity.
     /// - `plan`: Legacy or newly authored plan to migrate.
+    /// - `recover_legacy_claims`: Whether imported claims are stale by policy.
     ///
     /// # Errors
     /// Returns a persistence diagnostic when a universal root promotion fails.
-    ///
     /// # Returns
-    /// The value described by the return type.
-    pub(super) fn migrate_plan_history(
+    /// Unit after all legacy revisions are imported.
+    pub(crate) fn migrate_plan_history(
         &self,
         session: EntityId,
         plan: &Plan,
+        recover_legacy_claims: bool,
     ) -> Result<(), String> {
         let root = plan_root(session, plan.id)?;
         let mut expected = self.semantic_store.read_root(&root);
@@ -210,6 +262,12 @@ impl SqliteSessionStore {
             .map(|snapshot| self.load_plan_at_snapshot(session, plan.id, snapshot))
             .transpose()?
             .map(|stored| stored.revision);
+        let mut recovery_pending = self.legacy_migration_pending(session, plan.id)?;
+        let mut rebuild_indexes = recovery_pending;
+        if recover_legacy_claims && expected.is_none() {
+            self.set_legacy_migration_pending(session, plan.id, true)?;
+            recovery_pending = true;
+        }
         let mut history = plan.history.clone();
         history.sort_by_key(|record| record.revision);
         history.dedup_by_key(|record| record.revision);
@@ -243,7 +301,6 @@ impl SqliteSessionStore {
             }
             let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(&historical)
                 .map_err(|error| format!("plan encoding failed: {error:?}"))?;
-            equivalence::verify_before_promotion(&historical, &encoded)?;
             let (revisions, changes) = semantic_writes(encoded.objects)?;
             let promoted = self
                 .semantic_store
@@ -251,126 +308,67 @@ impl SqliteSessionStore {
                 .map_err(|error| format!("plan semantic migration failed: {error:?}"))?;
             base = promoted;
             expected = Some(promoted);
+            rebuild_indexes = true;
+        }
+        if recovery_pending
+            && (plan.coordinator_claim.is_some()
+                || plan.nodes.iter().any(|node| {
+                    node.status == scriberig_session::PlanNodeStatus::Running
+                        && node.claim.is_some()
+                }))
+        {
+            let mut recovered = plan.clone();
+            let count = recovered
+                .recover_stale_claims(|_| false)
+                .map_err(|error| format!("legacy plan claim recovery failed: {error:?}"))?;
+            if count > 0 && current_revision.is_none_or(|revision| revision < recovered.revision) {
+                let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(&recovered)
+                    .map_err(|error| format!("recovered plan encoding failed: {error:?}"))?;
+                let (revisions, changes) = semantic_writes(encoded.objects)?;
+                let promoted = self
+                    .semantic_store
+                    .apply_revisions_and_promote(root, expected, base, &revisions, &changes)
+                    .map_err(|error| format!("recovered plan migration failed: {error:?}"))?;
+                expected = Some(promoted);
+                rebuild_indexes = true;
+            }
+        }
+        if expected.is_some() && rebuild_indexes {
+            node_index::rebuild_plan_node_index(self, session, plan.id)?;
+        }
+        if recovery_pending {
+            self.set_legacy_migration_pending(session, plan.id, false)?;
         }
         Ok(())
     }
+}
 
-    /// Loads one plan projection from an exact root snapshot.
-    ///
-    /// # Parameters
-    /// - `session`: Owning session identity.
-    /// - `plan`: Stable plan identity.
-    /// - `snapshot`: Exact universal snapshot to assemble.
-    ///
-    /// # Returns
-    /// The plan projection represented by the exact semantic snapshot.
-    ///
-    /// # Errors
-    /// Returns a diagnostic for missing, invalid, or corrupt semantic objects.
-    /// - `_session`: Owning session identity for the requested snapshot.
-    pub(crate) fn load_plan_at_snapshot(
-        &self,
-        _session: EntityId,
-        plan: EntityId,
-        snapshot: SnapshotId,
-    ) -> Result<Plan, String> {
-        let current_semantics = self.read_semantic_snapshot(plan, snapshot)?;
-        let mut current = current_semantics
-            .clone()
-            .into_plan(Vec::new())
-            .map_err(|error| format!("plan semantic decode failed: {error:?}"))?;
-        let mut history = BTreeMap::new();
-        for ancestor in self
-            .semantic_store
-            .ancestors(snapshot)
-            .map_err(|error| format!("plan history read failed: {error:?}"))?
-        {
-            if ancestor == Snapshot::empty().id() {
-                continue;
-            }
-            let historical = self
-                .read_semantic_snapshot(plan, ancestor)?
-                .into_plan(Vec::new())
-                .map_err(|error| format!("plan history decode failed: {error:?}"))?;
-            history
-                .entry(historical.revision)
-                .or_insert_with(|| plan_revision(&historical));
-        }
-        history
-            .entry(current.revision)
-            .or_insert_with(|| plan_revision(&current));
-        for metadata in current_semantics
-            .history_metadata()
-            .map_err(|error| format!("plan history metadata is invalid: {error:?}"))?
-        {
-            if let Some(record) = history.get_mut(&metadata.mutation_revision) {
-                record.reason = metadata.reason;
-            }
-        }
-        current.history = history.into_values().collect();
-        Ok(current)
-    }
+/// Names the canonical universal root for one session plan.
+///
+/// # Parameters
+/// - `session`: Owning session identity.
+/// - `plan`: Stable plan identity.
+///
+/// The deterministic plan root name.
+///
+/// # Returns
+/// The stable universal root name.
+///
+/// # Errors
+/// Returns an error if the generated name is invalid.
+fn plan_root(session: EntityId, plan: EntityId) -> Result<RootName, String> {
+    RootName::new(format!("scriberig-plan-{session}-{plan}"))
+        .map_err(|error| format!("invalid plan root name: {error:?}"))
+}
 
-    /// Loads semantic objects for one exact plan snapshot.
-    ///
-    /// # Parameters
-    /// - `plan`: Expected plan identity.
-    /// - `snapshot`: Exact snapshot containing the plan.
-    ///
-    /// # Returns
-    /// The typed object set stored in the snapshot.
-    ///
-    /// # Errors
-    /// Returns an error when a referenced revision is missing or unreadable.
-    fn read_semantic_snapshot(
-        &self,
-        plan: EntityId,
-        snapshot: SnapshotId,
-    ) -> Result<scriberig_session::PlanSemanticSnapshot, String> {
-        let mut objects = Vec::new();
-        for (entity, revision_id) in self
-            .semantic_store
-            .iter(snapshot)
-            .map_err(|error| format!("plan snapshot read failed: {error:?}"))?
-        {
-            let Some(revision) = self
-                .semantic_store
-                .get(revision_id)
-                .map_err(|error| format!("plan revision read failed: {error:?}"))?
-            else {
-                return Err(format!("plan revision {revision_id} is missing"));
-            };
-            objects.push(scriberig_session::PlanSemanticRevision {
-                entity,
-                object_type: revision.object_type().clone(),
-                revision: revision.id(),
-                payload: revision.payload().to_vec(),
-            });
-        }
-        Ok(scriberig_session::PlanSemanticSnapshot {
-            plan,
-            snapshot: Some(snapshot),
-            objects,
-        })
-    }
-
-    /// Loads the plan selected by its current named root.
-    ///
-    /// # Parameters
-    /// - `session`: Owning session identity.
-    /// - `plan`: Stable plan identity.
-    ///
-    /// # Returns
-    /// The current plan projection.
-    ///
-    /// # Errors
-    /// Returns a diagnostic when the root is absent or its snapshot is invalid.
-    fn load_semantic_plan(&self, session: EntityId, plan: EntityId) -> Result<Plan, String> {
-        let root = plan_root(session, plan)?;
-        let snapshot = self
-            .semantic_store
-            .read_root(&root)
-            .ok_or_else(|| "plan semantic root is absent".to_owned())?;
-        self.load_plan_at_snapshot(session, plan, snapshot)
-    }
+/// Converts a storage diagnostic to the plan repository error type.
+///
+/// # Parameters
+/// - `message`: Bounded persistence diagnostic.
+/// # Returns
+/// The plan persistence error.
+///
+/// A typed plan persistence error.
+fn plan_persistence(message: impl Into<String>) -> PlanStoreError {
+    PlanStoreError::Persistence(message.into())
 }

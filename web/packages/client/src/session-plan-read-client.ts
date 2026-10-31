@@ -5,7 +5,7 @@ import type {
   SessionPlanGraphView,
   SessionPlanViewRequest,
 } from "@scriberig/protocol";
-import { SemanticClient } from "./semantic-client";
+import { PlanNodeDetailsClient } from "./plan-node-details-client";
 import { normalizePlanDetails } from "./session-plan-details";
 import { normalizePlanGraphView } from "./session-plan-graph";
 
@@ -14,7 +14,7 @@ import { normalizePlanGraphView } from "./session-plan-graph";
  * Public members: compact graph and paged gate/evidence reads.
  * Private members: inherited semantic transport.
  */
-export class SessionPlanReadClient extends SemanticClient {
+export class SessionPlanReadClient extends PlanNodeDetailsClient {
   /** Reads bounded gate/evidence pages tied to one plan revision or snapshot.
    * @param request Session, exact plan selection, and independent page bounds.
    * @param signal Optional request cancellation signal.

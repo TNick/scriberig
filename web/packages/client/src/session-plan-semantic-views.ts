@@ -8,6 +8,7 @@ import type {
   SessionPlanGateCounts,
   SessionPlanGateRequirement,
   SessionPlanNode,
+  SessionPlanNodeDetailsPage,
   SessionPlanStatusCounts,
   SessionPlanSummary,
   SessionSemanticReference,
@@ -251,6 +252,19 @@ export function normalizeSummary(value: unknown): SessionPlanSummary[] {
       })
     : [];
   return [{ id: value.id, node: value.node, text: value.text, sources }];
+}
+
+/** Normalizes one bounded node gate and evidence page.
+ * @param value Untrusted wire page.
+ * @returns Safe typed detail rows and their page offset.
+ */
+export function normalizePlanNodeDetails(value: unknown): SessionPlanNodeDetailsPage {
+  const record = isObject(value) ? value : {};
+  return {
+    offset: count(record.offset),
+    gates: Array.isArray(record.gates) ? record.gates.flatMap(normalizeGate) : [],
+    evidence: Array.isArray(record.evidence) ? record.evidence.flatMap(normalizeEvidence) : [],
+  };
 }
 
 /** Checks whether a value is a JSON object record.

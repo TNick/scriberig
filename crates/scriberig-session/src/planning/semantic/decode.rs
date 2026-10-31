@@ -1,356 +1,392 @@
 //! Reconstructs plan projections from independently loaded semantic objects.
 
+#[path = "decode/assemble.rs"]
+mod assemble;
 #[path = "decode/node_refs.rs"]
 mod node_refs;
-#[path = "decode/payloads.rs"]
-mod payloads;
-#[path = "decode/validation.rs"]
-mod validation;
+#[path = "decode/plan_view.rs"]
+mod plan_view;
 
-pub(super) use node_refs::node_refs;
-use payloads::{
-    DependencyPayload, EvidencePayload, GatePayload, HistoryIdentity, HistoryPayload,
-    MembershipPayload, NodePayload, PlanPayload, StructurePayload, SummaryLinkPayload,
-    SummaryPayload,
-};
-pub(super) use validation::history_metadata;
-use validation::{decode_payload, invalid, validate_revision};
+pub(super) use assemble::into_plan;
+pub(super) use plan_view::plan_view;
+#[path = "decode/details.rs"]
+mod details;
 
-use std::collections::{BTreeMap, BTreeSet};
+use scriberig_core::{EncodingVersion, EntityId, revision_id};
+use serde::Deserialize;
+use std::collections::BTreeMap;
 
 use super::super::{
-    Plan, PlanDependency, PlanEvidenceAssociation, PlanEvidenceOwner, PlanGate,
-    PlanGateRequirement, PlanNode, PlanNodeParent, PlanNodeSummary, PlanRevision,
+    CoordinatorClaim, ExpectedResult, ModelAssignment, PlanEvidenceOwner, PlanEvidenceReference,
+    PlanEvidenceRole, PlanGatePhase, PlanGateRequirement, PlanGateWaiver, PlanNodeParent,
+    PlanNodeStatus, PlanStatus, WorkerClaim,
 };
 use super::encode::{
-    DEPENDENCY_TYPE, DependencyIdentity, EVIDENCE_TYPE, GATE_TYPE, HISTORY_TYPE, MEMBERSHIP_TYPE,
-    NODE_TYPE, PLAN_TYPE, RelationIdentity, STRUCTURE_TYPE, SUMMARY_LINK_TYPE, SUMMARY_TYPE,
+    ATTEMPT_TYPE, DEPENDENCY_TYPE, DependencyIdentity, EVIDENCE_TYPE, GATE_TYPE, HISTORY_TYPE,
+    MEMBERSHIP_TYPE, NODE_TYPE, PLAN_TYPE, STRUCTURE_TYPE, SUMMARY_LINK_TYPE, SUMMARY_TYPE,
     parent_identity, relation_id,
 };
-use super::{PlanSemanticError, PlanSemanticSnapshot};
-/// Assembles one typed plan projection after validating every object revision.
+use super::{
+    PlanSemanticAttempt, PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef,
+    PlanSemanticRevision, PlanSemanticSnapshot,
+};
+
+/// Payload for the semantic plan root object.
+#[derive(Deserialize)]
+struct PlanPayload {
+    schema_version: u16,
+    session: Option<EntityId>,
+    anchor: Option<crate::ContinuationAnchor>,
+    goal: String,
+    mutation_revision: u64,
+    status: PlanStatus,
+    root_branch: EntityId,
+    coordinator: Option<EntityId>,
+    coordinator_cursor: Option<EntityId>,
+    coordinator_claim: Option<CoordinatorClaim>,
+    coordinator_generation: u64,
+}
+
+/// Minimal plan fields required by compact plan metadata reads.
+#[derive(Deserialize)]
+struct PlanViewPayload {
+    /// Semantic object encoding version.
+    schema_version: u16,
+    /// Plan-local optimistic concurrency revision.
+    mutation_revision: u64,
+    /// Durable plan objective.
+    goal: String,
+    /// Current plan lifecycle state.
+    status: PlanStatus,
+    /// Branch authorized to coordinate automatic advancement.
+    coordinator: Option<EntityId>,
+    /// Node currently selected by the coordinator.
+    coordinator_cursor: Option<EntityId>,
+}
+
+/// Payload for one semantic plan node object.
+#[derive(Deserialize)]
+struct NodePayload {
+    schema_version: u16,
+    plan: EntityId,
+    title: String,
+    purpose: String,
+    expected_result: Option<ExpectedResult>,
+    semantic_scope: Vec<String>,
+    status: PlanNodeStatus,
+    branch: Option<EntityId>,
+    result: Option<EntityId>,
+    superseded_by: Option<EntityId>,
+    #[serde(default)]
+    abandon_reason: Option<super::super::PlanAbandonReason>,
+    #[serde(default)]
+    last_failure: Option<PlanEvidenceReference>,
+    assignment: Option<ModelAssignment>,
+    claim: Option<WorkerClaim>,
+    claim_generation: u64,
+}
+
+/// Minimal node fields required by compact plan metadata reads.
+#[derive(Deserialize)]
+struct NodeStatusPayload {
+    /// Semantic object encoding version.
+    schema_version: u16,
+    /// Plan identity owning this node.
+    plan: EntityId,
+    /// Canonical direct node lifecycle state.
+    status: PlanNodeStatus,
+}
+
+/// Payload linking a node to its plan in stable order.
+#[derive(Deserialize)]
+struct MembershipPayload {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    ordinal: u64,
+}
+
+/// Payload linking a node to its recursive branch parent.
+#[derive(Deserialize)]
+struct StructurePayload {
+    schema_version: u16,
+    plan: EntityId,
+    root_branch: EntityId,
+    child: EntityId,
+    parent: Option<PlanNodeParent>,
+    ordinal: u64,
+}
+
+/// Payload describing a dependency edge between plan nodes.
+#[derive(Deserialize)]
+struct DependencyPayload {
+    schema_version: u16,
+    plan: EntityId,
+    prerequisite: EntityId,
+    dependent: EntityId,
+    fulfilled_by: Option<EntityId>,
+}
+
+/// Payload recording one semantic plan mutation revision.
+#[derive(Deserialize)]
+struct HistoryPayload {
+    schema_version: u16,
+    plan: EntityId,
+    mutation_revision: u64,
+    reason: Option<String>,
+}
+
+/// Stable key used to derive a semantic history relation identity.
+#[derive(serde::Serialize)]
+struct HistoryIdentity {
+    plan: EntityId,
+    mutation_revision: u64,
+}
+
+/// Payload containing a durable summary for a plan node.
+#[derive(Deserialize)]
+struct SummaryPayload {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    text: String,
+    sources: Vec<super::super::PlanSemanticReference>,
+}
+
+/// Payload connecting a summary object to its plan node.
+#[derive(Deserialize)]
+struct SummaryLinkPayload {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    summary: EntityId,
+}
+
+/// Payload describing a plan gate requirement or waiver.
+#[derive(Deserialize)]
+struct GatePayload {
+    schema_version: u16,
+    plan: EntityId,
+    owner: EntityId,
+    phase: PlanGatePhase,
+    requirement: PlanGateRequirement,
+    waiver: Option<PlanGateWaiver>,
+}
+
+/// Payload linking evidence to a plan or node owner.
+#[derive(Deserialize)]
+struct EvidencePayload {
+    schema_version: u16,
+    plan: EntityId,
+    owner: PlanEvidenceOwner,
+    role: PlanEvidenceRole,
+    evidence: PlanEvidenceReference,
+    note: Option<String>,
+    actor: Option<EntityId>,
+}
+
+/// Payload retaining one isolated worker attempt's latest known outcome.
+#[derive(Deserialize)]
+struct AttemptPayload {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    branch: EntityId,
+    claim_generation: u64,
+    claim: Option<EntityId>,
+    status: PlanNodeStatus,
+    result: Option<EntityId>,
+    failure: Option<PlanEvidenceReference>,
+}
+
+/// Stable key used to derive one plan-node execution generation identity.
+#[derive(serde::Serialize)]
+struct AttemptIdentity {
+    plan: EntityId,
+    node: EntityId,
+    branch: EntityId,
+    claim_generation: u64,
+}
+
+/// Queries relation-backed node positions without decoding Plan payload.
 ///
-/// - `snapshot`: Current immutable plan object set.
-/// - `history`: Historical compatibility records retained by the caller.
+/// - `snapshot`: Exact semantic plan object set.
 ///
-/// Version and identity validation stays beside its decoder so the complete
-/// accepted object set can be audited in one place.
-/// The assembled plan projection.
+/// Node identities, revisions, and direct parents in stable order.
 ///
-/// Returns an error for invalid, missing, duplicate, or unsupported records.
+/// Returns an error for malformed relations.
 /// # Returns
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-#[allow(clippy::too_many_lines)]
-pub(super) fn into_plan(
+pub(super) fn node_refs(
     snapshot: &PlanSemanticSnapshot,
-    history: Vec<PlanRevision>,
-) -> Result<Plan, PlanSemanticError> {
-    let mut plan_payload = None;
-    let mut nodes = BTreeMap::new();
-    let mut memberships = BTreeMap::new();
-    let mut structures = BTreeMap::new();
-    let mut dependencies = Vec::new();
-    let mut history_metadata = BTreeMap::new();
-    let mut summaries = BTreeMap::new();
-    let mut summary_links = BTreeMap::new();
-    let mut gates = Vec::new();
-    let mut evidence = Vec::new();
+) -> Result<Vec<PlanSemanticNodeRef>, PlanSemanticError> {
+    node_refs::node_refs(snapshot)
+}
 
+/// Decodes independently revisioned worker attempts from one exact snapshot.
+///
+/// - `snapshot`: Exact semantic plan object set.
+///
+/// Attempts ordered by node, generation, and stable identity.
+/// # Returns
+/// The validated attempt records.
+/// # Errors
+/// Returns an error for malformed payloads or mismatched identities.
+pub(super) fn attempts(
+    snapshot: &PlanSemanticSnapshot,
+) -> Result<Vec<PlanSemanticAttempt>, PlanSemanticError> {
+    let mut attempts = Vec::new();
     for object in &snapshot.objects {
+        if object.object_type.as_str() != ATTEMPT_TYPE {
+            continue;
+        }
         validate_revision(object)?;
-        match object.object_type.as_str() {
-            PLAN_TYPE => {
-                if object.entity != snapshot.plan || plan_payload.is_some() {
-                    return Err(invalid("duplicate or mismatched plan object"));
-                }
-                let payload: PlanPayload = decode_payload(object)?;
-                if payload.schema_version != 1 {
-                    return Err(invalid("unsupported plan payload version"));
-                }
-                plan_payload = Some(payload);
-            }
-            NODE_TYPE => {
-                let payload: NodePayload = decode_payload(object)?;
-                if payload.schema_version != 1
-                    || payload.plan != snapshot.plan
-                    || nodes.contains_key(&object.entity)
-                {
-                    return Err(invalid("duplicate, mismatched, or unsupported node object"));
-                }
-                nodes.insert(object.entity, payload);
-            }
-            MEMBERSHIP_TYPE => {
-                let payload: MembershipPayload = decode_payload(object)?;
-                if payload.schema_version != 1
-                    || payload.plan != snapshot.plan
-                    || relation_id(
-                        MEMBERSHIP_TYPE,
-                        &RelationIdentity {
-                            owner: payload.plan,
-                            target: payload.node,
-                        },
-                    )? != object.entity
-                    || memberships.insert(payload.node, payload.ordinal).is_some()
-                {
-                    return Err(invalid("duplicate, mismatched, or unsupported membership"));
-                }
-            }
-            STRUCTURE_TYPE => {
-                let payload: StructurePayload = decode_payload(object)?;
-                if payload.schema_version != 1
-                    || payload.plan != snapshot.plan
-                    || relation_id(
-                        STRUCTURE_TYPE,
-                        &RelationIdentity {
-                            owner: payload.child,
-                            target: payload.parent.map_or(payload.root_branch, parent_identity),
-                        },
-                    )? != object.entity
-                    || structures
-                        .insert(
-                            payload.child,
-                            (payload.ordinal, payload.parent, payload.root_ordinal),
-                        )
-                        .is_some()
-                {
-                    return Err(invalid("duplicate or unsupported structure relation"));
-                }
-            }
-            DEPENDENCY_TYPE => {
-                let payload: DependencyPayload = decode_payload(object)?;
-                if payload.schema_version != 1
-                    || payload.plan != snapshot.plan
-                    || relation_id(
-                        DEPENDENCY_TYPE,
-                        &DependencyIdentity {
-                            plan: payload.plan,
-                            prerequisite: payload.prerequisite,
-                            dependent: payload.dependent,
-                        },
-                    )? != object.entity
-                {
-                    return Err(invalid("mismatched or unsupported dependency"));
-                }
-                dependencies.push(PlanDependency {
-                    prerequisite: payload.prerequisite,
-                    dependent: payload.dependent,
-                    fulfilled_by: payload.fulfilled_by,
-                });
-            }
-            HISTORY_TYPE => {
-                let payload: HistoryPayload = decode_payload(object)?;
-                if payload.schema_version != 1
-                    || payload.plan != snapshot.plan
-                    || relation_id(
-                        HISTORY_TYPE,
-                        &HistoryIdentity {
-                            plan: payload.plan,
-                            mutation_revision: payload.mutation_revision,
-                        },
-                    )? != object.entity
-                    || history_metadata
-                        .insert(payload.mutation_revision, payload.reason)
-                        .is_some()
-                {
-                    return Err(invalid(
-                        "duplicate, mismatched, or unsupported history record",
-                    ));
-                }
-            }
-            SUMMARY_TYPE => {
-                let payload: SummaryPayload = decode_payload(object)?;
-                if payload.schema_version != 1
-                    || payload.plan != snapshot.plan
-                    || summaries
-                        .insert(
-                            object.entity,
-                            PlanNodeSummary {
-                                id: object.entity,
-                                node: payload.node,
-                                text: payload.text,
-                                sources: payload.sources,
-                            },
-                        )
-                        .is_some()
-                {
-                    return Err(invalid("duplicate, mismatched, or unsupported summary"));
-                }
-            }
-            SUMMARY_LINK_TYPE => {
-                let payload: SummaryLinkPayload = decode_payload(object)?;
-                if payload.schema_version != 1
-                    || payload.plan != snapshot.plan
-                    || relation_id(
-                        SUMMARY_LINK_TYPE,
-                        &RelationIdentity {
-                            owner: payload.node,
-                            target: payload.summary,
-                        },
-                    )? != object.entity
-                    || summary_links
-                        .insert(payload.node, payload.summary)
-                        .is_some()
-                {
-                    return Err(invalid(
-                        "duplicate, mismatched, or unsupported summary link",
-                    ));
-                }
-            }
-            GATE_TYPE => {
-                let payload: GatePayload = decode_payload(object)?;
-                if payload.schema_version != 1 || payload.plan != snapshot.plan {
-                    return Err(invalid("mismatched or unsupported gate"));
-                }
-                gates.push(PlanGate {
-                    id: object.entity,
-                    owner: payload.owner,
-                    phase: payload.phase,
-                    requirement: payload.requirement,
-                    waiver: payload.waiver,
-                });
-            }
-            EVIDENCE_TYPE => {
-                let payload: EvidencePayload = decode_payload(object)?;
-                if payload.schema_version != 1 || payload.plan != snapshot.plan {
-                    return Err(invalid("mismatched or unsupported evidence"));
-                }
-                evidence.push(PlanEvidenceAssociation {
-                    id: object.entity,
-                    owner: payload.owner,
-                    role: payload.role,
-                    evidence: payload.evidence,
-                    note: payload.note,
-                    actor: payload.actor,
-                });
-            }
-            type_name => {
-                return Err(invalid(format!(
-                    "unsupported semantic object type {type_name}"
-                )));
-            }
+        let payload: AttemptPayload = decode_payload(object)?;
+        let identity = AttemptIdentity {
+            plan: payload.plan,
+            node: payload.node,
+            branch: payload.branch,
+            claim_generation: payload.claim_generation,
+        };
+        if payload.schema_version != 1
+            || payload.plan != snapshot.plan
+            || relation_id(ATTEMPT_TYPE, &identity)? != object.entity
+        {
+            return Err(invalid("mismatched or unsupported plan attempt"));
         }
-    }
-
-    let payload = plan_payload.ok_or_else(|| invalid("missing plan object"))?;
-    if nodes.len() != memberships.len() || nodes.len() != structures.len() {
-        return Err(invalid("node, membership, and structure sets differ"));
-    }
-    let mut ordered_nodes = memberships.into_iter().collect::<Vec<_>>();
-    ordered_nodes.sort_by_key(|(node, ordinal)| (*ordinal, *node));
-    let mut plan_nodes = Vec::with_capacity(ordered_nodes.len());
-    let mut root_nodes = Vec::new();
-    let mut ordinals = BTreeSet::new();
-    for (node_id, ordinal) in ordered_nodes {
-        if !ordinals.insert(ordinal) {
-            return Err(invalid("duplicate plan membership ordinal"));
-        }
-        let node = nodes
-            .remove(&node_id)
-            .ok_or_else(|| invalid("membership points to a missing node"))?;
-        let (structure_ordinal, parent, root_ordinal) = structures
-            .remove(&node_id)
-            .ok_or_else(|| invalid("node has no structural relation"))?;
-        if structure_ordinal != ordinal {
-            return Err(invalid("membership and structure order disagree"));
-        }
-        if matches!(parent, Some(PlanNodeParent::Branch(_)) | None) {
-            root_nodes.push((root_ordinal.unwrap_or(structure_ordinal), node_id));
-        } else if root_ordinal.is_some() {
-            return Err(invalid("non-root node has a root ordinal"));
-        }
-        plan_nodes.push(PlanNode {
-            id: node_id,
-            parent,
-            title: node.title,
-            purpose: node.purpose,
-            expected_result: node.expected_result,
-            semantic_scope: node.semantic_scope,
-            status: node.status,
-            branch: node.branch,
-            result: node.result,
-            superseded_by: node.superseded_by,
-            abandon_reason: node.abandon_reason,
-            last_failure: node.last_failure,
-            assignment: node.assignment,
-            claim: node.claim,
-            claim_generation: node.claim_generation,
+        attempts.push(PlanSemanticAttempt {
+            entity: object.entity,
+            revision: object.revision,
+            node: payload.node,
+            branch: payload.branch,
+            claim_generation: payload.claim_generation,
+            claim: payload.claim,
+            status: payload.status,
+            result: payload.result,
+            failure: payload.failure,
         });
     }
-    root_nodes.sort_by_key(|(ordinal, _)| *ordinal);
-    if root_nodes
-        .iter()
-        .enumerate()
-        .any(|(expected, (actual, _))| u64::try_from(expected).ok() != Some(*actual))
-    {
-        return Err(invalid("duplicate or incomplete root node order"));
-    }
-    let root_nodes = root_nodes.into_iter().map(|(_, node)| node).collect();
-    if !nodes.is_empty() || !structures.is_empty() {
-        return Err(invalid("unreferenced node or structure relation"));
-    }
-    dependencies.sort_by_key(|edge| (edge.prerequisite, edge.dependent));
-    if summary_links.len() != summaries.len() {
-        return Err(invalid("summary and summary-link sets differ"));
-    }
-    let mut ordered_summaries = Vec::with_capacity(summary_links.len());
-    for (node_id, summary_id) in summary_links {
-        let summary = summaries
-            .remove(&summary_id)
-            .ok_or_else(|| invalid("summary link points to a missing summary"))?;
-        if summary.node != node_id || !plan_nodes.iter().any(|node| node.id == node_id) {
-            return Err(invalid("summary link has a mismatched node"));
+    attempts.sort_by_key(|attempt| (attempt.node, attempt.claim_generation, attempt.entity));
+    Ok(attempts)
+}
+
+/// Decodes one page of gate and evidence records owned by a plan node.
+///
+/// # Parameters
+/// - `snapshot`: Exact semantic records selected by the repository.
+/// - `node`: Stable node identity whose details are requested.
+/// - `offset`: Number of matching records to skip, per category.
+/// - `limit`: Maximum records returned, per category.
+///
+/// # Returns
+/// The requested gate and evidence pages.
+///
+/// # Errors
+/// Returns an error for malformed, unsupported, or mismatched payloads.
+pub(super) fn node_details(
+    snapshot: &PlanSemanticSnapshot,
+    node: EntityId,
+    offset: usize,
+    limit: usize,
+) -> Result<super::PlanSemanticNodeDetails, PlanSemanticError> {
+    details::node_details(snapshot, node, offset, limit)
+}
+
+/// Decodes safe mutation metadata from a semantic plan object set.
+///
+/// - `snapshot`: Semantic plan records to inspect.
+///
+/// Ordered revision metadata.
+///
+/// Returns an error for malformed or mismatched history objects.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub(super) fn history_metadata(
+    snapshot: &PlanSemanticSnapshot,
+) -> Result<Vec<PlanSemanticHistory>, PlanSemanticError> {
+    let mut metadata = BTreeMap::new();
+    for object in &snapshot.objects {
+        if object.object_type.as_str() != HISTORY_TYPE {
+            continue;
         }
-        ordered_summaries.push(summary);
-    }
-    if !summaries.is_empty() {
-        return Err(invalid("unreferenced summary object"));
-    }
-    if gates.iter().any(|gate| {
-        !plan_nodes.iter().any(|node| node.id == gate.owner)
-            || matches!(
-                &gate.requirement,
-                PlanGateRequirement::RequiredChildCompleted { child }
-                    if !plan_nodes.iter().any(|node| {
-                        node.id == *child
-                            && node.parent == Some(PlanNodeParent::Node(gate.owner))
-                    })
-            )
-    }) {
-        return Err(invalid("gate owner or required child is missing"));
-    }
-    if evidence.iter().any(|association| match association.owner {
-        PlanEvidenceOwner::Node(node) => !plan_nodes.iter().any(|item| item.id == node),
-        PlanEvidenceOwner::Gate(gate) => !gates.iter().any(|item| item.id == gate),
-    }) {
-        return Err(invalid("evidence owner is missing"));
-    }
-    let mut plan = Plan {
-        id: snapshot.plan,
-        source_snapshot: snapshot.snapshot,
-        session: payload.session,
-        anchor: payload.anchor,
-        goal: payload.goal,
-        revision: payload.mutation_revision,
-        status: payload.status,
-        root_branch: payload.root_branch,
-        nodes: plan_nodes,
-        dependencies,
-        summaries: ordered_summaries,
-        evidence,
-        gates,
-        coordinator: payload.coordinator,
-        coordinator_cursor: payload.coordinator_cursor,
-        coordinator_claim: payload.coordinator_claim,
-        coordinator_generation: payload.coordinator_generation,
-        root_nodes,
-        history,
-    };
-    for record in &mut plan.history {
-        if let Some(reason) = history_metadata.get(&record.revision) {
-            record.reason = reason.clone();
+        validate_revision(object)?;
+        let payload: HistoryPayload = decode_payload(object)?;
+        if payload.schema_version != 1
+            || payload.plan != snapshot.plan
+            || relation_id(
+                HISTORY_TYPE,
+                &HistoryIdentity {
+                    plan: payload.plan,
+                    mutation_revision: payload.mutation_revision,
+                },
+            )? != object.entity
+            || metadata
+                .insert(payload.mutation_revision, payload.reason)
+                .is_some()
+        {
+            return Err(invalid(
+                "duplicate, mismatched, or unsupported history record",
+            ));
         }
     }
-    Ok(plan)
+    Ok(metadata
+        .into_iter()
+        .map(|(mutation_revision, reason)| PlanSemanticHistory {
+            mutation_revision,
+            reason,
+        })
+        .collect())
+}
+
+/// Verifies the canonical content identity before decoding an object.
+///
+/// - `object`: Semantic object to verify.
+///
+/// Unit when the payload hashes to its recorded immutable revision.
+///
+/// Returns `InvalidObject` when the revision does not match its payload.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+fn validate_revision(object: &PlanSemanticRevision) -> Result<(), PlanSemanticError> {
+    let expected = revision_id(EncodingVersion::V1, &object.object_type, &object.payload)
+        .map_err(|error| PlanSemanticError::Serialization(format!("{error:?}")))?;
+    if expected != object.revision {
+        return Err(invalid("object revision does not match canonical payload"));
+    }
+    Ok(())
+}
+
+/// Decodes one typed JSON payload from an immutable object.
+///
+/// - `object`: Revision whose payload is decoded.
+///
+/// The versioned typed payload.
+///
+/// Returns a serialization error when bytes are invalid.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+fn decode_payload<T: for<'de> Deserialize<'de>>(
+    object: &PlanSemanticRevision,
+) -> Result<T, PlanSemanticError> {
+    serde_json::from_slice(&object.payload)
+        .map_err(|error| PlanSemanticError::Serialization(error.to_string()))
+}
+
+/// Creates a typed malformed-object diagnostic.
+///
+/// - `message`: Bounded explanation of the malformed object.
+///
+/// A semantic plan decoding error.
+/// # Returns
+/// The operation result.
+fn invalid(message: impl Into<String>) -> PlanSemanticError {
+    PlanSemanticError::InvalidObject(message.into())
 }

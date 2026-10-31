@@ -283,7 +283,10 @@ fn local_and_remote_ecmascript_style_resolution_are_equivalent() {
             style: Some(b"quote=single".to_vec()),
         })
         .expect("remote user preference write");
-    assert_eq!(setting.style, Some(b"quote=single".to_vec()));
+    assert_eq!(
+        setting.style,
+        Some(b"indent=spaces,indent-width=2,quote=single".to_vec())
+    );
     assert_eq!(setting.revision, Some(1));
 
     let mut request = StyleResolutionRequest::new(

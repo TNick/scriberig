@@ -31,13 +31,18 @@ fn commit_and_resolve_node(
         .load(session.id)
         .expect("load current session")
         .expect("session exists");
-    let mut proposed = current;
+    let mut proposed = session.clone();
     let plan_slot = proposed
         .plans
         .iter_mut()
         .find(|candidate| candidate.id == plan.id)
         .expect("plan projection");
-    let expected_revision = plan_slot.revision;
+    let expected_revision = current
+        .plans
+        .iter()
+        .find(|candidate| candidate.id == plan.id)
+        .expect("current plan")
+        .revision;
     *plan_slot = plan.clone();
     store
         .compare_and_swap_plan(&proposed, plan.id, expected_revision)
@@ -257,25 +262,26 @@ fn stored_node_revision_follows_retry_lifecycle_without_changing_identity() {
         node_id,
     ));
     plan = session.plans[0].clone();
-    plan.complete_node(
-        node_id,
-        second_claim,
-        &scriberig_session::BranchResult {
-            id: EntityId::from_bytes([163; 16]),
-            branch: second_branch,
-            status: scriberig_session::BranchStatus::Completed,
-            summary: None,
-            result_kind: None,
-            candidate_context: None,
-            references: Vec::new(),
-            result_handles: Vec::new(),
-            touched: Vec::new(),
-            produced_changes: Vec::new(),
-            validations: Vec::new(),
-            unresolved_questions: Vec::new(),
-        },
-    )
-    .expect("complete retry");
+    let branch_result = scriberig_session::BranchResult {
+        id: EntityId::from_bytes([163; 16]),
+        branch: second_branch,
+        status: scriberig_session::BranchStatus::Completed,
+        summary: None,
+        result_kind: None,
+        candidate_context: None,
+        references: Vec::new(),
+        result_handles: Vec::new(),
+        touched: Vec::new(),
+        produced_changes: Vec::new(),
+        validations: Vec::new(),
+        unresolved_questions: Vec::new(),
+    };
+    plan.complete_node(node_id, second_claim, &branch_result)
+        .expect("complete retry");
+    let mut worker_branch = Branch::new(second_branch, "second worker").expect("worker branch");
+    worker_branch.status = BranchStatus::Completed;
+    worker_branch.result = Some(branch_result);
+    session.branches.push(worker_branch);
     revisions.push(commit_and_resolve_node(
         &store,
         &semantic,

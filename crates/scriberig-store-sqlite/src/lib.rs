@@ -26,7 +26,7 @@ mod workflow;
 mod workflow_candidates;
 
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use rusqlite::{Connection, OpenFlags};
 use scriberig_core::{ProjectId, RevisionId, RootName, SnapshotId};
@@ -35,7 +35,7 @@ use scriberig_store::{Revision, Snapshot, SnapshotError};
 /// A durable SQLite-backed revision, snapshot, and root store.
 #[derive(Debug)]
 pub struct SqliteStore {
-    connection: Mutex<Connection>,
+    connection: Arc<Mutex<Connection>>,
 }
 
 pub use project_files::{ProjectEntityRecord, ProjectFileDescriptor, ProjectFileRecord};
@@ -151,8 +151,23 @@ impl SqliteStore {
         let mut connection = connection;
         schema::initialize(&mut connection)?;
         Ok(Self {
-            connection: Mutex::new(connection),
+            connection: Arc::new(Mutex::new(connection)),
         })
+    }
+
+    /// Shares this store's connection with another repository layer.
+    ///
+    /// Shared ownership lets semantic and product rows participate in the
+    /// same SQLite transaction.
+    ///
+    /// # Parameters
+    /// - `self`: Universal store owning the connection.
+    ///
+    /// # Returns
+    /// A cloneable synchronized handle to the connection.
+    #[must_use]
+    pub fn shared_connection(&self) -> Arc<Mutex<Connection>> {
+        Arc::clone(&self.connection)
     }
 
     /// Returns the detected backend storage schema version.

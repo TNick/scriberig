@@ -19,7 +19,6 @@ web/**/.turbo/
 __pycache__/
 *.pyc
 .pre-commit-cache/
-/memory/
 /.pi/workflows/
 *.log
 
@@ -28,8 +27,13 @@ __pycache__/
 site/
 playground/
 output/playwright/
+.playwright-cli/
 
 # Editors and OS
 .DS_Store
 .vscode/
 # .idea/ is intentionally not ignored globally; contributors may choose locally.
+# Local agent runtime and memory state
+.codex/
+.mnemon/
+/memory/

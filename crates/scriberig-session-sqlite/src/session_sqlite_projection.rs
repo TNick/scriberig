@@ -4,7 +4,7 @@ use rusqlite::{OptionalExtension, TransactionBehavior, params};
 use scriberig_core::EntityId;
 use scriberig_session::Session;
 
-use crate::{SqliteSessionStore, payload};
+use crate::{SqliteSessionStore, branch_projection, payload};
 
 impl SqliteSessionStore {
     /// Loads one session and replaces aggregate plan values with compact semantic projections.
@@ -44,8 +44,9 @@ impl SqliteSessionStore {
             return Ok(None);
         };
         let mut decoded = payload::decode(&payload_bytes)?;
+        branch_projection::hydrate(self, &mut decoded.session)?;
         let rewrite_session = decoded.requires_rewrite.then(|| decoded.session.clone());
-        self.hydrate_semantic_plan_projections(&mut decoded.session)?;
+        self.hydrate_semantic_plan_projections(&mut decoded.session, true)?;
         if let Some(rewrite_session) = rewrite_session {
             let mut connection = self
                 .connection
@@ -64,29 +65,5 @@ impl SqliteSessionStore {
             transaction.commit().map_err(|error| error.to_string())?;
         }
         Ok(Some(decoded.session))
-    }
-
-    /// Hydrates plan roots through the current compact semantic query.
-    ///
-    /// # Parameters
-    /// - `self`: SQLite session repository to use.
-    /// - `session`: Session whose plans are projected.
-    ///
-    /// # Returns
-    /// Success after all compact plan projections are refreshed.
-    ///
-    /// # Errors
-    /// Returns an error when migration or current plan projection fails.
-    fn hydrate_semantic_plan_projections(&self, session: &mut Session) -> Result<(), String> {
-        let mut plans = Vec::with_capacity(session.plans.len());
-        for aggregate in &session.plans {
-            self.migrate_plan_history(session.id, aggregate)?;
-            plans.push(
-                self.load_plan_projection(session.id, aggregate.id, None)?
-                    .ok_or_else(|| format!("semantic plan {} disappeared", aggregate.id))?,
-            );
-        }
-        session.plans = plans;
-        Ok(())
     }
 }

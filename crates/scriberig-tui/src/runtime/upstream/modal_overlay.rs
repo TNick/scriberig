@@ -351,9 +351,9 @@ fn confirmation_dialog(
     let base = crate::inspector::sanitize(&confirmation.base);
     let summary = crate::inspector::sanitize(&confirmation.summary);
     let candidate = crate::inspector::sanitize(&confirmation.commit.candidate_snapshot.to_string());
-    let message = format!(
+    let message = wrap_dialog_message(&format!(
         "Action: {action}\nTarget: {target}\nReviewed base: {base}\nCandidate result: {candidate}\n{summary}"
-    );
+    ));
     let dialog = Dialog::new(
         "Confirm reviewed change",
         message,
@@ -377,4 +377,27 @@ fn confirmation_dialog(
         )));
     }));
     dialog
+}
+
+/// Wraps confirmation content so upstream's fixed-width dialog can render it.
+///
+/// - `message`: Sanitized confirmation text.
+///
+/// The same text split into lines no wider than the dialog's content area.
+/// # Returns
+/// A line-wrapped confirmation message.
+fn wrap_dialog_message(message: &str) -> String {
+    const CONTENT_WIDTH: usize = 54;
+
+    message
+        .lines()
+        .flat_map(|line| {
+            line.chars()
+                .collect::<Vec<_>>()
+                .chunks(CONTENT_WIDTH)
+                .map(|chunk| chunk.iter().collect::<String>())
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }

@@ -1,0 +1,18 @@
+# Build the integrated CLI and API executable for Linux containers.
+FROM rust:1-bookworm AS build
+WORKDIR /src
+COPY . .
+RUN cargo build --locked --release --package scriberig --bin srig
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl git && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd --create-home --uid 10001 scriberig && \
+    mkdir -p /workspace /var/lib/scriberig && \
+    chown scriberig:scriberig /workspace /var/lib/scriberig
+COPY --from=build /src/target/release/srig /usr/local/bin/srig
+USER scriberig
+WORKDIR /workspace
+ENTRYPOINT ["srig"]
+CMD ["--help"]
