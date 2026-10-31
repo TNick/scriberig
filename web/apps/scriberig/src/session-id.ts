@@ -10,7 +10,11 @@ const SESSION_STORAGE_KEY = "scriberig.agent.session";
  * @returns A Rust-compatible `ent_` session identity.
  * @throws When secure random generation is unavailable.
  */
-export function getOrCreateSessionId(storage?: Pick<Storage, "getItem" | "setItem">): SessionId {
+export function getOrCreateSessionId(
+  storage?: Pick<Storage, "getItem" | "setItem">,
+  scope = "application",
+): SessionId {
+  const storageKey = `${SESSION_STORAGE_KEY}.${scope}`;
   let activeStorage = storage;
   if (activeStorage === undefined) {
     try {
@@ -21,7 +25,7 @@ export function getOrCreateSessionId(storage?: Pick<Storage, "getItem" | "setIte
   }
   if (activeStorage !== undefined) {
     try {
-      const stored = activeStorage.getItem(SESSION_STORAGE_KEY);
+      const stored = activeStorage.getItem(storageKey);
       if (stored !== null && /^ent_[a-f0-9]{32}$/.test(stored)) return stored as SessionId;
     } catch {
       activeStorage = undefined;
@@ -29,7 +33,7 @@ export function getOrCreateSessionId(storage?: Pick<Storage, "getItem" | "setIte
   }
   const sessionId = newSessionId();
   try {
-    activeStorage?.setItem(SESSION_STORAGE_KEY, sessionId);
+    activeStorage?.setItem(storageKey, sessionId);
   } catch {
     // Storage may be unavailable; the current view retains the valid id in memory.
   }

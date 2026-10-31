@@ -14,6 +14,22 @@ export type AppRoute =
   | "migration"
   | "operations";
 
+const appRoutes: AppRoute[] = [
+  "projects",
+  "artifacts",
+  "document",
+  "cad",
+  "spreadsheet",
+  "geo",
+  "raw",
+  "semantic",
+  "projection",
+  "history",
+  "session",
+  "migration",
+  "operations",
+];
+
 /**
  * Parses a route with a safe fallback.
  * @param value Route value.
@@ -21,23 +37,30 @@ export type AppRoute =
  * @throws This pure parser does not throw.
  */
 export function parseRoute(value: string): AppRoute {
-  return [
-    "projects",
-    "artifacts",
-    "document",
-    "cad",
-    "spreadsheet",
-    "geo",
-    "raw",
-    "semantic",
-    "projection",
-    "history",
-    "session",
-    "migration",
-    "operations",
-  ].includes(value)
-    ? (value as AppRoute)
-    : "raw";
+  return appRoutes.includes(value as AppRoute) ? (value as AppRoute) : "raw";
+}
+
+/** Resolves a browser pathname to an application route.
+ * @param pathname Pathname from the current browser location.
+ * @returns The matching route, defaulting the root and unknown paths to Projects.
+ * @throws This path parser does not throw.
+ */
+export function routeFromPathname(pathname: string): AppRoute {
+  const segment = pathname.replace(/^\/+|\/+$/g, "");
+  return segment === ""
+    ? "projects"
+    : appRoutes.includes(segment as AppRoute)
+      ? (segment as AppRoute)
+      : "projects";
+}
+
+/** Returns the canonical browser path for an application route.
+ * @param route Route to serialize.
+ * @returns Canonical root-relative pathname.
+ * @throws This pure path formatter does not throw.
+ */
+export function pathnameForRoute(route: AppRoute): string {
+  return `/${route}`;
 }
 
 /**

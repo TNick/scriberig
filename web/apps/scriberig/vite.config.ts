@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const { SCRIBE_API_PORT = "7337" } = loadEnv(mode, ".", "");
   return {
     server: {
+      allowedHosts: ["scriberig-dev.advaita.ro"],
       proxy: {
         "/api": `http://127.0.0.1:${SCRIBE_API_PORT}`,
       },

@@ -13,11 +13,32 @@ export function SnapshotStatus({
   return (
     <Alert
       severity={
-        state === "stale" || state === "offline" || state === "disconnected" ? "warning" : "info"
+        state === "stale" || state === "offline" || state === "disconnected"
+          ? "warning"
+          : state === "candidate"
+            ? "warning"
+            : "info"
       }
       role="status"
+      variant="outlined"
+      sx={{
+        mb: 1.5,
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        "& .MuiAlert-message": { py: 0.25 },
+      }}
     >
-      View state: {state}
+      {state === "current"
+        ? "Viewing the current project snapshot."
+        : state === "historical"
+          ? "Viewing an earlier snapshot."
+          : state === "candidate"
+            ? "Reviewing proposed changes."
+            : state === "stale"
+              ? "This view may be out of date. Refresh its context before making changes."
+              : state === "offline" || state === "disconnected"
+                ? "Connection lost. Reconnect to continue working."
+                : "Connecting to the project…"}
     </Alert>
   );
 }

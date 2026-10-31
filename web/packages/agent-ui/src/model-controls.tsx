@@ -30,20 +30,42 @@ export function AgentModelControls({
   disabled?: boolean;
 }): ReactElement {
   const models = library.models;
+  const providers = Array.from(new Set(models.map((value) => value.providerId)));
   const model = models.find(
     (value) => value.providerId === selection.providerId && value.modelId === selection.modelId,
   );
+  const providerModels = models.filter((value) => value.providerId === selection.providerId);
   return (
     <fieldset aria-label="Agent model controls" disabled={disabled}>
+      <label>
+        Provider
+        <select
+          aria-label="Agent provider"
+          value={selection.providerId ?? ""}
+          onChange={(event) => {
+            const provider = event.currentTarget.value;
+            const firstModel = models.find((value) => value.providerId === provider);
+            if (firstModel !== undefined) onModelChange(firstModel.providerId, firstModel.modelId);
+          }}
+        >
+          <option value="" disabled>
+            Select a provider
+          </option>
+          {providers.map((provider) => (
+            <option key={provider} value={provider}>
+              {provider}
+            </option>
+          ))}
+        </select>
+      </label>
       <label>
         Model
         <select
           aria-label="Agent model"
-          value={model === undefined ? "" : JSON.stringify([model.providerId, model.modelId])}
+          value={model === undefined ? "" : model.modelId}
           onChange={(event) => {
-            const selected = models.find(
-              (value) =>
-                JSON.stringify([value.providerId, value.modelId]) === event.currentTarget.value,
+            const selected = providerModels.find(
+              (value) => value.modelId === event.currentTarget.value,
             );
             if (selected !== undefined) onModelChange(selected.providerId, selected.modelId);
           }}
@@ -51,11 +73,8 @@ export function AgentModelControls({
           <option value="" disabled>
             Select a model
           </option>
-          {models.map((value) => (
-            <option
-              key={JSON.stringify([value.providerId, value.modelId])}
-              value={JSON.stringify([value.providerId, value.modelId])}
-            >
+          {providerModels.map((value) => (
+            <option key={value.modelId} value={value.modelId}>
               {value.displayName}
             </option>
           ))}

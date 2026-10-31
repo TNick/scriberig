@@ -4,10 +4,12 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   FormControlLabel,
   List,
   ListItem,
   ListItemText,
+  Paper,
   TextField,
   Typography,
 } from "@mui/material";
@@ -139,7 +141,10 @@ export function ProjectManager({
 
   return (
     <Box>
-      <Typography variant="h5">Projects</Typography>
+      <Typography color="text.secondary" sx={{ maxWidth: 640, mb: 3 }}>
+        Open a knowledge workspace or scan a project folder to bring its sources and structure into
+        Scriberig.
+      </Typography>
       {error !== undefined && <Alert severity="error">{error}</Alert>}
       {diagnostics.length > 0 && (
         <List aria-label="Import diagnostics">
@@ -153,48 +158,78 @@ export function ProjectManager({
           ))}
         </List>
       )}
-      <List aria-label="Projects">
-        {projects.map((project) => (
-          <ListItem key={project.id}>
-            <ListItemText
-              primary={`${project.name} (${project.status})`}
-              secondary={project.path}
-            />
-            {project.status === "imported" && (
-              <Button onClick={() => void openProject(project)}>Open {project.name}</Button>
-            )}
-          </ListItem>
-        ))}
-      </List>
-      <Box
-        component="form"
-        onSubmit={(event) => void submit(event)}
-        sx={{ display: "grid", gap: 2, maxWidth: 640 }}
-      >
-        <TextField
-          label="Server filesystem path"
-          value={path}
-          onChange={(event) => setPath(event.target.value)}
-          required
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={gitTracked}
-              onChange={(event) => setGitTracked(event.target.checked)}
-            />
-          }
-          label="Only Git-tracked files"
-        />
-        <TextField
-          label="Project name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <Button type="submit" variant="contained">
-          Scan project
-        </Button>
-      </Box>
+      <Paper variant="outlined" sx={{ p: { xs: 1, sm: 2 }, mb: 3, maxWidth: 980 }}>
+        <Typography variant="h6" sx={{ px: 1, pt: 0.5 }}>
+          Your workspaces
+        </Typography>
+        {projects.length === 0 ? (
+          <Typography color="text.secondary" sx={{ p: 1.5 }}>
+            No workspaces yet. Scan a project folder below to get started.
+          </Typography>
+        ) : (
+          <List aria-label="Projects">
+            {projects.map((project) => (
+              <Box
+                component="li"
+                key={project.id}
+                sx={{
+                  listStyle: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  px: 1.5,
+                  py: 1,
+                  borderTop: 1,
+                  borderColor: "divider",
+                  gap: 2,
+                }}
+              >
+                <ListItemText primary={project.name} secondary={project.path} />
+                <Chip size="small" label={project.status} variant="outlined" />
+                {project.status === "imported" && (
+                  <Button onClick={() => void openProject(project)}>Open {project.name}</Button>
+                )}
+              </Box>
+            ))}
+          </List>
+        )}
+      </Paper>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, maxWidth: 980 }}>
+        <Typography variant="h6" sx={{ mb: 0.5 }}>
+          Add a project
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+          Scan first, review discovered sources, then import the project.
+        </Typography>
+        <Box
+          component="form"
+          onSubmit={(event) => void submit(event)}
+          sx={{ display: "grid", gap: 2, maxWidth: 640 }}
+        >
+          <TextField
+            label="Server filesystem path"
+            value={path}
+            onChange={(event) => setPath(event.target.value)}
+            required
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={gitTracked}
+                onChange={(event) => setGitTracked(event.target.checked)}
+              />
+            }
+            label="Only Git-tracked files"
+          />
+          <TextField
+            label="Project name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <Button type="submit" variant="contained">
+            Scan project
+          </Button>
+        </Box>
+      </Paper>
       {scan !== undefined && (
         <Box sx={{ mt: 3 }}>
           <Typography variant="h6">Scan review</Typography>

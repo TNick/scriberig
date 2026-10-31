@@ -1,37 +1,49 @@
 /** @file Defines the top-level reference Scriberig editor component. */
 
 import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { Paper, Typography, useMediaQuery } from "@mui/material";
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactElement } from "react";
 import { ScriberigProvider } from "@scriberig/react";
 import { useSelection, useSnapshot } from "@scriberig/react";
-import {
-  selectCadEntity,
-  selectDocumentPart,
-  selectGeoFeature,
-  selectSpreadsheetCell,
-  selectSpreadsheetRange,
-} from "@scriberig/editor-core";
-import type { EntityId, SnapshotId } from "@scriberig/protocol";
+import type { ContextualActionDescriptor, ContextualActionExecutor } from "@scriberig/editor-core";
 import { createScriberigTheme } from "@scriberig/components-mui";
-import { AppShell } from "./app-shell";
+import { AppShell, type AppearanceSettings } from "./app-shell";
 import { createRuntime } from "./runtime";
-import { parseRoute, type AppRoute } from "./routes";
+import { parseRoute, pathnameForRoute, routeFromPathname, type AppRoute } from "./routes";
 import { SnapshotStatus } from "./components/SnapshotStatus";
-import { RawKnowledgeView } from "./views/RawKnowledgeView";
-import { SemanticView } from "./views/SemanticView";
-import { ProjectionView } from "./views/ProjectionView";
-import { HistoryView } from "./views/HistoryView";
-import { SessionAgentView } from "./views/SessionAgentView";
-import { OperationsView } from "./views/OperationsView";
-import { MigrationReviewView } from "./views/MigrationReviewView";
 import { SelectionSummary } from "./components/SelectionSummary";
-import { ProjectManager } from "./views/ProjectManager";
-import { ArtifactsView } from "./views/ArtifactsView";
-import { DocumentView } from "./views/DocumentView";
-import { CadView } from "./views/CadView";
-import { SpreadsheetView } from "./views/SpreadsheetView";
-import { GeoView } from "./views/GeoView";
 import type { AppRuntime } from "./runtime";
+import { AppRouteContent } from "./AppRouteContent";
+import { ContextualHelper } from "./ContextualHelper";
+
+const appearanceKey = "scriberig.appearance.v1";
+const defaultAppearance: AppearanceSettings = {
+  density: "comfortable",
+  textSize: "medium",
+  themeMode: "system",
+};
+
+/** Loads and validates the user's saved appearance choices.
+ * @returns A valid saved preference or the app defaults.
+ */
+function loadAppearance(): AppearanceSettings {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(appearanceKey) ?? "null");
+    if (typeof value !== "object" || value === null) return defaultAppearance;
+    const saved = value as Partial<AppearanceSettings>;
+    return {
+      density:
+        saved.density === "compact" || saved.density === "spacious" ? saved.density : "comfortable",
+      textSize:
+        saved.textSize === "small" || saved.textSize === "large" ? saved.textSize : "medium",
+      themeMode:
+        saved.themeMode === "light" || saved.themeMode === "dark" ? saved.themeMode : "system",
+    };
+  } catch {
+    return defaultAppearance;
+  }
+}
 
 /** Subscribes the application composition root to its owned selection controller.
  * @param runtime Runtime that owns the shared semantic selection.
@@ -69,17 +81,86 @@ function RuntimeSnapshotStatus({ connection }: { connection: string }): ReactEle
   );
 }
 
+/** Explains the context needed before a domain view can be opened.
+ * @param props Plain-language guidance for the current empty view.
+ * @returns A reusable contextual empty state.
+ */
+function WorkspacePrompt({ children }: { children: string }): ReactElement {
+  return (
+    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, maxWidth: 760 }}>
+      <Typography variant="h6" sx={{ mb: 0.5 }}>
+        Start with a workspace
+      </Typography>
+      <Typography color="text.secondary">{children}</Typography>
+    </Paper>
+  );
+}
+
 /** Renders the integrated Scriberig application.
  *
  * @returns The rendered application view.
+ * @throws Browser storage and history failures are handled at their call sites.
  */
 export function App(): ReactElement {
   const runtime = useMemo(() => createRuntime(), []);
-  const [route, setRoute] = useState<AppRoute>("projects");
+  const [route, setRoute] = useState<AppRoute>(() => routeFromPathname(window.location.pathname));
   const [reviewMigrationId, setReviewMigrationId] = useState<string>();
   const [connection, setConnection] = useState(runtime.connection);
   const [workspace, setWorkspace] = useState(runtime.activeWorkspace);
+  const [appearance, setAppearance] = useState(loadAppearance);
+  const systemPrefersDark = useMediaQuery("(prefers-color-scheme: dark)");
+  const resolvedMode =
+    appearance.themeMode === "system"
+      ? systemPrefersDark
+        ? "dark"
+        : "light"
+      : appearance.themeMode;
   const selection = useRuntimeSelection(runtime);
+  const actionContextVersion = useMemo(
+    () =>
+      `${route}:${workspace?.project.id ?? "none"}:${selection?.entityId ?? "none"}:${selection?.snapshotId ?? "none"}`
+        .split("")
+        .reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0),
+    [route, selection, workspace],
+  );
+  const contextualActions = useMemo<readonly ContextualActionDescriptor[]>(
+    () =>
+      [
+        { id: "navigate", label: "Navigate to another page", mutating: false },
+        { id: "inspect-selection", label: "Inspect the current selection", mutating: false },
+        { id: "refresh-context", label: "Refresh page context", mutating: false },
+        { id: "apply-reviewed-change", label: "Apply a reviewed change", mutating: true },
+      ].map((action) => ({ ...action, contextVersion: actionContextVersion })),
+    [actionContextVersion],
+  );
+  const executeContextualAction = useMemo<ContextualActionExecutor>(
+    () => async (request) => {
+      if (request.actionId === "refresh-context") {
+        await runtime.bootstrap();
+        return {
+          invocationId: request.invocationId,
+          ok: true,
+          summary: "Page context refreshed.",
+          contextVersion: request.contextVersion,
+        };
+      }
+      if (request.actionId === "inspect-selection") {
+        return {
+          invocationId: request.invocationId,
+          ok: true,
+          summary: selection === undefined ? "No selection is active." : "Selection is active.",
+          contextVersion: request.contextVersion,
+        };
+      }
+      return {
+        invocationId: request.invocationId,
+        ok: false,
+        summary: "This action requires the existing page review controls.",
+        contextVersion: request.contextVersion,
+      };
+    },
+    [runtime, selection],
+  );
   useEffect(() => {
     void runtime.bootstrap().then(
       () => setConnection(runtime.connection),
@@ -88,209 +169,78 @@ export function App(): ReactElement {
   }, [runtime]);
   useEffect(() => runtime.model.subscribe(() => setConnection(runtime.connection)), [runtime]);
   useEffect(() => runtime.subscribe(() => setWorkspace(runtime.activeWorkspace)), [runtime]);
+  useEffect(() => {
+    const syncRoute = () => {
+      const next = routeFromPathname(window.location.pathname);
+      if (window.location.pathname !== "/" && window.location.pathname !== pathnameForRoute(next)) {
+        window.history.replaceState(null, "", pathnameForRoute(next));
+      }
+      setRoute(next);
+    };
+    window.addEventListener("popstate", syncRoute);
+    syncRoute();
+    return () => window.removeEventListener("popstate", syncRoute);
+  }, []);
+  /** Updates the visible route and browser history together.
+   * @param value Requested route identifier.
+   * @returns Nothing.
+   * @throws The route parser is total and does not throw.
+   */
+  function navigateRoute(value: string): void {
+    const next = parseRoute(value);
+    const path = pathnameForRoute(next);
+    if (window.location.pathname !== path) window.history.pushState(null, "", path);
+    setRoute(next);
+  }
   return (
-    <ThemeProvider theme={createScriberigTheme()}>
+    <ThemeProvider
+      theme={createScriberigTheme({
+        palette: { mode: resolvedMode },
+        spacing: { compact: 6, comfortable: 8, spacious: 10 }[appearance.density],
+        typography: { fontSize: { small: 14, medium: 16, large: 18 }[appearance.textSize] },
+      })}
+    >
+      <CssBaseline />
       <ScriberigProvider value={runtime}>
         <AppShell
           active={route}
-          onNavigate={(next) => setRoute(parseRoute(next))}
+          onNavigate={navigateRoute}
           status={connection}
+          appearance={appearance}
+          onAppearanceChange={(next) => {
+            setAppearance(next);
+            try {
+              localStorage.setItem(appearanceKey, JSON.stringify(next));
+            } catch {
+              // Preferences still apply for this session if storage is unavailable.
+            }
+          }}
           {...(workspace === undefined ? {} : { workspace })}
+          helper={
+            <ContextualHelper
+              route={route}
+              workspace={workspace}
+              selection={selection}
+              actions={contextualActions}
+              executeAction={executeContextualAction}
+            />
+          }
         >
-          <RuntimeSnapshotStatus connection={connection} />
+          {workspace !== undefined && <RuntimeSnapshotStatus connection={connection} />}
           <SharedSelectionSummary />
-          {route === "raw" ? (
-            <RawKnowledgeView />
-          ) : route === "projects" ? (
-            <ProjectManager
-              client={runtime.client}
-              onActivate={async (projectId) => {
-                await runtime.activateProject(projectId);
-                setRoute("semantic");
-              }}
-            />
-          ) : route === "artifacts" ? (
-            workspace === undefined ? (
-              <p>Open a project to inspect its artifacts.</p>
-            ) : (
-              <ArtifactsView client={runtime.client} project={workspace.project.id} />
-            )
-          ) : route === "document" ? (
-            workspace === undefined || selection === undefined ? (
-              <p>Open a project and select a document root to inspect its semantic structure.</p>
-            ) : (
-              <DocumentView
-                client={runtime.client}
-                project={workspace.project.id}
-                snapshot={selection.snapshotId}
-                document={selection.relationPath?.[0] ?? selection.entityId}
-                onSelectParagraph={(paragraph, snapshot) =>
-                  runtime.selection.set(selectDocumentPart(selection, paragraph, snapshot))
-                }
-                onSelectTableCell={(cell, snapshot) =>
-                  runtime.selection.set(selectDocumentPart(selection, cell, snapshot))
-                }
-                onCandidateApplied={(snapshot) => {
-                  runtime.model.apply({
-                    kind: "snapshotAdvanced",
-                    snapshotId: snapshot as SnapshotId,
-                  });
-                  const updatedSelection = { ...selection, snapshotId: snapshot as never };
-                  delete updatedSelection.revisionId;
-                  delete updatedSelection.anchor;
-                  runtime.selection.set(updatedSelection);
-                }}
-              />
-            )
-          ) : route === "cad" ? (
-            workspace === undefined || selection === undefined ? (
-              <p>
-                Open a project and select a CAD drawing to inspect its semantic layers and entities.
-              </p>
-            ) : (
-              <CadView
-                client={runtime.client}
-                project={workspace.project.id}
-                snapshot={selection.snapshotId}
-                drawing={selection.relationPath?.[0] ?? selection.entityId}
-                onSelectEntity={({ entity, bounds }) => {
-                  const space =
-                    entity.space === "Model"
-                      ? "model"
-                      : "Paper" in entity.space
-                        ? `paper:${entity.space.Paper}`
-                        : `named:${entity.space.Named}`;
-                  runtime.selection.set(
-                    selectCadEntity(
-                      entity.id as EntityId,
-                      selection.snapshotId,
-                      selection.entityId as EntityId,
-                      space,
-                      bounds,
-                    ),
-                  );
-                }}
-                onCandidateApplied={(result) => {
-                  runtime.model.apply({
-                    kind: "snapshotAdvanced",
-                    snapshotId: result.successor as never,
-                  });
-                  const updatedSelection = {
-                    ...selection,
-                    snapshotId: result.successor as never,
-                  };
-                  delete updatedSelection.revisionId;
-                  delete updatedSelection.anchor;
-                  runtime.selection.set(updatedSelection);
-                }}
-              />
-            )
-          ) : route === "spreadsheet" ? (
-            workspace === undefined || selection === undefined ? (
-              <p>Open a project and select a worksheet to inspect its bounded cell pages.</p>
-            ) : (
-              <SpreadsheetView
-                client={runtime.client}
-                project={workspace.project.id}
-                snapshot={selection.snapshotId}
-                worksheet={
-                  selection.anchor?.kind === "spreadsheetCell"
-                    ? selection.anchor.worksheetId
-                    : selection.entityId
-                }
-                onSelectCell={(cell, snapshot) =>
-                  runtime.selection.set(
-                    selectSpreadsheetCell(
-                      cell.id as EntityId,
-                      snapshot as SnapshotId,
-                      selection.anchor?.kind === "spreadsheetCell" ||
-                        selection.anchor?.kind === "spreadsheetRange"
-                        ? selection.anchor.worksheetId
-                        : (selection.entityId as EntityId),
-                      cell.row,
-                      cell.column,
-                    ),
-                  )
-                }
-                onSelectRange={(range, snapshot) =>
-                  runtime.selection.set(
-                    selectSpreadsheetRange(
-                      selection.anchor?.kind === "spreadsheetCell" ||
-                        selection.anchor?.kind === "spreadsheetRange"
-                        ? selection.anchor.worksheetId
-                        : (selection.entityId as EntityId),
-                      snapshot as SnapshotId,
-                      range.firstRow,
-                      range.firstColumn,
-                      range.lastRow,
-                      range.lastColumn,
-                    ),
-                  )
-                }
-                onCandidateApplied={(snapshot) => {
-                  runtime.model.apply({
-                    kind: "snapshotAdvanced",
-                    snapshotId: snapshot as SnapshotId,
-                  });
-                  if (selection !== undefined) {
-                    const updatedSelection = {
-                      ...selection,
-                      snapshotId: snapshot as never,
-                    };
-                    delete updatedSelection.revisionId;
-                    runtime.selection.set(updatedSelection);
-                  }
-                }}
-              />
-            )
-          ) : route === "geo" ? (
-            workspace === undefined ? (
-              <p>Open a project to inspect its geospatial layers.</p>
-            ) : (
-              <GeoView
-                client={runtime.client}
-                project={workspace.project.id}
-                snapshot={workspace.snapshot}
-                onSelectFeature={(feature, snapshot, layer) =>
-                  runtime.selection.set(
-                    selectGeoFeature(
-                      feature.id as EntityId,
-                      snapshot as SnapshotId,
-                      layer as EntityId,
-                    ),
-                  )
-                }
-                onCandidateApplied={(snapshot) => {
-                  runtime.model.apply({ kind: "snapshotAdvanced", snapshotId: snapshot as never });
-                  if (selection !== undefined) {
-                    const updatedSelection = { ...selection, snapshotId: snapshot as SnapshotId };
-                    delete updatedSelection.revisionId;
-                    delete updatedSelection.anchor;
-                    runtime.selection.set(updatedSelection);
-                  }
-                }}
-              />
-            )
-          ) : route === "semantic" ? (
-            <SemanticView onNavigate={setRoute} />
-          ) : route === "projection" ? (
-            <ProjectionView />
-          ) : route === "history" ? (
-            <HistoryView />
-          ) : route === "session" ? (
-            <SessionAgentView
-              onReviewCandidate={(migrationId) => {
-                setReviewMigrationId(migrationId);
-                setRoute("projection");
-              }}
-            />
-          ) : route === "migration" ? (
-            <MigrationReviewView
-              {...(reviewMigrationId === undefined ? {} : { migrationId: reviewMigrationId })}
-            />
-          ) : (
-            <OperationsView />
-          )}
+          <AppRouteContent
+            route={route}
+            runtime={runtime}
+            workspace={workspace}
+            selection={selection}
+            navigate={navigateRoute}
+            reviewMigrationId={reviewMigrationId}
+            onReviewMigration={(migrationId) => {
+              setReviewMigrationId(migrationId);
+              navigateRoute("projection");
+            }}
+            workspacePrompt={(message) => <WorkspacePrompt>{message}</WorkspacePrompt>}
+          />
         </AppShell>
       </ScriberigProvider>
     </ThemeProvider>

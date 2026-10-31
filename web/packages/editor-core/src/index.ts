@@ -12,3 +12,4 @@ export * from "./branches";
 export * from "./migration-review";
 export * from "./projection-session";
 export * from "./trust";
+export * from "./contextual-actions";

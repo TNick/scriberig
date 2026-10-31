@@ -2,6 +2,37 @@
 
 import { describe, expect, it } from "vitest";
 import { semanticRouteForKind } from "../src/routes";
+import { pathnameForRoute, routeFromPathname } from "../src/routes";
+import { navigationGroups } from "../src/app-shell";
+
+describe("workbench navigation", () => {
+  it("groups every supported route exactly once", () => {
+    const routes = navigationGroups.flatMap((group) => group.routes.map((route) => route.id));
+    expect(routes).toEqual([
+      "projects",
+      "artifacts",
+      "semantic",
+      "raw",
+      "document",
+      "cad",
+      "spreadsheet",
+      "geo",
+      "projection",
+      "history",
+      "session",
+      "migration",
+      "operations",
+    ]);
+    expect(new Set(routes).size).toBe(routes.length);
+  });
+
+  it("maps canonical browser paths in both directions", () => {
+    expect(pathnameForRoute("spreadsheet")).toBe("/spreadsheet");
+    expect(routeFromPathname("/spreadsheet")).toBe("spreadsheet");
+    expect(routeFromPathname("/")).toBe("projects");
+    expect(routeFromPathname("/not-a-route")).toBe("projects");
+  });
+});
 
 describe("semanticRouteForKind", () => {
   it("opens each imported rich domain from its semantic symbol", () => {

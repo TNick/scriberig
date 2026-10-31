@@ -40,9 +40,15 @@ import { getOrCreateSessionId } from "../session-id";
 export function SessionAgentView({
   branches = [],
   onReviewCandidate,
+  contextPrompt,
+  sessionScope = "application",
+  showConfiguration = true,
 }: {
   branches?: readonly BranchDescriptor[];
   onReviewCandidate?: (migrationId: string) => void;
+  contextPrompt?: string;
+  sessionScope?: string;
+  showConfiguration?: boolean;
 }): ReactElement {
   const { client, model, capabilities } = useScriberig();
   const runtime = useScriberig() as unknown as AppRuntime;
@@ -52,7 +58,8 @@ export function SessionAgentView({
     model.getAgentState.bind(model),
     model.getAgentState.bind(model),
   );
-  const [sessionId] = useState(getOrCreateSessionId);
+  const [sessionId] = useState(() => getOrCreateSessionId(undefined, sessionScope));
+  const operationStorageKey = `${OPERATION_STORAGE_KEY}.${sessionScope}`;
   const [activeOperationId, setActiveOperationId] = useState<OperationId>();
   const [activeBranchId, setActiveBranchId] = useState<BranchId>();
   const [prompt, setPrompt] = useState("");
@@ -112,7 +119,7 @@ export function SessionAgentView({
   useEffect(() => {
     let storedOperation: string | null = null;
     try {
-      storedOperation = globalThis.sessionStorage?.getItem(OPERATION_STORAGE_KEY) ?? null;
+      storedOperation = globalThis.sessionStorage?.getItem(operationStorageKey) ?? null;
     } catch {
       storedOperation = null;
     }
@@ -138,7 +145,7 @@ export function SessionAgentView({
       }
     };
     void restore();
-  }, [client, model, sessionId]);
+  }, [client, model, operationStorageKey, sessionId]);
   useEffect(() => {
     if (!agentState.stale) return;
     let active = true;
@@ -166,16 +173,19 @@ export function SessionAgentView({
       return;
     }
     setStatus("Submitting");
+    const contextualPrompt =
+      contextPrompt === undefined ? prompt : `${contextPrompt}\n\nUser request:\n${prompt}`;
     try {
       if (runtime.activeWorkspace !== undefined && currentSelection !== undefined) {
         const candidate = await client.project<ProjectCandidate & { scope: unknown }>("agent", {
           project: runtime.activeWorkspace.project.id,
           entity: currentSelection.entityId,
           snapshot: currentSelection.snapshotId,
-          prompt,
+          prompt: contextualPrompt,
         });
         runtime.setAgentCandidate(candidate);
         setStatus("Candidate ready for review");
+        setReviewCandidateId(candidate.candidate);
         onReviewCandidate?.(candidate.candidate);
         return;
       }
@@ -183,18 +193,18 @@ export function SessionAgentView({
         activeBranchId === undefined
           ? await client.startAgent({
               sessionId,
-              prompt,
+              prompt: contextualPrompt,
               ...(currentSelection === undefined ? {} : { selection: currentSelection }),
             })
           : await client.continueAgent({
               sessionId,
               branchId: activeBranchId,
-              prompt,
+              prompt: contextualPrompt,
               ...(currentSelection === undefined ? {} : { selection: currentSelection }),
             });
       setActiveOperationId(accepted.operationId);
       try {
-        globalThis.sessionStorage?.setItem(OPERATION_STORAGE_KEY, accepted.operationId);
+        globalThis.sessionStorage?.setItem(operationStorageKey, accepted.operationId);
       } catch {
         // Browser storage may be unavailable; operation state remains in memory.
       }
@@ -251,7 +261,7 @@ export function SessionAgentView({
       model.operations.set(cancelled);
       model.setAgentOperation(cancelled);
       try {
-        globalThis.sessionStorage?.removeItem(OPERATION_STORAGE_KEY);
+        globalThis.sessionStorage?.removeItem(operationStorageKey);
       } catch {
         // Browser storage may be unavailable; terminal state is still authoritative.
       }
@@ -304,7 +314,7 @@ export function SessionAgentView({
         busy={planMutationPending}
         onMutation={mutatePlan}
       />
-      {modelLibrary ? (
+      {showConfiguration && modelLibrary ? (
         <AgentModelControls
           library={modelLibrary}
           selection={agentState.execution}
@@ -313,10 +323,12 @@ export function SessionAgentView({
           disabled={executionSelection.mutating || !canStartAgent}
         />
       ) : null}
-      <AgentPresentationControls
-        value={presentation}
-        onChange={(value) => model.setAgentPresentation(value)}
-      />
+      {showConfiguration && (
+        <AgentPresentationControls
+          value={presentation}
+          onChange={(value) => model.setAgentPresentation(value)}
+        />
+      )}
       {activeActivity ? (
         <BranchActivityView
           page={activeActivity}
