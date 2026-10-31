@@ -22,9 +22,17 @@ concurrency:
   group: github-pages
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   publish:
     runs-on: debian-13
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     container:
       image: 10.225.224.10/ci/debian:13
 
@@ -97,9 +105,11 @@ jobs:
           test -n "$(find .pages/docs/api/rust -mindepth 2 -maxdepth 2 -type f -name index.html -print -quit)"
           python3 -m mkdocs build --clean
 
-      - name: Publish gh-pages branch
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          python3 -m mkdocs gh-deploy --force --clean
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publish GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

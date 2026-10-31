@@ -18,7 +18,7 @@ it("renders shared selection context around every integrated route", () => {
     "utf8",
   );
   const summary = app.indexOf("<SharedSelectionSummary />");
-  const firstRoute = app.indexOf('{route === "raw" ?');
+  const firstRoute = app.indexOf("<AppRouteContent");
   expect(summary).toBeGreaterThan(app.indexOf("<ScriberigProvider"));
   expect(summary).toBeGreaterThan(-1);
   expect(firstRoute).toBeGreaterThan(summary);
