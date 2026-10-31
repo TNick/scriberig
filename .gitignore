@@ -34,3 +34,4 @@ output/playwright/
 # Local agent runtime and memory state
 .codex/
 .mnemon/
+/memory/
