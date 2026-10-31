@@ -7,6 +7,7 @@ const SESSION_STORAGE_KEY = "scriberig.agent.session";
 
 /** Reuses a valid stored session id or creates a canonical random one.
  * @param storage Optional storage adapter, primarily for tests.
+ * @param scope Session scope; the application scope retains the legacy storage key.
  * @returns A Rust-compatible `ent_` session identity.
  * @throws When secure random generation is unavailable.
  */
@@ -14,7 +15,8 @@ export function getOrCreateSessionId(
   storage?: Pick<Storage, "getItem" | "setItem">,
   scope = "application",
 ): SessionId {
-  const storageKey = `${SESSION_STORAGE_KEY}.${scope}`;
+  const storageKey =
+    scope === "application" ? SESSION_STORAGE_KEY : `${SESSION_STORAGE_KEY}.${scope}`;
   let activeStorage = storage;
   if (activeStorage === undefined) {
     try {
