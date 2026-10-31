@@ -1,6 +1,8 @@
-# Projection style: remaining level-3 slice (tasks 1-3)
+# Projection style: completed implementation checklist
 
-Repo: `/root/repos/ai/scriberig-level-3` (branch `feat/level-3-remaining`).
+Historical worktree: `/root/repos/ai/scriberig-level-3` (branch
+`feat/level-3-remaining`). The work below is complete and its durable contracts
+are recorded in Level-3 tasks 151–154.
 Always build with `CARGO_TARGET_DIR=/root/repos/ai/scriberig-level-3/target` — the
 shared target dir of the sibling checkout serves stale `sr-projection` artifacts
 and produces phantom "unresolved import" errors.
@@ -70,5 +72,6 @@ grow.
 
 ## Not in scope here
 
-ECMA rendering (that domain has only a parser — needs its own renderer task) and
-task 153 (loss-aware reconciliation, shared TUI/web style controls).
+The original note's scope exclusions are closed by the reconciled task chain:
+ECMAScript rendering is task 153, and loss-aware reconciliation with shared
+TUI/web controls is task 154.

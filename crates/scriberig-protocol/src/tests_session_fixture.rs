@@ -39,7 +39,7 @@ fn shared_agent_session_fixture_preserves_cross_surface_semantics() {
     );
     assert_eq!(
         plan.dependencies[0].fulfilled_by.as_deref(),
-        Some("ent_0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e")
+        fixture["session"]["plans"][0]["dependencies"][0]["fulfilled_by"].as_str()
     );
     assert_eq!(plan.revision, 2);
     assert_eq!(parser.id, "ent_04040404040404040404040404040404");
