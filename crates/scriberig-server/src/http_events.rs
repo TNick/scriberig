@@ -29,6 +29,34 @@ pub(super) fn handle<S: ApplicationService>(
     path: &str,
     origin: Option<&str>,
 ) -> io::Result<()> {
+    handle_with_lease(stream, state, path, origin, Duration::from_secs(30))
+}
+
+/// Handles one SSE observation connection for a caller-selected lease.
+///
+/// This internal form keeps production leases fixed while allowing bounded
+/// transport tests to exercise disconnect behavior without waiting 30 seconds.
+///
+/// - `stream`: Connected HTTP client socket.
+/// - `state`: Application service and fixture state.
+/// - `path`: Request path, including optional query parameters.
+/// - `origin`: Optional allowed browser origin.
+/// - `lease_duration`: Maximum time to retain this observation connection.
+///
+/// I/O result after replay and the live lease are written.
+///
+/// Returns an I/O error when the response cannot be written.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+fn handle_with_lease<S: ApplicationService>(
+    stream: &mut TcpStream,
+    state: &HttpState<S>,
+    path: &str,
+    origin: Option<&str>,
+    lease_duration: Duration,
+) -> io::Result<()> {
     let after = query_value(path, "after")
         .and_then(|value| value.parse::<u64>().ok())
         .unwrap_or_default();
@@ -43,7 +71,7 @@ pub(super) fn handle<S: ApplicationService>(
         "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n{cors}Cache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n"
     )?;
     stream.flush()?;
-    let lease = Instant::now() + Duration::from_secs(30);
+    let lease = Instant::now() + lease_duration;
     let mut cursor = after;
     let mut heartbeat = Instant::now() + Duration::from_secs(10);
     while Instant::now() < lease {
@@ -69,6 +97,10 @@ pub(super) fn handle<S: ApplicationService>(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "http_events_tests.rs"]
+mod tests;
 
 /// Writes the explicit response for an expired event cursor.
 ///

@@ -1,0 +1,48 @@
+{
+  "plan": {
+    "id": "ent_c1000000000000000000000000000005",
+    "revision": "rev_f5997db286cf72901c8d61c54dbcf1cfb22c75a6b31632b5bf45968cd57c87d0",
+    "snapshot": "snp_e18b09aa5b17c8326b63ebf4835f1e791d46c4e6ac765daee061af44bf22e7f3",
+    "mutation_revision": 4,
+    "goal": "bounded requirement details",
+    "status": "Planned",
+    "coordinator": null,
+    "coordinator_cursor": null,
+    "root_nodes": ["ent_c2000000000000000000000000000006"],
+    "node_count": 1,
+    "status_counts": {
+      "planned": 0,
+      "ready": 1,
+      "running": 0,
+      "completed": 0,
+      "failed": 0,
+      "abandoned": 0
+    }
+  },
+  "nodes": [
+    {
+      "id": "ent_c2000000000000000000000000000006",
+      "revision": "rev_1815ed85f57633872e6e1bce57d3018fdf74a6fc911604b2cfaac10b4d1f2187",
+      "snapshot": "snp_e18b09aa5b17c8326b63ebf4835f1e791d46c4e6ac765daee061af44bf22e7f3",
+      "plan": "ent_c1000000000000000000000000000005",
+      "parent": "branch:ent_b1000000000000000000000000000001",
+      "title": "Work",
+      "purpose": "inspect requirements",
+      "direct_status": "Ready",
+      "effective_status": "Ready",
+      "contains_ignored": false,
+      "contains_abandoned": false,
+      "summary_id": null,
+      "summary_preview": null,
+      "branch": null,
+      "result": null,
+      "assignment": null,
+      "dependency_blockers": [],
+      "entry_gates": {"pending": 0, "satisfied": 1, "failed": 0, "waived": 0},
+      "completion_gates": {"pending": 0, "satisfied": 0, "failed": 0, "waived": 0},
+      "evidence_count": 1,
+      "can_retry": false,
+      "last_failure": null
+    }
+  ]
+}

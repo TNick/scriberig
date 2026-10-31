@@ -1,7 +1,9 @@
 //! Covers backend-independent semantic change behavior.
 
 use scriberig_core::{EncodingVersion, EntityId, ObjectType};
-use scriberig_store::{Revision, SnapshotChange, SnapshotStore};
+use scriberig_store::{
+    Revision, SnapshotChange, SnapshotRelation, SnapshotRelationChange, SnapshotStore,
+};
 use scriberig_store_memory::MemoryStore;
 use sr_change::compare;
 
@@ -83,7 +85,18 @@ fn disjoint_changes_merge_automatically() {
 #[test]
 fn disjoint_merge_creates_result_snapshot() {
     let store = MemoryStore::default();
-    let base = store.empty_snapshot();
+    let empty = store.empty_snapshot();
+    let prior_relation = SnapshotRelation::new(
+        EntityId::from_bytes([19; 16]),
+        ObjectType::new("project.mentions").expect("relation type"),
+        EntityId::from_bytes([18; 16]),
+    );
+    let base = store
+        .apply_relation_changes(
+            empty,
+            &[SnapshotRelationChange::Add(prior_relation.clone())],
+        )
+        .expect("base relation");
     let left = store
         .apply_changes(
             base,
@@ -116,6 +129,61 @@ fn disjoint_merge_creates_result_snapshot() {
             .resolve(merged, EntityId::from_bytes([3; 16]))
             .expect("resolve"),
         Some(RevisionId::new([4; 32]))
+    );
+    assert_eq!(
+        store.relations(merged).expect("preserved relation"),
+        vec![prior_relation]
+    );
+}
+
+/// Verifies a merge retains relation additions from both branches atomically.
+#[test]
+fn disjoint_relation_changes_merge_into_the_retained_snapshot() {
+    let store = MemoryStore::default();
+    let empty = store.empty_snapshot();
+    let prior_relation = SnapshotRelation::new(
+        EntityId::from_bytes([19; 16]),
+        ObjectType::new("project.mentions").expect("relation type"),
+        EntityId::from_bytes([18; 16]),
+    );
+    let base = store
+        .apply_relation_changes(
+            empty,
+            &[SnapshotRelationChange::Add(prior_relation.clone())],
+        )
+        .expect("base relation");
+    let first_relation = SnapshotRelation::new(
+        EntityId::from_bytes([20; 16]),
+        ObjectType::new("document.references").expect("relation type"),
+        EntityId::from_bytes([21; 16]),
+    );
+    let second_relation = SnapshotRelation::new(
+        EntityId::from_bytes([22; 16]),
+        ObjectType::new("session.touches").expect("relation type"),
+        EntityId::from_bytes([23; 16]),
+    );
+    let left = store
+        .apply_relation_changes(
+            base,
+            &[
+                SnapshotRelationChange::Remove(prior_relation),
+                SnapshotRelationChange::Add(first_relation.clone()),
+            ],
+        )
+        .expect("left relation");
+    let right = store
+        .apply_relation_changes(
+            base,
+            &[SnapshotRelationChange::Add(second_relation.clone())],
+        )
+        .expect("right relation");
+
+    let result =
+        merge_snapshots_into_store(&store, MergeInput { base, left, right }, None).expect("merge");
+    let merged = result.result.expect("merged snapshot");
+    assert_eq!(
+        store.relations(merged).expect("merged relations"),
+        vec![first_relation, second_relation]
     );
 }
 

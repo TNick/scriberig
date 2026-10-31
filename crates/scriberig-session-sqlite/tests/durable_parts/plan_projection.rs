@@ -1,204 +1,243 @@
-//! Verifies aggregate plans remain read-only compatibility projections.
+//! Verifies aggregate session saves cannot authoritatively replace plans.
 
-use scriberig_core::EntityId;
-use scriberig_session::{Branch, ContinuationAnchor, Plan, PlanStatus, Session, SessionStore};
-use scriberig_session_sqlite::SqliteSessionStore;
+use super::*;
 
-/// Ignores stale aggregate plan edits after semantic plan creation.
+/// Keeps semantic-root plan state authoritative over stale session projections.
 #[test]
-fn stale_session_save_cannot_override_semantic_plan_root() {
-    let path = std::env::temp_dir().join(format!(
-        "scriberig-plan-projection-{}.sqlite",
-        EntityId::new()
-    ));
-    let session_id = EntityId::from_bytes([91; 16]);
-    let branch_id = EntityId::from_bytes([92; 16]);
-    let plan_id = EntityId::from_bytes([93; 16]);
-    let store = SqliteSessionStore::open(&path).expect("open store");
-    let plan = Plan::new(
+fn whole_session_save_cannot_overwrite_semantic_plan_revision() {
+    let session_id = EntityId::from_bytes([61; 16]);
+    let root_branch = EntityId::from_bytes([62; 16]);
+    let plan_id = EntityId::from_bytes([63; 16]);
+    let store = SqliteSessionStore::open_in_memory().expect("open store");
+    let mut plan = Plan::new(
         plan_id,
         session_id,
-        ContinuationAnchor::BranchHead { branch: branch_id },
-        "canonical semantic goal",
+        scriberig_session::ContinuationAnchor::BranchHead {
+            branch: root_branch,
+        },
+        "canonical plan goal",
     )
-    .expect("plan");
-    let mut stale = Session {
-        id: session_id,
-        branches: vec![Branch::new(branch_id, "root").expect("branch")],
-        goals: Vec::new(),
-        tasks: Vec::new(),
-        plans: vec![plan],
-        execution: scriberig_session::SessionExecutionSelection::default(),
-    };
-    store.save(&stale).expect("save initial session");
-    assert_session_payload_omits_plans(&path, session_id);
-
-    let mut canonical = store
-        .load(session_id)
-        .expect("load session")
-        .expect("session exists");
-    canonical.plans[0]
-        .transition(PlanStatus::Planned)
-        .expect("advance canonical plan");
+    .expect("create plan");
+    plan.transition(scriberig_session::PlanStatus::Planned)
+        .expect("plan plan");
+    plan.transition(scriberig_session::PlanStatus::Running)
+        .expect("start plan");
+    let initial_revision = plan.revision;
     store
-        .compare_and_swap_plan(&canonical, plan_id, 0)
-        .expect("persist canonical plan revision");
+        .save(&Session {
+            id: session_id,
+            branches: vec![Branch::new(root_branch, "root").expect("branch")],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        })
+        .expect("save initial session projection");
 
-    stale.plans[0].goal = "stale aggregate overwrite".to_owned();
-    stale.plans[0].status = PlanStatus::Failed;
+    let mut stale = store
+        .load(session_id)
+        .expect("load stale projection")
+        .expect("stored session");
+    let mut accepted = stale.clone();
+    accepted.plans[0]
+        .transition(scriberig_session::PlanStatus::Paused)
+        .expect("pause canonical plan");
+    store
+        .compare_and_swap_plan(&accepted, plan_id, initial_revision)
+        .expect("promote canonical plan mutation");
+    stale.plans[0].goal = "unauthorized aggregate overwrite".to_owned();
     store
         .save(&stale)
         .expect("save unrelated session projection");
 
     let reloaded = store
         .load(session_id)
-        .expect("reload session")
-        .expect("session remains present");
-    assert_eq!(reloaded.plans[0].goal, "canonical semantic goal");
-    assert_eq!(reloaded.plans[0].status, PlanStatus::Planned);
-    assert_eq!(reloaded.plans[0].revision, 1);
-    drop(store);
-    let reopened = SqliteSessionStore::open(&path).expect("reopen store");
-    let reopened_session = reopened
-        .load(session_id)
-        .expect("load reopened session")
-        .expect("session persists");
-    assert_eq!(reopened_session.plans[0].goal, "canonical semantic goal");
-    assert_eq!(reopened_session.plans[0].status, PlanStatus::Planned);
-    assert_session_payload_omits_plans(&path, session_id);
-    drop(reopened);
-    let _ = std::fs::remove_file(path);
-}
-
-/// Persists the public session plan order during a semantic plan mutation.
-#[test]
-fn semantic_plan_mutation_persists_reordered_plan_projection() {
-    let path =
-        std::env::temp_dir().join(format!("scriberig-plan-order-{}.sqlite", EntityId::new()));
-    let session_id = EntityId::from_bytes([101; 16]);
-    let branch_id = EntityId::from_bytes([102; 16]);
-    let first_id = EntityId::from_bytes([103; 16]);
-    let second_id = EntityId::from_bytes([104; 16]);
-    let store = SqliteSessionStore::open(&path).expect("open store");
-    let first = Plan::new(
-        first_id,
-        session_id,
-        ContinuationAnchor::BranchHead { branch: branch_id },
-        "first plan",
-    )
-    .expect("first plan");
-    let second = Plan::new(
-        second_id,
-        session_id,
-        ContinuationAnchor::BranchHead { branch: branch_id },
-        "second plan",
-    )
-    .expect("second plan");
-    let session = Session {
-        id: session_id,
-        branches: vec![Branch::new(branch_id, "root").expect("branch")],
-        goals: Vec::new(),
-        tasks: Vec::new(),
-        plans: vec![first, second],
-        execution: scriberig_session::SessionExecutionSelection::default(),
-    };
-    store.save(&session).expect("save session");
-
-    let mut reordered = store
-        .load(session_id)
-        .expect("load session")
-        .expect("session exists");
-    reordered.plans.reverse();
-    reordered.plans[0]
-        .transition(PlanStatus::Planned)
-        .expect("advance second plan");
-    store
-        .compare_and_swap_plan(&reordered, second_id, 0)
-        .expect("save changed plan order");
-
-    let loaded = store
-        .load(session_id)
-        .expect("reload session")
-        .expect("session exists");
+        .expect("reload semantic session")
+        .expect("stored session");
+    assert_eq!(reloaded.plans[0].goal, "canonical plan goal");
     assert_eq!(
-        loaded.plans.iter().map(|plan| plan.id).collect::<Vec<_>>(),
-        vec![second_id, first_id]
+        reloaded.plans[0].status,
+        scriberig_session::PlanStatus::Paused
     );
-    drop(store);
-    let _ = std::fs::remove_file(path);
+    assert_eq!(reloaded.plans[0].revision, initial_revision + 1);
 }
 
-/// Rebuilds a missing session-to-plan locator from deterministic semantic roots.
+/// Leaves no worker branch persisted when semantic plan promotion is rejected.
 #[test]
-fn missing_plan_locator_is_rebuilt_from_semantic_roots() {
-    let path =
-        std::env::temp_dir().join(format!("scriberig-plan-locator-{}.sqlite", EntityId::new()));
-    let session_id = EntityId::from_bytes([111; 16]);
-    let branch_id = EntityId::from_bytes([112; 16]);
-    let plan_id = EntityId::from_bytes([113; 16]);
-    let store = SqliteSessionStore::open(&path).expect("open store");
-    let plan = Plan::new(
+fn rejected_semantic_plan_promotion_does_not_persist_worker_branch() {
+    let session_id = EntityId::from_bytes([71; 16]);
+    let root_branch = EntityId::from_bytes([72; 16]);
+    let worker_branch = EntityId::from_bytes([73; 16]);
+    let plan_id = EntityId::from_bytes([74; 16]);
+    let node_id = EntityId::from_bytes([75; 16]);
+    let store = SqliteSessionStore::open_in_memory().expect("open store");
+    let mut plan = Plan::new(
         plan_id,
         session_id,
-        ContinuationAnchor::BranchHead { branch: branch_id },
-        "semantic root survives locator loss",
+        scriberig_session::ContinuationAnchor::BranchHead {
+            branch: root_branch,
+        },
+        "atomic plan settlement",
     )
-    .expect("plan");
-    let session = Session {
-        id: session_id,
-        branches: vec![Branch::new(branch_id, "root").expect("branch")],
-        goals: Vec::new(),
-        tasks: Vec::new(),
-        plans: vec![plan],
-        execution: scriberig_session::SessionExecutionSelection::default(),
-    };
-    store.save(&session).expect("save session");
-    let connection = rusqlite::Connection::open(&path).expect("open locator inspection");
-    connection
-        .execute(
-            "DELETE FROM session_plan_records WHERE session_id=?1",
-            rusqlite::params![session_id.as_bytes().as_slice()],
-        )
-        .expect("remove derived locator row");
-    drop(connection);
-    drop(store);
+    .expect("create plan");
+    plan.transition(scriberig_session::PlanStatus::Planned)
+        .expect("plan plan");
+    plan.transition(scriberig_session::PlanStatus::Running)
+        .expect("start plan");
+    plan.add_node(PlanNode {
+        id: node_id,
+        parent: Some(scriberig_session::PlanNodeParent::Branch(root_branch)),
+        title: "worker".to_owned(),
+        purpose: "perform work".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: scriberig_session::PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("add worker node");
+    let expected_revision = plan.revision;
+    store
+        .save(&Session {
+            id: session_id,
+            branches: vec![Branch::new(root_branch, "root").expect("root branch")],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        })
+        .expect("save initial plan");
 
-    let reopened = SqliteSessionStore::open(&path).expect("reopen store");
-    let loaded = reopened
+    let mut proposed = store
         .load(session_id)
-        .expect("load session after locator loss")
-        .expect("session exists");
-    assert_eq!(loaded.plans.len(), 1);
-    assert_eq!(loaded.plans[0].id, plan_id);
-    assert_eq!(loaded.plans[0].goal, "semantic root survives locator loss");
-    let connection = rusqlite::Connection::open(&path).expect("inspect rebuilt locator");
-    let registered: i64 = connection
-        .query_row(
-            "SELECT COUNT(*) FROM session_plan_records WHERE session_id=?1",
-            rusqlite::params![session_id.as_bytes().as_slice()],
-            |row| row.get(0),
-        )
-        .expect("count rebuilt locator rows");
-    assert_eq!(registered, 1);
-    drop(connection);
-    drop(reopened);
-    let _ = std::fs::remove_file(path);
+        .expect("load session")
+        .expect("stored session");
+    let mut duplicate = proposed.plans[0].nodes[0].clone();
+    duplicate.status = scriberig_session::PlanNodeStatus::Running;
+    duplicate.branch = Some(worker_branch);
+    proposed.plans[0].nodes.push(duplicate);
+    proposed.plans[0].revision += 1;
+    proposed
+        .branches
+        .push(Branch::new_child(worker_branch, root_branch, "worker", "work").expect("branch"));
+
+    assert!(
+        store
+            .compare_and_swap_plan(&proposed, plan_id, expected_revision)
+            .is_err()
+    );
+
+    let reloaded = store
+        .load(session_id)
+        .expect("reload session")
+        .expect("stored session");
+    assert!(
+        !reloaded
+            .branches
+            .iter()
+            .any(|branch| branch.id == worker_branch),
+        "a rejected semantic plan mutation cannot leave a worker branch behind"
+    );
+    assert_eq!(reloaded.plans[0].revision, expected_revision);
 }
 
-/// Confirms session payloads contain no embedded plan contents.
-///
-/// # Parameters
-/// - `path`: SQLite database containing the session.
-/// - `session`: Stable session identity to inspect.
-fn assert_session_payload_omits_plans(path: &std::path::Path, session: EntityId) {
-    let connection = rusqlite::Connection::open(path).expect("open payload inspection connection");
-    let payload = connection
-        .query_row(
-            "SELECT payload FROM session_records WHERE session_id=?1",
-            rusqlite::params![session.as_bytes().as_slice()],
-            |row| row.get::<_, Vec<u8>>(0),
-        )
-        .expect("session payload");
-    let decoded: serde_json::Value = serde_json::from_slice(&payload).expect("payload JSON");
-    assert_eq!(decoded["plans"], serde_json::json!([]));
+/// Resolves an earlier plan revision by its exact semantic snapshot identity.
+#[test]
+fn historical_plan_snapshot_loads_exact_revision() {
+    let session_id = EntityId::from_bytes([64; 16]);
+    let root_branch = EntityId::from_bytes([65; 16]);
+    let plan_id = EntityId::from_bytes([66; 16]);
+    let store = SqliteSessionStore::open_in_memory().expect("open store");
+    let mut plan = Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead {
+            branch: root_branch,
+        },
+        "historical goal",
+    )
+    .expect("create plan");
+    plan.transition(scriberig_session::PlanStatus::Planned)
+        .expect("plan plan");
+    plan.transition(scriberig_session::PlanStatus::Running)
+        .expect("start plan");
+    let mut root = Branch::new(root_branch, "root").expect("branch");
+    root.result = Some(scriberig_session::BranchResult {
+        id: EntityId::from_bytes([67; 16]),
+        branch: root_branch,
+        status: scriberig_session::BranchStatus::Completed,
+        summary: Some("accepted result".to_owned()),
+        result_kind: None,
+        candidate_context: None,
+        references: Vec::new(),
+        result_handles: Vec::new(),
+        touched: Vec::new(),
+        produced_changes: Vec::new(),
+        validations: Vec::new(),
+        unresolved_questions: Vec::new(),
+    });
+    store
+        .save(&Session {
+            id: session_id,
+            branches: vec![root],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        })
+        .expect("save initial plan");
+
+    let mut initial_session = store
+        .load(session_id)
+        .expect("load initial session")
+        .expect("stored session");
+    let initial = initial_session.plans.remove(0);
+    let snapshot = initial.source_snapshot.expect("initial root snapshot");
+    let mut next = store
+        .load(session_id)
+        .expect("load current session")
+        .expect("stored session");
+    next.plans[0]
+        .transition(scriberig_session::PlanStatus::Paused)
+        .expect("pause current plan");
+    store
+        .compare_and_swap_plan(&next, plan_id, initial.revision)
+        .expect("promote next plan revision");
+
+    let historical = store
+        .load_plan_at_snapshot(session_id, plan_id, snapshot)
+        .expect("resolve historical plan")
+        .expect("snapshot belongs to plan history");
+    let mut current_session = store
+        .load(session_id)
+        .expect("load current session")
+        .expect("stored session");
+    let current = current_session.plans.remove(0);
+    assert_eq!(historical.status, scriberig_session::PlanStatus::Running);
+    assert_eq!(historical.revision, initial.revision);
+    assert_eq!(historical.source_snapshot, Some(snapshot));
+    assert_eq!(current.status, scriberig_session::PlanStatus::Paused);
+    let compact = scriberig_session::repository::SessionStore::load_plan_projection(
+        &store,
+        session_id,
+        plan_id,
+        Some(snapshot),
+    )
+    .expect("load compact historical projection")
+    .expect("compact snapshot belongs to plan history");
+    assert_eq!(compact.status, scriberig_session::PlanStatus::Running);
+    assert_eq!(compact.source_snapshot, Some(snapshot));
+    assert_eq!(compact.history.len(), 0);
+    let branch_results =
+        scriberig_session::repository::SessionStore::load_plan_branch_results(&store, session_id)
+            .expect("load plan branch results")
+            .expect("session contains branch results");
+    assert_eq!(branch_results.len(), 1);
+    assert_eq!(branch_results[0].id, EntityId::from_bytes([67; 16]));
 }

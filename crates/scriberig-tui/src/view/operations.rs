@@ -128,4 +128,67 @@ mod tests {
         assert_eq!(model.status, OperationStatus::Queued);
         assert!(model.cancellable());
     }
+
+    /// Verifies progress text is projected only from shared lifecycle state.
+    #[test]
+    fn progress_is_projected_only_from_shared_operation_state() {
+        let mut reported = OperationRecord::queued(
+            OperationId::new("reported").expect("operation id"),
+            OperationKind::Agent,
+        );
+        reported.status = OperationStatus::Running;
+        reported.progress = Some(scriberig_app::OperationProgress {
+            status: OperationStatus::Running,
+            completed: Some(3),
+            total: Some(7),
+            phase: Some("scanning sources".to_owned()),
+        });
+        let mut counted = OperationRecord::queued(
+            OperationId::new("counted").expect("operation id"),
+            OperationKind::Agent,
+        );
+        counted.status = OperationStatus::Running;
+        counted.progress = Some(scriberig_app::OperationProgress {
+            status: OperationStatus::Running,
+            completed: Some(3),
+            total: Some(7),
+            phase: None,
+        });
+        let silent = OperationRecord::queued(
+            OperationId::new("silent").expect("operation id"),
+            OperationKind::Agent,
+        );
+
+        let reported = OperationModel::from_record(&reported);
+        let counted = OperationModel::from_record(&counted);
+        let silent = OperationModel::from_record(&silent);
+
+        assert_eq!(reported.progress.as_deref(), Some("scanning sources"));
+        assert_eq!(counted.progress.as_deref(), Some("3/7"));
+        assert_eq!(silent.progress, None, "an idle record gains no progress");
+    }
+
+    /// Verifies a terminal lifecycle event never invents progress or result state.
+    #[test]
+    fn terminal_lifecycle_events_do_not_fabricate_operation_state() {
+        let completed = OperationModel::from_event(
+            &scriberig_app::ApplicationEvent::OperationCompleted {
+                operation: OperationId::new("bare").expect("operation id"),
+            },
+            None,
+        )
+        .expect("completed lifecycle event");
+
+        assert_eq!(completed.status, OperationStatus::Completed);
+        assert_eq!(completed.progress, None);
+        assert_eq!(
+            completed.result_handles,
+            Vec::<String>::new(),
+            "a terminal event with no earlier observation gains no result handles"
+        );
+        assert_eq!(
+            completed.kind, "Operation",
+            "no local operation family is invented"
+        );
+    }
 }

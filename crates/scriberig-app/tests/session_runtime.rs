@@ -9,9 +9,9 @@ mod access_tests;
 use rpi_ai::{Api, Model, ThinkingLevel, ThinkingLevelMap};
 use scriberig_app::{
     AgentCommandRequest, AgentConsoleBackend, ApplicationContext, ApplicationError,
-    ApplicationService, PlanAssignmentRequest, PlanChildDraft, PlanCreateRequest,
-    PlanDecomposeRequest, PlanLifecycleRequest, PlanNextStepRequest, PlanNodeDraft, SessionBackend,
-    SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
+    ApplicationService, PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleRequest,
+    PlanMutation, PlanMutationRequest, PlanNodeDraft, SessionBackend, SessionModelSelectionRequest,
+    SessionRequest, SessionThinkingSelectionRequest,
 };
 use scriberig_core::EntityId;
 
@@ -312,5 +312,11 @@ fn fallback_agent_acceptance_retains_session_activity() {
     );
 }
 
+#[path = "session_runtime_parts/compact_session_projection.rs"]
+mod compact_session_projection;
 #[path = "session_runtime_parts/part1.rs"]
 mod part1;
+#[path = "session_runtime_parts/plan_recovery.rs"]
+mod plan_recovery;
+#[path = "session_runtime_parts/plan_semantic_mutations.rs"]
+mod plan_semantic_mutations;

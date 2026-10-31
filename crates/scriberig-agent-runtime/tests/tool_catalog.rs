@@ -111,3 +111,114 @@ fn semantic_tools_precede_explicit_opaque_fallbacks() {
         ToolCategory::SemanticMutation
     );
 }
+
+/// Verifies a host-authorized addition must name its capability and cannot
+/// reuse a registered tool identifier.
+#[test]
+fn authorized_merge_refuses_capability_free_and_duplicate_tools() {
+    let catalog = ToolCatalog::new(vec![descriptor("inspect")]);
+
+    let mut capability_free = descriptor("acme.report");
+    capability_free.required_capability = None;
+    let refused = catalog
+        .merge_authorized(std::slice::from_ref(&capability_free))
+        .expect_err("an addition without a capability must be refused");
+    assert!(
+        refused.to_string().contains("no required capability"),
+        "capability-free addition did not fail closed: {refused}"
+    );
+
+    let mut shadow = descriptor("inspect");
+    shadow.required_capability = Some("acme.report".to_owned());
+    let refused = catalog
+        .merge_authorized(std::slice::from_ref(&shadow))
+        .expect_err("a duplicate tool name must be refused");
+    assert!(
+        refused.to_string().contains("already registered"),
+        "duplicate tool name did not fail closed: {refused}"
+    );
+
+    let mut addition = descriptor("acme.report");
+    addition.required_capability = Some("acme.report".to_owned());
+    let refused = catalog
+        .merge_authorized(vec![addition.clone(), addition].as_slice())
+        .expect_err("a repeated addition must be refused");
+    assert!(
+        refused.to_string().contains("already registered"),
+        "repeated addition did not fail closed: {refused}"
+    );
+    assert_eq!(
+        catalog
+            .descriptors_for(&inspected())
+            .iter()
+            .map(|entry| entry.definition.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["inspect"],
+        "a refused merge never mutates the base catalog"
+    );
+}
+
+/// Returns a capability context that grants the trusted inspect capability.
+///
+/// # Returns
+/// A project-scoped context holding `inspect.entity`.
+fn inspected() -> CapabilityContext {
+    CapabilityContext::with_grants([Capability {
+        scope: CapabilityScope::Project,
+        actions: BTreeSet::from([CapabilityAction::Inspect]),
+        constraints: CapabilityConstraints::unrestricted(),
+    }])
+}
+
+/// Verifies a merged tool is visible and authorizable only under its named
+/// capability, and the base catalog stays independently usable.
+#[test]
+fn merged_tool_is_authorized_only_under_its_named_capability() {
+    let catalog = ToolCatalog::new(vec![descriptor("inspect")]);
+    let mut addition = descriptor("acme.report");
+    addition.category = ToolCategory::OpaqueFallback;
+    addition.required_capability = Some("acme.report".to_owned());
+    let merged = catalog
+        .merge_authorized(std::slice::from_ref(&addition))
+        .expect("capability-scoped addition merges");
+    let mut granted = inspected();
+    if let Some(entry) = granted.grants.first_mut() {
+        entry
+            .actions
+            .insert(CapabilityAction::Custom("acme.report".to_owned()));
+    }
+
+    assert_eq!(
+        merged
+            .descriptors_for(&granted)
+            .iter()
+            .map(|entry| entry.definition.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["inspect", "acme.report"],
+        "semantic tools keep priority over an authorized opaque addition"
+    );
+    assert_eq!(
+        merged
+            .authorize("acme.report")
+            .ok()
+            .map(|entry| entry.definition.name.as_str()),
+        Some("acme.report")
+    );
+    assert_eq!(
+        catalog
+            .descriptors_for(&granted)
+            .iter()
+            .map(|entry| entry.definition.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["inspect"],
+        "merging produces a new catalog and never widens the shared base one"
+    );
+
+    let denied = merged
+        .authorize_for_context("acme.report", &CapabilityContext::default())
+        .expect_err("an ungranted branch must not invoke the merged tool");
+    assert!(
+        denied.to_string().contains("required capability denied"),
+        "ungranted merged tool did not fail closed: {denied}"
+    );
+}

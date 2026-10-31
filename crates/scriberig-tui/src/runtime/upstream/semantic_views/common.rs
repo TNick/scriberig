@@ -247,9 +247,82 @@ pub(super) fn optional_id<T: std::fmt::Display>(value: Option<T>) -> String {
     value.map_or_else(|| "none".to_owned(), |value| value.to_string())
 }
 
+/// Gives every projected row a distinct upstream key while keeping each semantic
+/// identity on its first projected row.
+///
+/// Upstream tree components reject a duplicate item ID, and one rejected item
+/// set discards the whole semantic tree. A canonical snapshot can legitimately
+/// project one identity onto several rows: a turn that recorded both durable
+/// human input and durable assistant output keeps one conversation source, a
+/// branch result listed in its own `references` keeps one session row identity,
+/// and a session that lists the same plan identity twice keeps one plan row key.
+/// The first projected row keeps the exact semantic key that `ScribeRig` cursors
+/// resolve, so selection stays semantic. Each later duplicate gets a bounded
+/// occurrence suffix so its content remains visible and navigable instead of
+/// blanking the view.
+///
+/// - `ids`: Projected upstream keys in display order, rewritten in place.
+pub(super) fn unique_row_ids<'a>(ids: impl Iterator<Item = &'a mut String>) {
+    let mut used = std::collections::HashSet::new();
+    for id in ids {
+        *id = unique_row_key(&mut used, id.clone());
+    }
+}
+
+/// Reserves one unused upstream key, keeping the first occurrence exact.
+///
+/// A caller that builds child rows while it projects parents needs the reserved
+/// key immediately, because the child's parent reference must name the same row
+/// the parent actually got. `unique_row_ids` can only rewrite a finished key
+/// sequence.
+///
+/// - `used`: Keys already reserved, updated with the returned key.
+/// - `key`: Semantic upstream key for the projected row.
+///
+/// # Returns
+/// The exact semantic key when unused, otherwise a bounded occurrence key.
+pub(super) fn unique_row_key(used: &mut std::collections::HashSet<String>, key: String) -> String {
+    if used.contains(&key) {
+        let semantic_key = key;
+        let mut occurrence = 1_usize;
+        let mut candidate = format!("{semantic_key}#{occurrence}");
+        while used.contains(&candidate) {
+            occurrence = occurrence.saturating_add(1);
+            candidate = format!("{semantic_key}#{occurrence}");
+        }
+        used.insert(candidate.clone());
+        return candidate;
+    }
+    used.insert(key.clone());
+    key
+}
+
 #[cfg(test)]
 mod tests {
-    use super::append_value;
+    use super::{append_value, unique_row_ids};
+
+    /// Keeps the first projected occurrence on its exact semantic key and gives
+    /// every later occurrence a distinct key, including a suffixed collision.
+    #[test]
+    fn duplicate_row_ids_keep_the_first_semantic_key() {
+        let mut ids = vec![
+            "session-row:Result:one".to_owned(),
+            "session-row:Result:one".to_owned(),
+            "session-row:Result:one#1".to_owned(),
+            "session-row:Result:one".to_owned(),
+        ];
+        unique_row_ids(ids.iter_mut());
+
+        assert_eq!(
+            ids,
+            vec![
+                "session-row:Result:one",
+                "session-row:Result:one#1",
+                "session-row:Result:one#1#1",
+                "session-row:Result:one#2",
+            ]
+        );
+    }
 
     /// Keeps the shared hostile terminal corpus as inert Markdown data.
     #[test]

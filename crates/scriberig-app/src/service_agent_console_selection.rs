@@ -22,13 +22,13 @@ impl<B: ApplicationBackend> ApplicationService<B> {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub(super) fn resolve_upstream_model(
+    pub(crate) fn resolve_upstream_model(
         &self,
         provider_id: &str,
         model_id: &str,
         thinking_level: Option<&str>,
     ) -> Result<(rpi_ai::Model, rpi_ai::ThinkingLevel), ApplicationError> {
-        let catalog_snapshot = self.model_catalog.snapshot();
+        let catalog_snapshot = self.provider_extension_runtime.model_catalog().snapshot();
         let thinking = match thinking_level {
             Some(level) => rpi_ai::ThinkingLevel::parse_name(level)
                 .ok_or_else(|| invalid_selection("thinking level id is not supported upstream"))?,
@@ -119,6 +119,10 @@ impl<B: ApplicationBackend> ApplicationService<B> {
                         SelectionError::RevisionConflict { expected, actual },
                         session.id,
                     ),
+                    SelectionStoreError::LegacyRecordNotFound => ApplicationError::Internal {
+                        message: "unexpected legacy recovery conflict during selection update"
+                            .to_owned(),
+                    },
                     SelectionStoreError::Persistence(message) => {
                         ApplicationError::Internal { message }
                     }

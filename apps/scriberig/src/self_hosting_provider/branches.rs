@@ -5,7 +5,11 @@ mod queries;
 use queries::{ARCHITECTURE_QUERIES, IMPLEMENTATION_QUERIES, PHP_CANDIDATE_PROFILES};
 #[path = "branches/result_helpers.rs"]
 mod result_helpers;
-use result_helpers::{child_summary, is_successful_candidate_validation};
+use result_helpers::{child_summary, is_child_result, is_successful_candidate_validation};
+#[path = "branches/result_parsing.rs"]
+mod result_parsing;
+use result_parsing::is_semantic_find;
+pub(super) use result_parsing::parse_tool_result;
 
 use super::{
     SemanticScope, ValidationMode, candidate, delegate, final_response, handle_with_prefix,
@@ -64,10 +68,7 @@ pub(super) fn root_branch(
             json!({"project":scope.project,"snapshot":scope.snapshot,"entity":entity}),
         ));
     }
-    if !tools
-        .iter()
-        .any(|message| message.contains("child_summary="))
-    {
+    if !tools.iter().any(|message| is_child_result(message)) {
         return Ok(delegate(
             model,
             "determine minimal extension points for PHP source ingestion",
@@ -78,7 +79,7 @@ pub(super) fn root_branch(
     }
     let child_results = tools
         .iter()
-        .filter(|message| message.contains("child_summary="))
+        .filter(|message| is_child_result(message))
         .collect::<Vec<_>>();
     if child_results.is_empty() {
         return Err(malformed("architecture BranchResult missing"));
@@ -337,11 +338,11 @@ fn semantic_step(
     let tools = tool_messages(request);
     let searched = tools
         .iter()
-        .filter(|message| message.contains("summary=Some(\"semantic find"))
+        .filter(|message| is_semantic_find(message))
         .count();
     let last_is_find = tools
         .last()
-        .is_some_and(|message| message.contains("summary=Some(\"semantic find"));
+        .is_some_and(|message| is_semantic_find(message));
     if searched >= queries.len() && !last_is_find {
         return Ok(None);
     }
@@ -373,7 +374,19 @@ fn semantic_step(
             "project":scope.project,
             "snapshot":scope.snapshot,
             "query":queries[searched],
-            "limit":50
+            "limit":10
         }),
     )))
+}
+
+/// Verifies truncated find handles retain their exact primary entity.
+#[cfg(test)]
+#[test]
+fn semantic_entity_falls_back_to_primary_find_entity() {
+    let result = r#"{"entity":"ent_primary","object_type":"semantic_find","handles":[]}"#;
+
+    assert_eq!(
+        semantic_entity(result).expect("find primary entity"),
+        "ent_primary"
+    );
 }

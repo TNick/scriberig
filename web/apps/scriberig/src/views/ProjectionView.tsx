@@ -5,9 +5,11 @@ import { useObject, useSelection, useScriberig, useSnapshot } from "@scriberig/r
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { Button } from "@mui/material";
 import type { AppRuntime, ProjectCandidate } from "../runtime";
+import { ProjectionStylePanel } from "./ProjectionStylePanel";
 
 interface SourceProjection {
   path: string;
+  projectionKind: string;
   text: string;
   name?: string;
   snapshot: string;
@@ -92,6 +94,14 @@ export function ProjectionView({
         <section aria-label="Rust source projection">
           <p>{projection.path}</p>
           <p>snapshot: {projection.snapshot}</p>
+          {runtime.activeWorkspace && selection ? (
+            <ProjectionStylePanel
+              projectionKind={projection.projectionKind}
+              projectId={runtime.activeWorkspace.project.id}
+              workspaceId={runtime.activeWorkspace.project.id}
+              viewId={selection.entityId}
+            />
+          ) : null}
           <textarea
             aria-label="Source projection"
             value={editedText}

@@ -9,6 +9,8 @@ use crate::{action::Action, state::TuiState};
 struct Fixture;
 
 impl crate::service::TuiModelRequestService for Fixture {}
+impl crate::service::TuiRecoveryService for Fixture {}
+impl crate::service::TuiRuntimeService for Fixture {}
 
 impl TuiService for Fixture {
     /// Rejects inspection while keeping the runtime test deterministic.
@@ -44,6 +46,9 @@ struct BlockingAgentFixture {
     release: std::sync::Mutex<std::sync::mpsc::Receiver<()>>,
 }
 
+impl crate::service::TuiRecoveryService for BlockingAgentFixture {}
+impl crate::service::TuiRuntimeService for BlockingAgentFixture {}
+
 /// Blocks plan lifecycle execution until the test releases it.
 struct BlockingPlanFixture {
     /// Signals when plan execution begins.
@@ -51,6 +56,9 @@ struct BlockingPlanFixture {
     /// Holds the release signal until the test checks worker availability.
     release: std::sync::Mutex<std::sync::mpsc::Receiver<()>>,
 }
+
+impl crate::service::TuiRecoveryService for BlockingPlanFixture {}
+impl crate::service::TuiRuntimeService for BlockingPlanFixture {}
 
 impl crate::service::TuiModelRequestService for BlockingPlanFixture {}
 

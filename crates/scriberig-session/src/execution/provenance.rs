@@ -1,6 +1,6 @@
 //! Stores model invocations, request projections, and output provenance.
 
-use scriberig_core::EntityId;
+use scriberig_core::{EntityId, OperationId};
 
 use super::{ModelRequestDetailMessage, ModelRequestDetailTool};
 
@@ -22,6 +22,9 @@ pub struct ModelInvocation {
     pub id: EntityId,
     /// Branch owning the execution.
     pub branch: EntityId,
+    /// Application operation that owns this invocation when one exists.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation: Option<OperationId>,
     /// Explicit activity order within the branch.
     pub ordinal: u64,
     /// Stable agent profile reference.
@@ -86,6 +89,15 @@ pub struct ModelRequestProjection {
     /// provenance and does not prove provider-request equivalence.
     #[serde(default)]
     pub request_fingerprint: Option<String>,
+    /// Exact upstream model-catalog generation used for this request, when available.
+    #[serde(default)]
+    pub catalog_revision: Option<u64>,
+    /// Exact upstream model-runtime Git revision used for this product build.
+    #[serde(default)]
+    pub upstream_runtime_revision: Option<String>,
+    /// Safe public provider response identity, when the provider supplies one.
+    #[serde(default)]
+    pub provider_response_id: Option<String>,
     /// Upstream-defined partial execution configuration snapshot for the model.
     ///
     /// This is historical provenance only. Inspect upstream coverage metadata

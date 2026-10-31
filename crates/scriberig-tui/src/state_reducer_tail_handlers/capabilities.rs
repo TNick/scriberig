@@ -46,6 +46,14 @@ pub fn operations_loaded(
         }
     }
     if state.primary_view == crate::selection::PrimaryView::Operations {
+        if state.semantic_row_cursor.is_none()
+            && let Some(index) = state
+                .operations
+                .iter()
+                .rposition(crate::view::operations::OperationModel::cancellable)
+        {
+            state.cursor = index;
+        }
         crate::runtime::reconcile_semantic_row_cursor(state);
     }
     vec![Effect::None]

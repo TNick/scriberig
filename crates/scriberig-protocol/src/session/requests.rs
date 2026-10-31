@@ -4,6 +4,33 @@ use crate::SessionReference;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+/// One allowlisted legacy execution value retained for explicit recovery.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct LegacyExecutionRecordView {
+    /// Exact source path retained by the importer.
+    pub path: String,
+    /// Sanitized historical value requiring operator review.
+    pub value: serde_json::Value,
+    /// Stable plan location, when the record came from a plan assignment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<LegacyExecutionTargetView>,
+}
+
+/// Stable plan location for one preserved legacy assignment.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct LegacyExecutionTargetView {
+    /// Stable plan identity.
+    pub plan_id: String,
+    /// Stable node identity.
+    pub node_id: String,
+    /// Historical plan revision, or `None` for the current revision.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revision: Option<u64>,
+    /// Whether this is a worker claim's captured assignment.
+    #[serde(default)]
+    pub claim: bool,
+}
+
 /// Requests one durable session tree.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct SessionReadRequest {
@@ -108,6 +135,15 @@ pub struct ModelRequestDetailResponse {
     /// Secret-free fingerprint of captured request provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub request_fingerprint: Option<String>,
+    /// Upstream catalog generation used to resolve this request, when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub catalog_revision: Option<u64>,
+    /// Exact upstream model-runtime Git revision used for this product build.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upstream_runtime_revision: Option<String>,
+    /// Safe public provider response identity, when supplied by the provider.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_response_id: Option<String>,
     /// Upstream-defined partial safe model execution configuration.
     ///
     /// Coverage metadata must be retained; this is not a complete wire-request

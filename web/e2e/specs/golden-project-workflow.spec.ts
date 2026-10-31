@@ -40,31 +40,19 @@ async function importFixture(page: Page, name: string): Promise<string> {
   return fixture;
 }
 
-/** Verifies browser diagnostics while allowing the expected project rejection. */
-function expectExpectedProjectError(
-  diagnostics: {
-    consoleErrors: string[];
-    pageErrors: string[];
-    failedRequests: string[];
-    httpErrors: string[];
-    privateRequests: string[];
-  },
-  status: string,
-  expectedCount = 1,
-): void {
-  expect(diagnostics.consoleErrors).toHaveLength(expectedCount);
-  expect(diagnostics.consoleErrors.every((error) => error.includes(`status of ${status}`))).toBe(
-    true,
-  );
+/** Verifies that typed project rejections stay inside the UI error boundary. */
+function expectExpectedProjectError(diagnostics: {
+  consoleErrors: string[];
+  pageErrors: string[];
+  failedRequests: string[];
+  httpErrors: string[];
+  privateRequests: string[];
+}): void {
+  expect(diagnostics.consoleErrors).toEqual([]);
   expect(diagnostics.pageErrors).toEqual([]);
   expect(diagnostics.failedRequests).toEqual([]);
   expect(diagnostics.privateRequests).toEqual([]);
-  expect(diagnostics.httpErrors).toHaveLength(expectedCount);
-  expect(
-    diagnostics.httpErrors.every((error) =>
-      error.includes(`${status} http://127.0.0.1:5173/api/protocol/project`),
-    ),
-  ).toBe(true);
+  expect(diagnostics.httpErrors).toEqual([]);
 }
 
 test("WEB-GOLDEN-01 onboards and visibly navigates named Rust symbols", async ({
@@ -96,6 +84,25 @@ test("WEB-GOLDEN-02 selects add and shows actual Rust source", async ({ page, di
   expectHealthyBrowser(diagnostics);
 });
 
+test("WEB-GOLDEN-STYLE-01 resolves and updates a personal source style", async ({
+  page,
+  diagnostics,
+}) => {
+  await importFixture(page, "golden-web-style");
+  await page.getByRole("button", { name: /add · rust\.method/ }).click();
+  await page.getByRole("button", { name: "projection", exact: true }).click();
+
+  const controls = page.getByRole("region", { name: "Projection style controls" });
+  await expect(controls).toContainText("rust-source-style");
+  await expect(controls).toContainText("losslessEditable");
+  await controls
+    .getByRole("textbox", { name: "Personal style input" })
+    .fill("indent=tabs,indent-width=2");
+  await controls.getByRole("button", { name: "Save personal style" }).click();
+  await expect(controls).toContainText("user-preference", { timeout: 10_000 });
+  expectHealthyBrowser(diagnostics);
+});
+
 test("WEB-GOLDEN-03 reviews and validates a candidate without write-through", async ({
   page,
   diagnostics,
@@ -115,10 +122,9 @@ test("WEB-GOLDEN-03 reviews and validates a candidate without write-through", as
     "Validation: passed",
     { timeout: 30_000 },
   );
-  await expect(page.getByRole("region", { name: "Migration review" })).toContainText(
-    "src/lib.rs",
-    { timeout: 30_000 },
-  );
+  await expect(page.getByRole("region", { name: "Migration review" })).toContainText("src/lib.rs", {
+    timeout: 30_000,
+  });
   await expect(source).toHaveValue(/left\.saturating_add\(right\)/);
   await expect(readFile(join(fixture, "src", "lib.rs"), "utf8")).resolves.toContain("left + right");
   expectHealthyBrowser(diagnostics);
@@ -184,7 +190,7 @@ test("WEB-GOLDEN-05 invalid edit fails validation without mutation", async ({
   await page.getByRole("button", { name: "Review change" }).click();
   await expect(page.getByRole("status").filter({ hasText: /error\[E0425\]/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Apply migration" })).toHaveCount(0);
-  expectExpectedProjectError(diagnostics, "400", 2);
+  expectExpectedProjectError(diagnostics);
 });
 
 test("WEB-GOLDEN-06 external source edits remain recoverable", async ({ page, diagnostics }) => {
@@ -203,7 +209,7 @@ test("WEB-GOLDEN-06 external source edits remain recoverable", async ({ page, di
     "source changed externally",
   );
   await expect(readFile(file, "utf8")).resolves.toContain("// external edit");
-  expectExpectedProjectError(diagnostics, "409");
+  expectExpectedProjectError(diagnostics);
 });
 
 test("WEB-GOLDEN-07 agent uses semantic scope and enters normal review", async ({
@@ -221,16 +227,27 @@ test("WEB-GOLDEN-07 agent uses semantic scope and enters normal review", async (
     .textContent();
   const snapshot = workspace?.match(/snapshot: (snp_[a-f0-9]+)/)?.[1];
   expect(snapshot).toBeDefined();
-  await page.getByLabel("Prompt").fill("Change add so overflow saturates instead of wrapping.");
+  await page
+    .getByRole("textbox", { name: "Prompt" })
+    .fill("Change add so overflow saturates instead of wrapping.");
   const agentResponse = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/protocol/project") &&
       response.request().postData()?.includes('"agent"'),
   );
   await page.getByRole("button", { name: "Start agent" }).click();
-  const agentBody = await (await agentResponse).json();
-  expect(agentBody.scope.entity).toBe(entity);
-  expect(agentBody.scope.snapshot).toBe(snapshot);
+  const response = await agentResponse;
+  const agentBody = (await response.json()) as {
+    response?: {
+      Project?: {
+        result?: { scope?: { entity?: string; snapshot?: string } };
+      };
+    };
+    scope?: { entity?: string; snapshot?: string };
+  };
+  expect(response.status(), `agent response: ${JSON.stringify(agentBody)}`).toBe(200);
+  const scope = agentBody.response?.Project?.result?.scope ?? agentBody.scope;
+  expect(scope, JSON.stringify(agentBody)).toEqual({ entity, snapshot });
   await expect(page.getByRole("button", { name: "projection", exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Migration review" })).toContainText("src/lib.rs");
   await expect(page.getByRole("region", { name: "Migration review" })).toContainText(

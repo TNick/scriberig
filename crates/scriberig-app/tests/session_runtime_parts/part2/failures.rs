@@ -120,6 +120,9 @@ fn failed_local_child_agent_retains_safe_model_requests() {
         ],
         context_fingerprint: Some("context-fingerprint".to_owned()),
         request_fingerprint: Some("request-fingerprint".to_owned()),
+        catalog_revision: None,
+        upstream_runtime_revision: None,
+        provider_response_id: None,
         model_execution_configuration: None,
         messages: vec![scriberig_session::ModelRequestMessage {
             role: "user".to_owned(),

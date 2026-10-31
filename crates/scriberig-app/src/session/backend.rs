@@ -3,9 +3,9 @@
 use super::{
     AgentCommandRequest, AgentContinuationAccepted, AgentContinueAtRequest, ApplicationContext,
     ApplicationError, EntityId, NewSessionAgentRequest, NewSessionAgentStart, OperationId,
-    PlanAssignmentRequest, PlanAttemptHistoryRequest, PlanCreateRequest, PlanDecomposeRequest,
-    PlanLifecycleAction, PlanLifecycleRequest, PlanNextStepRequest, PlanNodeDetailsRequest,
-    PlanReplanRequest, PlanRetryRequest, PlanSemanticMutationRequest, Session, SessionRequest,
+    PlanAssignmentRequest, PlanAttemptHistoryRequest, PlanCreateRequest, PlanLifecycleAction,
+    PlanLifecycleRequest, PlanMutationRequest, PlanNodeDetailsRequest, PlanReplanRequest, Session,
+    SessionRequest,
 };
 
 /// Owns session and agent operations at the application boundary.
@@ -114,16 +114,17 @@ pub trait SessionBackend {
         request: &SessionRequest,
     ) -> Result<Session, crate::ApplicationError>;
 
-    /// Reads a bounded page of one node's attempt history at an exact snapshot.
+    /// Reads one bounded exact-snapshot page of attempts for a plan node.
     ///
-    /// - `_context`: Authorized caller context.
-    /// - `_request`: Plan node, snapshot, and page range to resolve.
+    /// # Parameters
+    /// - `_context`: Authorized application request context.
+    /// - `_request`: Node, exact snapshot, and page range to resolve.
     ///
-    /// The attempt page from semantic storage.
     /// # Returns
-    /// The operation result.
+    /// The transcript-free attempt page.
+    ///
     /// # Errors
-    /// Returns authorization, not-found, or persistence failures.
+    /// Returns authorization, not-found, unsupported, or persistence failures.
     fn read_plan_attempt_history(
         &self,
         _context: &ApplicationContext,
@@ -134,15 +135,17 @@ pub trait SessionBackend {
         })
     }
 
-    /// Reads a bounded page of one node's gate and evidence details.
+    /// Reads one bounded exact-snapshot page of gates and evidence for a node.
     ///
-    /// - `_context`: Authorized caller context.
+    /// # Parameters
+    /// - `_context`: Authorized application request context.
     /// - `_request`: Node, exact snapshot, and page range to resolve.
     ///
     /// # Returns
-    /// The operation result.
+    /// The requested gate and evidence records.
+    ///
     /// # Errors
-    /// Returns authorization, not-found, or persistence failures.
+    /// Returns authorization, not-found, unsupported, or persistence failures.
     fn read_plan_node_details(
         &self,
         _context: &ApplicationContext,
@@ -151,6 +154,30 @@ pub trait SessionBackend {
         Err(ApplicationError::UnsupportedOperation {
             operation: "plan node detail read".to_owned(),
         })
+    }
+
+    /// Reads a compact session projection for routine product tree views.
+    ///
+    /// Implementations with durable semantic projections should omit unbounded
+    /// plan history, gates, and evidence. Exact detail operations remain
+    /// available through their bounded read methods.
+    ///
+    /// # Parameters
+    /// - `context`: Authorized caller context.
+    /// - `request`: Stable session request.
+    ///
+    /// # Returns
+    /// The compact session projection, or the complete session when the
+    /// implementation has no specialized projection.
+    ///
+    /// # Errors
+    /// Returns an authorization, lookup, or persistence error.
+    fn read_session_projection(
+        &self,
+        context: &crate::ApplicationContext,
+        request: &SessionRequest,
+    ) -> Result<Session, crate::ApplicationError> {
+        self.read_session(context, request)
     }
 
     /// Persists a complete authorized session snapshot.
@@ -176,9 +203,9 @@ pub trait SessionBackend {
         })
     }
 
-    /// Atomically replaces one plan while preserving unrelated session data.
-    /// New branches are merged with their parent links. A branch is updated
-    /// only when its prior active worker claim settles in the proposed plan.
+    /// Atomically replaces one plan while preserving other session changes.
+    /// Newly added branch records are merged and linked to their parent in the
+    /// same operation; existing branches are never overwritten.
     ///
     /// - `context`: Authorized caller context.
     /// - `session`: Snapshot containing the proposed plan.
@@ -251,6 +278,28 @@ pub trait SessionBackend {
         })
     }
 
+    /// Applies one typed semantic plan mutation through the shared application boundary.
+    ///
+    /// - `_context`: Authorized caller context.
+    /// - `_request`: Plan identity, expected revision, and typed mutation.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns unsupported-operation, conflict, validation, or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn mutate_plan(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanMutationRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "semantic plan mutation".to_owned(),
+        })
+    }
+
     /// Applies one shared optimistic plan lifecycle operation.
     ///
     /// - `_context`: Authorized caller context.
@@ -272,92 +321,6 @@ pub trait SessionBackend {
     ) -> Result<scriberig_session::Plan, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "plan lifecycle".to_owned(),
-        })
-    }
-
-    /// Retries one failed node through shared plan validation and persistence.
-    ///
-    /// - `_context`: Authorized caller context.
-    /// - `_request`: Session, plan, node, and observed plan revision.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns unsupported-operation or a structured retry/persistence error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn retry_plan_node(
-        &self,
-        _context: &ApplicationContext,
-        _request: &PlanRetryRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "plan node retry".to_owned(),
-        })
-    }
-
-    /// Adds ordinary work to a running plan through shared validation.
-    ///
-    /// - `_context`: Authorized caller context.
-    /// - `_request`: Plan revision and the next work item's semantic fields.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns unsupported-operation or structured plan errors.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn add_plan_next_step(
-        &self,
-        _context: &ApplicationContext,
-        _request: &PlanNextStepRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "plan next step".to_owned(),
-        })
-    }
-
-    /// Decomposes a plan node through shared validation and persistence.
-    ///
-    /// - `_context`: Authorized caller context.
-    /// - `_request`: Parent, exact revision, children, and completion policy.
-    ///
-    /// The authoritative plan with its structural children and typed gates.
-    ///
-    /// Returns unsupported-operation or structured plan errors.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn decompose_plan_node(
-        &self,
-        _context: &ApplicationContext,
-        _request: &PlanDecomposeRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "plan node decomposition".to_owned(),
-        })
-    }
-
-    /// Applies one summary, evidence, gate, or waiver mutation.
-    ///
-    /// - `_context`: Authorized caller context.
-    /// - `_request`: Exact plan revision and typed semantic mutation.
-    ///
-    /// The authoritative updated plan.
-    /// # Returns
-    /// The updated plan.
-    /// # Errors
-    /// Returns unsupported-operation or structured plan errors.
-    fn mutate_plan_semantics(
-        &self,
-        _context: &ApplicationContext,
-        _request: &PlanSemanticMutationRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "plan semantic mutation".to_owned(),
         })
     }
 

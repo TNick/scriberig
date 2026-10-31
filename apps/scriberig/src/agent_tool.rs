@@ -1,15 +1,20 @@
 //! Provides local provider-facing agent control tools over shared application state.
 
-use scriberig_agent_core::{InspectTool, Tool, ToolError, ToolInput, ToolResult};
-use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService, SessionBackend};
+use scriberig_agent_core::{Tool, ToolError, ToolInput, ToolResult};
+use scriberig_app::agent_tools::InspectTool;
+use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService};
 use scriberig_core::EntityId;
 use scriberig_project::ProjectService;
 use scriberig_store_sqlite::SqliteStore;
 
-use super::agent_tool_helpers::{
-    argument_id, argument_operation, invalid_argument, map_error, require_capability,
-};
+use super::agent_tool_helpers::{argument_id, invalid_argument, require_capability};
 
+#[path = "agent_tool/cad_edit.rs"]
+mod cad_edit;
+#[path = "agent_tool/control.rs"]
+mod control;
+#[path = "agent_tool/document_edit.rs"]
+mod document_edit;
 #[path = "agent_tool/domain_operation.rs"]
 mod domain_operation;
 #[path = "agent_tool/project_candidate_merge.rs"]
@@ -17,6 +22,10 @@ mod project_candidate_merge;
 #[path = "agent_tool_sessions.rs"]
 mod session_operations;
 
+#[path = "agent_tool/artifact_inspect.rs"]
+mod artifact_inspect;
+#[path = "agent_tool/geo_edit.rs"]
+mod geo_edit;
 #[path = "project_bootstrap.rs"]
 mod project_bootstrap;
 #[cfg(test)]
@@ -28,6 +37,14 @@ mod project_candidates;
 mod project_recovery;
 #[path = "project_semantic.rs"]
 mod project_semantic;
+#[path = "agent_tool/qgis_rename.rs"]
+mod qgis_rename;
+#[path = "agent_tool/spreadsheet_edit.rs"]
+mod spreadsheet_edit;
+#[path = "agent_tool/spreadsheet_read.rs"]
+mod spreadsheet_read;
+#[path = "agent_tool/spreadsheet_rename.rs"]
+mod spreadsheet_rename;
 
 /// Provides inspect and application-control tools to one local agent branch.
 pub(super) struct LocalAgentTool<'a, B> {
@@ -75,7 +92,7 @@ impl<'a, B> LocalAgentTool<'a, B> {
     }
 }
 
-impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
+impl<B: ApplicationBackend> Tool<ApplicationContext> for LocalAgentTool<'_, B> {
     /// Returns the primary tool identifier.
     ///
     /// The stable composite agent-tool identifier.
@@ -154,8 +171,37 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
         arguments: &serde_json::Value,
         cancelled: &std::sync::atomic::AtomicBool,
     ) -> Result<ToolResult, ToolError> {
-        require_capability(context, name)?;
+        if name != "inspect" {
+            require_capability(context, name)?;
+        }
         match name {
+            "inspect" => {
+                let entity = arguments
+                    .get("entity")
+                    .and_then(serde_json::Value::as_str)
+                    .ok_or_else(|| invalid_argument("entity"))?
+                    .parse::<EntityId>()
+                    .map_err(|_| invalid_argument("entity"))?;
+                let snapshot = arguments
+                    .get("snapshot")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::parse::<scriberig_core::SnapshotId>)
+                    .transpose()
+                    .map_err(|_| invalid_argument("snapshot"))?;
+                let detail = match arguments.get("detail").and_then(serde_json::Value::as_str) {
+                    Some("detailed") => scriberig_agent_core::ToolDetail::Detailed,
+                    _ => scriberig_agent_core::ToolDetail::Compact,
+                };
+                self.inspect.invoke_cancellable(
+                    context,
+                    scriberig_agent_core::ToolInput {
+                        entity,
+                        snapshot,
+                        detail,
+                    },
+                    cancelled,
+                )
+            }
             "runtime_capabilities" => Ok(Self::capabilities()),
             "operation_status" => self.operation_status(arguments),
             "operation_cancel" => self.operation_cancel(arguments),
@@ -174,6 +220,26 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
             "semantic_find" => self.semantic_find(context, arguments),
             "semantic_render" => self.semantic_render(context, arguments),
             "domain_operation" => self.domain_operation(context, arguments),
+            "cad.update_line_geometry" => {
+                self.cad_update_line_geometry(context, name, arguments, cancelled)
+            }
+            "cad.change_entity_layer" => {
+                self.cad_change_entity_layer(context, name, arguments, cancelled)
+            }
+            "spreadsheet.set_cell_value" => {
+                self.spreadsheet_set_cell_value(context, name, arguments, cancelled)
+            }
+            "document.replace_paragraph" | "document.update_table_cell" => {
+                self.document_edit(context, name, arguments, cancelled)
+            }
+            "spreadsheet.read_range" => self.spreadsheet_read_range(context, name, arguments),
+            "spreadsheet.rename_sheet" => self.spreadsheet_rename_sheet(context, name, arguments),
+            "geo.set_attribute" => self.geo_set_attribute(context, name, arguments, cancelled),
+            "geo.replace_geometry" => {
+                self.geo_replace_geometry(context, name, arguments, cancelled)
+            }
+            "qgis.rename_layer_reference" => self.qgis_rename_layer(context, name, arguments),
+            "artifact.inspect" => self.artifact_inspect(context, arguments),
             "project_rescan" => self.project_rescan(arguments),
             "project_repair_file" => self.project_repair_file(arguments),
             "project_propose" => self.project_propose(context, arguments),
@@ -190,203 +256,5 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
                 message: format!("unknown agent control tool: {name}"),
             }),
         }
-    }
-}
-
-impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
-    /// Builds a bounded control result from safe text and handles.
-    ///
-    /// - `summary`: Safe bounded result description.
-    /// - `handles`: Stable handles for follow-up requests.
-    ///
-    /// A provider-neutral control result.
-    ///
-    /// This constructor does not fail.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn result(summary: impl Into<String>, handles: Vec<String>) -> ToolResult {
-        ToolResult {
-            entity: EntityId::from_bytes([0; 16]),
-            revision: None,
-            snapshot: None,
-            object_type: Some("agent_control".to_owned()),
-            summary: Some(summary.into()),
-            handles,
-        }
-    }
-
-    /// Returns the static provider-neutral runtime capability vocabulary.
-    ///
-    /// A bounded capability result.
-    ///
-    /// This lookup does not fail.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn capabilities() -> ToolResult {
-        let names = [
-            "runtime_capabilities",
-            "operation_status",
-            "operation_cancel",
-            "event_subscription",
-            "agent_start",
-            "agent_continue",
-            "session_branch_tree",
-            "session_branch_activity",
-            "agent_event_subscription",
-            "agent_streaming_output",
-            "project_scan",
-            "project_manifest",
-            "project_import",
-            "project_workspace",
-            "project_rescan",
-            "project_repair_file",
-            "project_propose",
-            "project_candidate",
-            "project_validate_candidate",
-            "project_resolve_dependencies",
-        ];
-        Self::result(
-            "runtime capabilities available",
-            names.iter().map(|name| (*name).to_owned()).collect(),
-        )
-    }
-
-    /// Reads one operation lifecycle record.
-    ///
-    /// - `arguments`: Provider arguments containing an operation identifier.
-    ///
-    /// The current operation status and stable operation handle.
-    ///
-    /// Returns an invalid identifier or application lookup failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn operation_status(&self, arguments: &serde_json::Value) -> Result<ToolResult, ToolError> {
-        let id = argument_operation(arguments)?;
-        let record = self
-            .service
-            .operations()
-            .get(&id)
-            .map_err(|error| map_error(&error))?;
-        Ok(Self::result(
-            format!("operation {} is {:?}", record.reference, record.status),
-            vec![record.reference.to_string()],
-        ))
-    }
-
-    /// Cancels one shared operation lifecycle record.
-    ///
-    /// - `arguments`: Provider arguments containing an operation identifier.
-    ///
-    /// The cancelled operation status and stable operation handle.
-    ///
-    /// Returns an invalid identifier or application lifecycle failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn operation_cancel(&self, arguments: &serde_json::Value) -> Result<ToolResult, ToolError> {
-        let id = argument_operation(arguments)?;
-        let record = self
-            .service
-            .operations()
-            .cancel(&id)
-            .map_err(|error| map_error(&error))?;
-        Ok(Self::result(
-            format!("operation {} is cancelled", record.reference),
-            vec![record.reference.to_string()],
-        ))
-    }
-
-    /// Reads retained application events with an optional agent filter.
-    ///
-    /// - `name`: Event subscription tool identifier selecting the filter.
-    ///
-    /// Bounded event cursors represented as stable handles.
-    ///
-    /// This buffered read does not fail.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn events(&self, name: &str) -> ToolResult {
-        let events = self.service.operations().events_with_sequences();
-        let events = events.into_iter().filter(|(_, event)| match name {
-            "agent_streaming_output" => {
-                matches!(
-                    event,
-                    scriberig_app::ApplicationEvent::AgentOutputDelta { .. }
-                )
-            }
-            "agent_event_subscription" => matches!(
-                event,
-                scriberig_app::ApplicationEvent::OperationStarted { .. }
-                    | scriberig_app::ApplicationEvent::OperationProgressed { .. }
-                    | scriberig_app::ApplicationEvent::OperationCompleted { .. }
-                    | scriberig_app::ApplicationEvent::OperationFailed { .. }
-                    | scriberig_app::ApplicationEvent::OperationCancelled { .. }
-                    | scriberig_app::ApplicationEvent::AgentOutputProduced { .. }
-                    | scriberig_app::ApplicationEvent::AgentOutputDelta { .. }
-            ),
-            _ => true,
-        });
-        let handles: Vec<String> = events.map(|(sequence, _)| sequence.to_string()).collect();
-        let filter = if name == "agent_streaming_output" {
-            "agent output deltas"
-        } else if name == "agent_event_subscription" {
-            "agent lifecycle events"
-        } else {
-            "application lifecycle events"
-        };
-        Self::result(format!("{filter}: {} event(s)", handles.len()), handles)
-    }
-
-    /// Accepts a new agent command through the shared session boundary.
-    ///
-    /// - `context`: Trusted application authorization context.
-    /// - `arguments`: Provider arguments containing session and prompt.
-    /// - `branch`: Optional existing branch for continuation.
-    ///
-    /// Accepted operation and session handles.
-    ///
-    /// Returns invalid arguments, authorization, or application failures.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn agent_command(
-        &self,
-        context: &ApplicationContext,
-        arguments: &serde_json::Value,
-        branch: Option<EntityId>,
-    ) -> Result<ToolResult, ToolError> {
-        let session = argument_id(arguments, "session")?;
-        let prompt = arguments
-            .get("prompt")
-            .and_then(serde_json::Value::as_str)
-            .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| invalid_argument("prompt"))?;
-        let operation = self
-            .service
-            .submit_agent_command(
-                context,
-                &scriberig_app::AgentCommandRequest {
-                    session,
-                    branch,
-                    anchor: None,
-                    prompt: prompt.to_owned(),
-                    selection: None,
-                },
-            )
-            .map_err(|error| map_error(&error))?;
-        Ok(Self::result(
-            format!("agent command accepted as {operation}"),
-            vec![operation.to_string(), session.to_string()],
-        ))
     }
 }

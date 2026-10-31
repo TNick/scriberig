@@ -138,7 +138,7 @@ fn sqlite_plan_node_index_tracks_snapshot_and_rebuilds() {
             .expect("source snapshot")
             .as_bytes()
     );
-    assert_eq!(indexed_rollup.5, 1);
+    assert_eq!(indexed_rollup.5, 2);
     let stored_rollups = store
         .load_plan_rollups_at_snapshot(
             session_id,

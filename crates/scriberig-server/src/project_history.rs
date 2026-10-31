@@ -5,7 +5,6 @@ use std::sync::Arc;
 use scriberig_app::{
     ApplicationContext, HistoryRequest, OperationProvider, SnapshotSelector, StoreOperationProvider,
 };
-use scriberig_project::ProjectService;
 use serde_json::{Value, json};
 
 use crate::http::HttpState;
@@ -33,7 +32,9 @@ pub(super) fn history<S: ApplicationService>(
         .project
         .parse()
         .map_err(|_| super::project_routes_support::invalid_project())?;
-    let workspace = ProjectService::new(Arc::clone(store))
+    let workspace = state
+        .service
+        .project_service(Arc::clone(store))
         .workspace(project)
         .map_err(|error| super::project_routes_support::project_error(&error))?;
     let summary = StoreOperationProvider::new(Arc::clone(store))
@@ -66,6 +67,7 @@ pub(super) fn history<S: ApplicationService>(
                 "base": transition.base.to_string(),
                 "result": transition.result.to_string(),
                 "candidate": transition.source_change_id,
+                "semantic_operation": transition.semantic_operation,
             })
         })
         .collect::<Vec<_>>();

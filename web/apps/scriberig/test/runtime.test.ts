@@ -97,6 +97,34 @@ describe("createRuntime", () => {
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 
+  it("connects without inventing a global root when the server omits one", async () => {
+    const fetch = vi.fn(async (url: string) => {
+      if (url.includes("/events")) {
+        return new Response(": heartbeat\n\n", {
+          headers: { "content-type": "text/event-stream" },
+          status: 200,
+        });
+      }
+      return new Response(
+        JSON.stringify({
+          protocolMajor: 1,
+          features: ["inspect"],
+          capabilities: [{ id: "agent_start", description: "Start agent", available: true }],
+        }),
+        { status: 200 },
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const runtime = createRuntime("http://test/api");
+    await runtime.bootstrap();
+
+    expect(runtime.connection).toBe("connected");
+    expect(runtime.capabilities?.root).toBeUndefined();
+    expect(runtime.tree.get("root")).toBeUndefined();
+    expect(capabilityAvailable(runtime.capabilities, "agent_start")).toBe(true);
+  });
+
   it("reports disconnected when bootstrap transport fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
 

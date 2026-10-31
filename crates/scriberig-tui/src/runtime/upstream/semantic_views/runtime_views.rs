@@ -3,6 +3,10 @@
 use super::common::{MAX_ROWS, SemanticRole, append_status, append_value, render_load_state};
 use crate::state::TuiState;
 
+#[cfg(test)]
+#[path = "runtime_views_tests.rs"]
+mod tests;
+
 /// Renders durable session rows and model assignment labels.
 ///
 /// - `state`: Session tree projection built from the canonical `ScribeRig` session.

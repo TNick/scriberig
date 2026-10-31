@@ -15,7 +15,7 @@ impl ProjectCandidate {
     /// - `super`: Candidate module visibility.
     /// # Returns
     /// The operation result.
-    pub(super) fn record(&self) -> ProjectCandidateRecord {
+    pub(crate) fn record(&self) -> ProjectCandidateRecord {
         let (validation, diagnostics) = match &self.validation {
             CandidateValidation::Pending => ("pending", String::new()),
             CandidateValidation::Passed => ("passed", String::new()),
@@ -26,6 +26,11 @@ impl ProjectCandidate {
             project: self.project,
             base_snapshot: self.base_snapshot,
             entity: self.entity,
+            semantic_operation: self.semantic_operation.clone(),
+            semantic_target: self.semantic_target,
+            semantic_changes: (!self.semantic_changes.is_empty())
+                .then(|| serde_json::to_string(&self.semantic_changes).ok())
+                .flatten(),
             path: self.path.clone(),
             old: self.old.clone(),
             new: self.new.clone(),
@@ -44,9 +49,11 @@ impl ProjectCandidate {
                     .to_owned(),
                     old: effect.old.clone(),
                     new: effect.new.clone(),
+                    observed: effect.observed.clone(),
                 })
                 .collect(),
             validation_profile: self.validation_profile.clone(),
+            validation_digest: self.validation_digest.map(|digest| digest.to_vec()),
         }
     }
 
@@ -97,6 +104,7 @@ impl ProjectCandidate {
                     path: effect.path,
                     kind,
                     old: effect.old,
+                    observed: effect.observed,
                     new: effect.new,
                 })
             })
@@ -106,22 +114,48 @@ impl ProjectCandidate {
                 path: record.path.clone(),
                 kind: ProjectSourceEffectKind::Update,
                 old: Some(record.old.clone()),
+                observed: None,
                 new: Some(record.new.clone()),
             }]
         } else {
             effects
         };
+        let validation_digest = record
+            .validation_digest
+            .map(|digest| {
+                digest.try_into().map_err(|_| ProjectError {
+                    code: "candidate_corrupt",
+                    message: "candidate validation digest has an invalid length".to_owned(),
+                    diagnostics: Vec::new(),
+                })
+            })
+            .transpose()?;
+        let semantic_changes = record
+            .semantic_changes
+            .map(|serialized| {
+                serde_json::from_str(&serialized).map_err(|_| ProjectError {
+                    code: "candidate_corrupt",
+                    message: "candidate semantic changes are malformed".to_owned(),
+                    diagnostics: Vec::new(),
+                })
+            })
+            .transpose()?
+            .unwrap_or_default();
         Ok(Self {
             id: record.id,
             project: record.project,
             base_snapshot: record.base_snapshot,
             entity: record.entity,
+            semantic_operation: record.semantic_operation,
+            semantic_target: record.semantic_target,
+            semantic_changes,
             path: record.path,
             old: record.old,
             new: record.new,
             effects,
             validation,
             validation_profile: record.validation_profile,
+            validation_digest,
         })
     }
 }

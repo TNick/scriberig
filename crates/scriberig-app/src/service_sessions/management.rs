@@ -5,6 +5,44 @@ use crate::{ApplicationBackend, ApplicationContext, ApplicationError};
 use scriberig_core::EntityId;
 use scriberig_session::{BranchStatus, PlanNodeStatus, PlanStatus, Session};
 
+macro_rules! service_session_management_methods {
+    () => {
+        /// Lists complete durable sessions through the authorization boundary.
+        ///
+        /// - `context`: Authorized caller context.
+        ///
+        /// Sessions ordered by stable identity.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns authorization or persistence failures.
+        fn list_sessions(
+            &self,
+            context: &ApplicationContext,
+        ) -> Result<Vec<Session>, ApplicationError> {
+            management::list_sessions(self, context)
+        }
+
+        /// Removes a durable session through the authorization boundary.
+        ///
+        /// - `context`: Authorized caller context.
+        /// - `session`: Stable identity to remove.
+        ///
+        /// Unit after the exact session is removed.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns authorization, active-work, or persistence failures.
+        fn remove_session(
+            &self,
+            context: &ApplicationContext,
+            session: EntityId,
+        ) -> Result<(), ApplicationError> {
+            management::remove_session(self, context, session)
+        }
+    };
+}
+
 /// Lists durable sessions after checking the session-management capability.
 ///
 /// - `service`: Application service owning the session repository.

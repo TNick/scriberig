@@ -3,6 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::source_watch::ProjectSourceWatchCoordinator;
 use sr_projection_fs::FileSystem;
 
 use super::super::{
@@ -10,6 +11,34 @@ use super::super::{
     candidate_support,
 };
 use super::candidate_error;
+
+#[path = "candidate_apply_effects/materialize.rs"]
+mod materialize;
+
+/// Executes the complete project candidate through the shared materializer.
+///
+/// - `service`: Project service retaining exact progress receipts.
+/// - `candidate`: Validated source candidate being applied.
+/// - `plans`: Complete preflighted source effects.
+/// - `root`: Authorized project root.
+/// - `filesystem`: Filesystem boundary for atomic member operations.
+/// - `source_watch`: Source-event coordinator held across materialization.
+///
+/// # Returns
+/// Success when all required candidate effects are complete.
+///
+/// # Errors
+/// Returns a project error when materialization or receipt persistence fails.
+pub(super) fn materialize_effects(
+    service: &ProjectService,
+    candidate: &ProjectCandidate,
+    plans: &[EffectPlan<'_>],
+    root: &Path,
+    filesystem: &dyn FileSystem,
+    source_watch: &mut ProjectSourceWatchCoordinator,
+) -> Result<(), ProjectError> {
+    materialize::materialize_effects(service, candidate, plans, root, filesystem, source_watch)
+}
 
 /// Describes one preflighted materialization action.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -26,10 +55,6 @@ enum EffectAction {
 pub(super) struct EffectPlan<'a> {
     /// Candidate-owned source effect.
     effect: &'a ProjectSourceEffect,
-    /// Canonically contained filesystem target.
-    path: PathBuf,
-    /// Whether a prior durable receipt permits idempotent recovery.
-    allow_already_applied: bool,
 }
 
 /// Preflights every aggregate path before materializing any effect.
@@ -56,31 +81,34 @@ pub(super) fn preflight_effects<'a>(
     for effect in &candidate.effects {
         let allow_already_applied = prior.iter().any(|receipt| {
             receipt.path == effect.path
-                && matches!(receipt.state.as_str(), "applied" | "already_applied")
+                && matches!(
+                    receipt.state.as_str(),
+                    "applied" | "already_applied" | "preflighted"
+                )
         });
         if !allow_already_applied {
             service.record_effect_path(candidate, effect, "not_attempted", None, None)?;
         }
         match inspect_effect(effect, base_files, root, allow_already_applied) {
-            Ok((path, action, actual)) => {
+            Ok((_path, action, actual)) => {
                 let state = if action == EffectAction::AlreadyApplied {
                     "already_applied"
                 } else {
                     "preflighted"
                 };
                 service.record_effect_path(candidate, effect, state, actual.as_deref(), None)?;
-                plans.push(EffectPlan {
-                    effect,
-                    path,
-                    allow_already_applied,
-                });
+                plans.push(EffectPlan { effect });
             }
             Err(error) => {
+                let observed = (error.code == "filesystem_conflict")
+                    .then(|| safe_project_path(root, &effect.path).ok())
+                    .flatten()
+                    .and_then(|path| read_optional(&path).ok().flatten());
                 service.record_effect_path(
                     candidate,
                     effect,
                     "conflict",
-                    None,
+                    observed.as_deref(),
                     Some(&error.message),
                 )?;
                 service.record_effect(candidate, None, "failed", Some(&error.message))?;
@@ -187,8 +215,9 @@ fn inspect_effect(
             if base.bytes == old =>
         {
             let actual = read_optional(&path)?;
+            let expected_live = effect.observed.as_deref().unwrap_or(old);
             match actual.as_deref() {
-                Some(bytes) if bytes == old && bytes != new => {
+                Some(bytes) if bytes == expected_live && bytes != new => {
                     Ok((path, EffectAction::Write, actual))
                 }
                 Some(bytes) if bytes == new && (allow_already_applied || old == new) => {
@@ -210,103 +239,6 @@ fn inspect_effect(
             &effect.path,
         )),
     }
-}
-
-/// Executes a complete preflighted set and persists per-path progress.
-///
-/// - `service`: Project service storing durable progress.
-/// - `candidate`: Candidate being materialized.
-/// - `plans`: Full preflight result.
-/// - `base_files`: File records used to verify the base state.
-/// - `root`: Canonical project root on disk.
-/// - `filesystem`: Filesystem adapter used for safe reads and writes.
-/// - `super`: Parent module visibility.
-///
-/// Unit after every effect is materialized or already satisfied.
-///
-/// Returns a structured error and retains the completed path receipts.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-pub(super) fn materialize_effects(
-    service: &ProjectService,
-    candidate: &ProjectCandidate,
-    plans: &[EffectPlan<'_>],
-    base_files: &[scriberig_store_sqlite::ProjectFileRecord],
-    root: &Path,
-    filesystem: &dyn FileSystem,
-) -> Result<(), ProjectError> {
-    for plan in plans {
-        let (current_path, current_action, current) =
-            match inspect_effect(plan.effect, base_files, root, plan.allow_already_applied) {
-                Ok(value) => value,
-                Err(error) => {
-                    service.record_effect_path(
-                        candidate,
-                        plan.effect,
-                        "conflict",
-                        None,
-                        Some(&error.message),
-                    )?;
-                    return Err(error);
-                }
-            };
-        if current_path != plan.path {
-            let error = candidate_error("unsafe_project_path", &plan.effect.path);
-            service.record_effect_path(
-                candidate,
-                plan.effect,
-                "failed",
-                current.as_deref(),
-                Some(&error.message),
-            )?;
-            return Err(error);
-        }
-        let result = match current_action {
-            EffectAction::AlreadyApplied => Ok(current.clone()),
-            EffectAction::Write => {
-                let parent = plan
-                    .path
-                    .parent()
-                    .ok_or_else(|| candidate_error("unsafe_project_path", &plan.effect.path))?;
-                filesystem
-                    .create_dir_all(parent)
-                    .and_then(|()| {
-                        filesystem.write_atomic(
-                            &plan.path,
-                            plan.effect.new.as_deref().unwrap_or_default(),
-                        )
-                    })
-                    .map_err(|error| candidate_error("filesystem_write_failed", &error.to_string()))
-                    .map(|()| plan.effect.new.clone())
-            }
-            EffectAction::Delete => filesystem
-                .remove_file(&plan.path)
-                .map_err(|error| candidate_error("filesystem_delete_failed", &error.to_string()))
-                .map(|()| None),
-        };
-        match result {
-            Ok(observed) => service.record_effect_path(
-                candidate,
-                plan.effect,
-                "applied",
-                observed.as_deref(),
-                None,
-            )?,
-            Err(error) => {
-                service.record_effect_path(
-                    candidate,
-                    plan.effect,
-                    "failed",
-                    current.as_deref(),
-                    Some(&error.message),
-                )?;
-                return Err(error);
-            }
-        }
-    }
-    Ok(())
 }
 
 /// Resolves one project-relative target while rejecting traversal and symlinks.

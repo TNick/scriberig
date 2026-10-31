@@ -1,0 +1,17 @@
+[package]
+name = "scriberig-domain-spreadsheet"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Format-independent sparse spreadsheet semantics."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../../scriberig-core" }
+scriberig-schema = { path = "../../scriberig-schema" }
+serde = { version = "1.0", features = ["derive"] }
+blake3 = "1.8.2"
+
+[lints]
+workspace = true

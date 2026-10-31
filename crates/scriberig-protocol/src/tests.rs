@@ -13,80 +13,104 @@ where
     assert_eq!(decoded, *value);
 }
 
-/// Verifies stable references and snapshot-aware requests round trip.
+/// Verifies the shared recursive session and dependency fixture round trips.
 #[test]
-fn references_and_requests_round_trip() {
-    let entity = EntityReference {
-        id: "entity-1".to_owned(),
-    };
-    round_trip(&entity);
-    round_trip(&InspectEntityRequest {
-        entity,
-        snapshot: SnapshotSelector::Current,
-        detail: request::DetailLevel::Deep,
-    });
-    round_trip(&QueryRequest {
-        specification: serde_json::json!({"scope": "snapshot"}),
-    });
-    round_trip(&ListRequest {
-        specification: serde_json::json!({"collection": "snapshot.entities"}),
-    });
-    round_trip(&CommandRequest {
-        kind: "apply".to_owned(),
-        payload: serde_json::json!({"change": "change-1"}),
-    });
-    round_trip(&DomainOperationCommand {
-        capability: "code.add_function".to_owned(),
-        entity: EntityReference {
-            id: "entity-1".to_owned(),
-        },
-        snapshot: SnapshotReference {
-            id: "snapshot-1".to_owned(),
-        },
-        revision: None,
-        branch: Some("root_working".to_owned()),
-        arguments: [("name".to_owned(), serde_json::json!("greet"))]
-            .into_iter()
-            .collect(),
-    });
-    round_trip(&AgentStartRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
-        prompt: "inspect the selected branch".to_owned(),
-        selection: None,
-    });
-    round_trip(&AgentNewSessionRequest {
-        prompt: "create a conversation".to_owned(),
-        selection: None,
-    });
-    round_trip(&Request::AgentNewSession(AgentNewSessionRequest {
-        prompt: "create a conversation".to_owned(),
-        selection: None,
+fn shared_agent_session_fixture_preserves_cross_surface_semantics() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/agent_session_plan_conformance.json"
+    ))
+    .expect("shared semantic fixture");
+    let session: SessionReadResponse =
+        serde_json::from_value(fixture["session"].clone()).expect("session wire model");
+    let preferences: AgentPresentationPreferencesResponse =
+        serde_json::from_value(fixture["presentation"].clone())
+            .expect("shared preference wire model");
+    let operation: Operation =
+        serde_json::from_value(fixture["operation"].clone()).expect("operation wire model");
+    let branch = session
+        .branches
+        .iter()
+        .find(|branch| branch.id == "branch-worker-1")
+        .expect("worker branch");
+    let plan = session.plans.first().expect("plan fixture");
+    let dependency = plan.dependencies.first().expect("dependency fixture");
+
+    assert_eq!(
+        branch.result.as_ref().map(|result| result.id.as_str()),
+        Some("branch-result-1")
+    );
+    assert_eq!(
+        branch
+            .result
+            .as_ref()
+            .map(|result| result.result_handles.as_slice()),
+        Some(["validation-1".to_owned()].as_slice())
+    );
+    assert_eq!(dependency.fulfilled_by.as_deref(), Some("branch-result-1"));
+    assert!(session.branches[0].activity.iter().any(|activity| {
+        activity.kind == SessionActivityKind::SemanticOperation
+            && activity.durable_ref.as_deref() == Some("migration-parser-1")
     }));
-    round_trip(&AgentContinueRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
-        branch: BranchReference {
-            id: "branch-1".to_owned(),
-        },
-        prompt: "continue".to_owned(),
-        selection: None,
-    });
-    round_trip(&AgentContinueAtRequest {
-        session: SessionReference {
-            id: "session-1".to_owned(),
-        },
-        anchor: SessionContinuationAnchor::AssistantOutput {
-            branch: "branch-1".to_owned(),
-            turn: "turn-7".to_owned(),
-        },
-        prompt: "continue from this exact answer".to_owned(),
-        selection: None,
-    });
-    session_plan_contracts_round_trip();
-    tests_additional::model_contracts_round_trip();
+    assert!(session.branches[0].activity.iter().any(|activity| {
+        activity.kind == SessionActivityKind::Validation
+            && activity.durable_ref.as_deref() == Some("validation-1")
+    }));
+    assert_eq!(plan.revision, 2);
+    assert_eq!(
+        plan.history.first().map(|revision| revision.revision),
+        Some(1)
+    );
+    assert_eq!(preferences.revision, 1);
+    assert_eq!(
+        preferences.preferences.reasoning,
+        PublicReasoningVisibility::Shown
+    );
+    let result = operation
+        .agent_result
+        .as_ref()
+        .expect("agent operation result");
+    assert_eq!(operation.status, OperationStatus::Completed);
+    assert_eq!(result.validation_results, vec!["validation passed"]);
+    assert_eq!(result.candidate_changes[0].validation, vec!["validation-1"]);
+    round_trip(&session);
+    round_trip(&preferences);
+    round_trip(&operation);
+}
+
+/// Ensures remote agent requests carry no provider credential material.
+#[test]
+fn remote_agent_requests_never_serialize_provider_credentials() {
+    let requests = [
+        serde_json::to_value(AgentStartRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            prompt: "inspect this branch".to_owned(),
+            selection: None,
+        })
+        .expect("serialize start request"),
+        serde_json::to_value(AgentContinueRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            branch: BranchReference {
+                id: "branch-1".to_owned(),
+            },
+            prompt: "continue".to_owned(),
+            selection: None,
+        })
+        .expect("serialize continuation request"),
+    ];
+
+    for request in requests {
+        let object = request.as_object().expect("typed request object");
+        assert!(object.keys().all(|key| {
+            !key.to_ascii_lowercase().contains("credential")
+                && !key.to_ascii_lowercase().contains("secret")
+                && !key.to_ascii_lowercase().contains("api_key")
+        }));
+        assert!(!request.to_string().contains("sentinel-provider-secret"));
+    }
 }
 
 /// Verifies session and plan contracts round trip.
@@ -125,7 +149,7 @@ fn session_snapshot_contracts_round_trip() {
             purpose: "inspect selected entities".to_owned(),
             status: SessionPlanNodeStatus::Running,
             exact_revision: None,
-            effective_status: Some(SessionPlanNodeStatus::Running),
+            effective_status: None,
             contains_ignored: false,
             contains_abandoned: false,
             abandon_reason: None,
@@ -191,143 +215,164 @@ fn session_snapshot_contracts_round_trip() {
     });
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "One integration contract checks each request family in the shared protocol."
-)]
-/// Verifies session plan mutation requests round trip.
-fn session_plan_contracts_round_trip() {
-    session_snapshot_contracts_round_trip();
-    let session = SessionReference {
-        id: "session-1".to_owned(),
-    };
-    round_trip(&SessionPlanCreateRequest {
-        session: session.clone(),
-        anchor: SessionContinuationAnchor::BranchHead {
-            branch: "branch-1".to_owned(),
+/// Verifies bounded plan-attempt request and response contracts round trip.
+#[test]
+fn plan_attempts_round_trip() {
+    round_trip(&SessionPlanAttemptsRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
         },
-        goal: "create".to_owned(),
-        nodes: vec![SessionPlanNodeDraft {
-            key: "node-a".to_owned(),
-            parent_index: None,
-            title: "Node A".to_owned(),
-            purpose: "perform work".to_owned(),
-            expected_result: None,
-            semantic_scope: vec!["entity:a".to_owned()],
-            assignment: None,
-        }],
-        dependencies: Vec::new(),
-    });
-    round_trip(&SessionPlanLifecycleRequest {
-        session: session.clone(),
         plan: "plan-1".to_owned(),
-        expected_revision: 4,
-        action: SessionPlanAction::Pause,
+        node: "node-1".to_owned(),
+        offset: 4,
+        limit: 8,
     });
-    round_trip(&SessionPlanAssignmentRequest {
-        session: session.clone(),
+    round_trip(&SessionPlanAttemptsResponse {
         plan: "plan-1".to_owned(),
-        node: "node-a".to_owned(),
-        expected_revision: 5,
-        assignment: Some(SessionModelAssignment {
-            provider_id: "provider-safe".to_owned(),
-            model_id: "model-safe".to_owned(),
-            thinking_level: None,
-        }),
-    });
-    round_trip(&SessionPlanReplanRequest {
-        session: session.clone(),
-        plan: "plan-1".to_owned(),
-        expected_revision: 6,
-        additions: Vec::new(),
-        dependencies: vec![(
-            SessionPlanNodeReference::Existing {
-                id: "node-a".to_owned(),
-            },
-            SessionPlanNodeReference::Proposed {
-                key: "node-b".to_owned(),
-            },
-        )],
-        removed_dependencies: Vec::new(),
-        superseded: Vec::new(),
-        assignment_changes: Vec::new(),
-        preserved_terminal_nodes: Vec::new(),
-        reason: "new information".to_owned(),
-    });
-    round_trip(&SessionPlanRetryRequest {
-        session: session.clone(),
-        plan: "plan-1".to_owned(),
-        node: "node-a".to_owned(),
-        expected_revision: 7,
-    });
-    round_trip(&SessionPlanAttemptHistoryRequest {
-        session: session.clone(),
-        plan: "plan-1".to_owned(),
-        node: "node-a".to_owned(),
-        snapshot: "snapshot-1".to_owned(),
-        offset: 10,
-        limit: 20,
-    });
-    round_trip(&SessionPlanAttemptHistoryPage {
-        offset: 10,
+        node: "node-1".to_owned(),
+        total: 5,
+        offset: 4,
         attempts: vec![SessionPlanAttempt {
-            id: "attempt-1".to_owned(),
-            exact_revision: "revision-1".to_owned(),
-            node: "node-a".to_owned(),
-            branch: "branch-a".to_owned(),
-            claim_generation: 2,
-            claim: Some("claim-2".to_owned()),
+            branch: "branch-4".to_owned(),
+            claim_generation: 4,
+            claim: Some("claim-4".to_owned()),
             status: SessionPlanNodeStatus::Failed,
             result: None,
-            failure: None,
+            failure: Some(SessionPlanEvidenceReference {
+                kind: SessionPlanEvidenceKind::Failure,
+                reference: SessionSemanticReference {
+                    entity: "failure-4".to_owned(),
+                    revision: None,
+                    snapshot: None,
+                },
+                attributes: std::collections::BTreeMap::new(),
+            }),
         }],
-    });
-    round_trip(&SessionPlanNextStepRequest {
-        session: session.clone(),
-        plan: "plan-1".to_owned(),
-        expected_revision: 8,
-        title: "follow-up".to_owned(),
-        purpose: "continue discovered work".to_owned(),
-        expected_result: None,
-        semantic_scope: Vec::new(),
-        assignment: None,
-    });
-    round_trip(&SessionPlanDecomposeRequest {
-        session: session.clone(),
-        plan: "plan-1".to_owned(),
-        parent: "node-parent".to_owned(),
-        expected_revision: 9,
-        children: vec![SessionPlanChildDraft {
-            title: "child".to_owned(),
-            purpose: "complete one part".to_owned(),
-            expected_result: None,
-            semantic_scope: Vec::new(),
-            assignment: None,
-        }],
-        required: true,
-    });
-    round_trip(&SessionPlanSemanticMutationRequest {
-        session,
-        plan: "plan-1".to_owned(),
-        expected_revision: 10,
-        mutation: SessionPlanSemanticMutation::UpdateSummary {
-            node: "node-a".to_owned(),
-            text: "Current progress".to_owned(),
-            sources: vec![SessionSemanticReference {
-                entity: "source-a".to_owned(),
-                revision: Some("rev_001122".to_owned()),
-                snapshot: Some("snap_001122".to_owned()),
-            }],
-        },
+        next_offset: None,
     });
 }
 
+/// Verifies bounded plan gate and evidence detail contracts round trip.
+#[test]
+fn plan_details_round_trip() {
+    round_trip(&SessionPlanDetailsRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        plan: "plan-1".to_owned(),
+        expected_revision: 9,
+        snapshot: Some("snapshot-9".to_owned()),
+        gate_offset: 4,
+        evidence_offset: 8,
+        limit: 10,
+    });
+    round_trip(&SessionPlanDetailsResponse {
+        plan: "plan-1".to_owned(),
+        revision: 9,
+        snapshot: Some("snapshot-9".to_owned()),
+        gate_total: 4,
+        gate_offset: 4,
+        gates: Vec::new(),
+        gate_next_offset: None,
+        evidence_total: 8,
+        evidence_offset: 8,
+        evidence: Vec::new(),
+        evidence_next_offset: None,
+    });
+}
+
+/// Verifies compact plan graph request and response contracts round trip.
+#[test]
+fn plan_view_round_trip() {
+    round_trip(&SessionPlanViewRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        plan: "plan-1".to_owned(),
+        snapshot: Some("snapshot-1".to_owned()),
+    });
+    round_trip(&SessionPlanGraphView {
+        plan: SessionPlanView {
+            id: "plan-1".to_owned(),
+            revision: "revision-1".to_owned(),
+            snapshot: Some("snapshot-1".to_owned()),
+            mutation_revision: 3,
+            goal: "goal".to_owned(),
+            status: SessionPlanStatus::Running,
+            coordinator: None,
+            coordinator_cursor: None,
+            root_nodes: vec!["node-1".to_owned()],
+            node_count: 1,
+            status_counts: SessionPlanStatusCounts::default(),
+        },
+        nodes: Vec::new(),
+    });
+}
+
+/// Verifies exact-snapshot QGIS project links round trip without native provider types.
+#[test]
+fn qgis_project_reference_contract_round_trip() {
+    round_trip(&QgisProjectRequest {
+        project: "project-1".to_owned(),
+        path: "maps/project.qgs".to_owned(),
+        snapshot: "snapshot-1".to_owned(),
+    });
+    round_trip(&QgisProjectResponse {
+        project: "project-1".to_owned(),
+        path: "maps/project.qgs".to_owned(),
+        snapshot: "snapshot-1".to_owned(),
+        revision: "revision-1".to_owned(),
+        id: "qgis-project-1".to_owned(),
+        title: Some("Planning".to_owned()),
+        crs: None,
+        layers: vec![QgisLayerReferenceView {
+            id: "reference-1".to_owned(),
+            name: "Parcels".to_owned(),
+            data_source: "./parcels.gpkg|layername=parcels".to_owned(),
+            path: Some("./parcels.gpkg".to_owned()),
+            resolved_path: Some("maps/parcels.gpkg".to_owned()),
+            source_layer: Some("parcels".to_owned()),
+            dataset: Some("dataset-1".to_owned()),
+            layer: Some("layer-1".to_owned()),
+            resolution_diagnostic: None,
+            visible: true,
+            renderer: Some("categorized".to_owned()),
+            scale_range: None,
+        }],
+        groups: vec![QgisLayerGroupView {
+            id: "group-1".to_owned(),
+            name: "Administrative".to_owned(),
+            layers: vec!["reference-1".to_owned()],
+        }],
+    });
+}
+
+/// Verifies complete QGIS project order requests and candidate responses serialize.
+#[test]
+fn qgis_layer_order_contract_round_trip() {
+    round_trip(&QgisLayerOrderRequest {
+        project: "project-1".to_owned(),
+        snapshot: "snapshot-1".to_owned(),
+        path: "maps/project.qgs".to_owned(),
+        ordered_references: vec!["reference-2".to_owned(), "reference-1".to_owned()],
+    });
+    round_trip(&QgisLayerOrderResponse {
+        candidate: "candidate-1".to_owned(),
+        project: "project-1".to_owned(),
+        base_snapshot: "snapshot-1".to_owned(),
+        path: "maps/project.qgs".to_owned(),
+    });
+}
+
+#[path = "tests_plan_contracts.rs"]
+mod plan_contracts;
 #[path = "tests_additional.rs"]
 mod tests_additional;
 #[path = "tests_models.rs"]
 mod tests_models;
-#[path = "tests_plan_details.rs"]
-mod tests_plan_details;
-#[path = "tests_session_fixture.rs"]
-mod tests_session_fixture;
 use tests_models::model_metadata_snapshot;
+
+#[path = "agent_selection_tests.rs"]
+mod agent_selection_tests;
+#[path = "reference_tests.rs"]
+mod reference_tests;

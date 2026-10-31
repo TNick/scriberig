@@ -11,16 +11,10 @@ use crate::{
 /// Groups exact state and specification inputs needed for reconciliation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReconciliationContext {
-    /// Last synchronization base state.
-    pub base: crate::model::SemanticStateRef,
+    /// Exact synchronized output and the immutable inputs that produced it.
+    pub baseline: crate::ReconciliationBaseline,
     /// Current canonical state.
     pub current: crate::model::SemanticStateRef,
-    /// Semantic scope being reconciled.
-    pub scope: crate::model::SemanticScopeRef,
-    /// Persistent projection specification.
-    pub specification: crate::model::ProjectionSpecRef,
-    /// Adapter-defined metadata.
-    pub metadata: std::collections::BTreeMap<String, Vec<u8>>,
 }
 
 /// Returns projection results with heap-allocated diagnostics.

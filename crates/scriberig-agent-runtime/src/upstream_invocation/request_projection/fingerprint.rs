@@ -15,6 +15,7 @@ use scriberig_session::{
 /// - `thinking_level`: Upstream thinking level selected for the invocation.
 /// - `messages`: Provider-visible message inputs.
 /// - `tools`: Upstream tool schemas supplied to the provider.
+/// - `image_fingerprints`: Ordered digests for provider-visible image blocks.
 /// - `provider_profile`: Safe `ScribeRig` provider profile, when selected.
 /// - `profile`: Exact immutable `ScribeRig` profile revision.
 /// - `active_components`: Exact active context component references.
@@ -28,6 +29,8 @@ pub(super) struct RequestFingerprintInput<'a> {
     pub(super) messages: &'a [ModelRequestDetailMessage],
     /// Complete safe upstream tool definitions supplied to the provider.
     pub(super) tools: &'a [ModelRequestDetailTool],
+    /// Ordered hashes of image bytes and media types in provider messages.
+    pub(super) image_fingerprints: &'a [String],
     /// Safe `ScribeRig` provider profile identifier, if selected.
     pub(super) provider_profile: Option<&'a str>,
     /// Exact immutable `ScribeRig` profile revision.
@@ -41,10 +44,10 @@ pub(super) struct RequestFingerprintInput<'a> {
 /// Folds the upstream-owned execution fingerprint into request identity.
 ///
 /// The upstream digest covers safe typed model metadata, including
-/// compatibility flags and output limits. It omits endpoint, headers,
-/// sampling values, provider options, and thinking-map labels, and reports
-/// incomplete coverage. This adds that digest without defining a `ScribeRig`
-/// property schema.
+/// compatibility flags, output limits, and a digest of a validated endpoint.
+/// It omits headers, sampling values, provider options, and thinking-map labels
+/// when those are present, and reports incomplete coverage. This adds that
+/// digest without defining a `ScribeRig` property schema.
 ///
 /// # Parameters
 /// - `request_fingerprint`: Existing request and model-config digest.
@@ -88,7 +91,7 @@ pub(super) fn request_fingerprint_for(input: &RequestFingerprintInput<'_>) -> St
         .map(|reference| (&reference.identity, &reference.revision))
         .collect::<Vec<_>>();
     let material = serde_json::to_vec(&(
-        "scriberig-request-v3",
+        "scriberig-request-v4",
         Some(input.model.provider.as_str()),
         input.provider_profile,
         &input.model.id,
@@ -102,6 +105,7 @@ pub(super) fn request_fingerprint_for(input: &RequestFingerprintInput<'_>) -> St
         input.context_fingerprint,
         input.messages,
         input.tools,
+        input.image_fingerprints,
     ))
     .expect("request fingerprint inputs are serializable");
     blake3::hash(&material).to_hex().to_string()

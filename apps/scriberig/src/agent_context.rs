@@ -24,7 +24,11 @@ use scriberig_session::{Branch, ContinuationAnchor};
 ///
 /// Bounded provider-neutral context for the selected continuation branch.
 ///
-/// Returns a provider-runtime failure when session or anchor state is invalid.
+/// # Returns
+/// The provider-neutral context compiled from the current resolved profile.
+///
+/// # Errors
+/// Returns a provider-runtime failure when session, profile, or anchor state is invalid.
 pub(crate) fn compile_branch_context<B: ApplicationBackend>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
@@ -32,6 +36,50 @@ pub(crate) fn compile_branch_context<B: ApplicationBackend>(
     branch_id: EntityId,
     prompt: &str,
     project_scope: Option<scriberig_agent_runtime::context::ProjectSemanticScope>,
+) -> Result<CompiledContext, scriberig_agent_runtime::AgentError> {
+    let profile = service
+        .resolve_agent_profile(
+            context,
+            scriberig_agent_runtime::profile::DEFAULT_AGENT_PROFILE_IDENTITY,
+        )
+        .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?
+        .unwrap_or_else(scriberig_agent_runtime::profile::bootstrap_default_agent_profile);
+    compile_branch_context_with_profile(
+        service,
+        context,
+        session_id,
+        branch_id,
+        prompt,
+        project_scope,
+        &profile,
+    )
+}
+
+/// Compiles branch context with the profile revision already captured for an invocation.
+///
+/// - `service`: Shared application service owning the durable session.
+/// - `context`: Trusted caller authorization and semantic scope.
+/// - `session_id`: Exact session receiving the current turn.
+/// - `branch_id`: Exact executing branch identity.
+/// - `prompt`: Current human instruction, passed separately to the runtime.
+/// - `project_scope`: Optional exact semantic workspace selection.
+/// - `profile`: Exact profile descriptor captured before model resolution.
+///
+/// Bounded provider-neutral context for the selected continuation branch.
+///
+/// # Returns
+/// Context compiled from the exact supplied profile and durable branch state.
+///
+/// # Errors
+/// Returns a provider-runtime failure when session or anchor state is invalid.
+pub(crate) fn compile_branch_context_with_profile<B: ApplicationBackend>(
+    service: &ApplicationService<B>,
+    context: &ApplicationContext,
+    session_id: EntityId,
+    branch_id: EntityId,
+    prompt: &str,
+    project_scope: Option<scriberig_agent_runtime::context::ProjectSemanticScope>,
+    profile: &scriberig_app::AgentProfileDescriptor,
 ) -> Result<CompiledContext, scriberig_agent_runtime::AgentError> {
     let session = SessionBackend::read_session(
         service,
@@ -77,7 +125,9 @@ pub(crate) fn compile_branch_context<B: ApplicationBackend>(
         prompt,
         branch.continuation.is_some(),
     );
-    Ok(ContextCompiler::new(ContextPolicy::default()).compile(&execution))
+    Ok(ContextCompiler::new(ContextPolicy::default())
+        .with_profile(profile.clone())
+        .compile(&execution))
 }
 
 /// Adds prior local turns without copying the currently submitted input.

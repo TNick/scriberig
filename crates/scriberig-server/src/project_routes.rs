@@ -2,10 +2,12 @@
 
 use std::sync::Arc;
 
-use scriberig_project::{CandidateValidation, ProjectService, ScanOptions};
+use scriberig_project::ScanOptions;
 use serde_json::{Value, json};
 #[path = "project_agent.rs"]
 mod project_agent;
+#[path = "project_candidate_review.rs"]
+mod project_candidate_review;
 #[path = "project_history.rs"]
 mod project_history;
 #[path = "project_routes_support.rs"]
@@ -44,7 +46,11 @@ pub(super) fn protocol<S: ApplicationService>(
         "propose" => propose(state, &body),
         "propose-change" => propose_change(state, &body),
         "candidate" => candidate(state, &body),
+        "candidate-summary" => project_candidate_review::candidate_summary(state, &body),
         "validate-candidate" => validate_candidate(state, &body),
+        "validate-candidate-summary" => {
+            project_candidate_review::validate_candidate_summary(state, &body)
+        }
         "apply" => apply(state, &body),
         "agent" => project_agent::agent(state, &body),
         "relink" => relink(state, &body),
@@ -97,7 +103,14 @@ pub(super) fn direct<S: ApplicationService>(
         "propose" => propose(state, &request.payload.to_string()),
         "propose-change" => propose_change(state, &request.payload.to_string()),
         "candidate" => candidate(state, &request.payload.to_string()),
+        "candidate-summary" => {
+            project_candidate_review::candidate_summary(state, &request.payload.to_string())
+        }
         "validate-candidate" => validate_candidate(state, &request.payload.to_string()),
+        "validate-candidate-summary" => project_candidate_review::validate_candidate_summary(
+            state,
+            &request.payload.to_string(),
+        ),
         "apply" => apply(state, &request.payload.to_string()),
         "agent" => project_agent::agent(state, &request.payload.to_string()),
         "relink" => relink(state, &request.payload.to_string()),
@@ -136,7 +149,9 @@ pub(super) fn scan<S: ApplicationService>(
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: ScanInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
     let path = authorized_path(&state.allowed_project_roots, &input.path)?;
-    let report = ProjectService::new(Arc::clone(store))
+    let report = state
+        .service
+        .project_service(Arc::clone(store))
         .scan_with_options(
             input.name,
             path,
@@ -198,10 +213,14 @@ pub(super) fn import<S: ApplicationService>(
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: ImportInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
     let id = input.project.parse().map_err(|_| invalid_project())?;
-    let report = ProjectService::new(Arc::clone(store))
+    let report = state
+        .service
+        .project_service(Arc::clone(store))
         .import(id)
         .map_err(|error| project_error(&error))?;
-    let workspace = ProjectService::new(Arc::clone(store))
+    let workspace = state
+        .service
+        .project_service(Arc::clone(store))
         .workspace(id)
         .map_err(|error| project_error(&error))?;
     Ok(json!({
@@ -222,7 +241,9 @@ pub(super) fn workspace<S: ApplicationService>(
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: ImportInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
     let id = input.project.parse().map_err(|_| invalid_project())?;
-    let value = ProjectService::new(Arc::clone(store))
+    let value = state
+        .service
+        .project_service(Arc::clone(store))
         .workspace(id)
         .map_err(|error| project_error(&error))?;
     Ok(workspace_json(&value))
@@ -236,20 +257,25 @@ pub(super) fn symbols<S: ApplicationService>(
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: ImportInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
     let id = input.project.parse().map_err(|_| invalid_project())?;
-    let workspace = ProjectService::new(Arc::clone(store))
+    let workspace = state
+        .service
+        .project_service(Arc::clone(store))
         .workspace(id)
         .map_err(|error| project_error(&error))?;
-    let symbols = ProjectService::new(Arc::clone(store))
+    let symbols = state
+        .service
+        .project_service(Arc::clone(store))
         .symbols(id)
         .map_err(|error| project_error(&error))?
         .into_iter()
         .map(|symbol| {
+            let name = symbol.name.clone().unwrap_or_else(|| symbol.kind.clone());
             json!({
                 "entityId": symbol.entity.to_string(),
                 "snapshotId": symbol.snapshot.to_string(),
                 "path": symbol.path,
                 "kind": symbol.kind,
-                "name": symbol.name.unwrap_or_else(|| "source".to_owned()),
+                "name": name,
             })
         })
         .collect::<Vec<_>>();
@@ -266,7 +292,9 @@ pub(super) fn projection<S: ApplicationService>(
         serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
     let project = input.project.parse().map_err(|_| invalid_project())?;
     let entity = input.entity.parse().map_err(|_| invalid_project())?;
-    let projection = ProjectService::new(Arc::clone(store))
+    let projection = state
+        .service
+        .project_service(Arc::clone(store))
         .projection(project, entity)
         .map_err(|error| project_error(&error))?;
     Ok(json!({
@@ -275,6 +303,7 @@ pub(super) fn projection<S: ApplicationService>(
         "entityId": projection.entity.to_string(),
         "name": projection.name,
         "kind": projection.kind,
+        "projectionKind": projection.projection_kind,
         "path": projection.path,
         "text": String::from_utf8_lossy(&projection.text),
         "editable": projection.editable,

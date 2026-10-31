@@ -1,9 +1,10 @@
 //! Defines normalized filesystem projection locations.
 
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// A filesystem location kept separate from semantic identity.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ProjectionLocation(PathBuf);
 
 impl ProjectionLocation {

@@ -48,6 +48,45 @@ pub trait ApplicationBackend {
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError>;
 
+    /// Executes one request with cooperative cancellation checkpoints.
+    ///
+    /// Backends should override this for operations with multiple internal
+    /// stages. The default observes cancellation before and after the ordinary
+    /// synchronous operation.
+    ///
+    /// - `self`: Backend owning semantic subsystem providers.
+    /// - `context`: Caller, capability, and request context.
+    /// - `request`: Universal application request to execute.
+    /// - `cancelled`: Caller-owned cancellation flag.
+    ///
+    /// The structured application result when execution completes.
+    ///
+    /// # Returns
+    /// The operation result.
+    ///
+    /// # Errors
+    /// Returns `OperationCancelled` when cancellation is observed, or the
+    /// backend's structured application failure.
+    fn execute_cancellable(
+        &self,
+        context: &ApplicationContext,
+        request: &ApplicationRequest,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<ApplicationResult, ApplicationError> {
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(ApplicationError::OperationCancelled {
+                operation: "application request".to_owned(),
+            });
+        }
+        let result = self.execute(context, request)?;
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(ApplicationError::OperationCancelled {
+                operation: "application request".to_owned(),
+            });
+        }
+        Ok(result)
+    }
+
     /// Resolves the current accepted snapshot for the request.
     ///
     /// - `self`: Backend owning snapshot/root state.
@@ -89,6 +128,29 @@ pub trait ApplicationBackend {
         Err(ApplicationError::UnsupportedOperation {
             operation: "session read".to_owned(),
         })
+    }
+
+    /// Reads a compact session projection through the owning subsystem.
+    ///
+    /// Backends with semantic storage should omit unbounded plan history,
+    /// gates, and evidence, retaining their bounded summary fields. The
+    /// default preserves compatibility by delegating to the complete read.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the request.
+    /// - `request`: Stable session identity to resolve.
+    ///
+    /// # Returns
+    /// The compact session projection, or a complete session from the default.
+    ///
+    /// # Errors
+    /// Returns an unsupported-operation or backend read error.
+    fn read_session_projection(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::SessionRequest,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        self.read_session(context, request)
     }
 
     /// Atomically persists a session execution selection through its owner.

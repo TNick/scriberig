@@ -5,6 +5,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::TuiPty;
+use super::candidate_review::{
+    assert_confirmation_closed, confirm_candidate_apply, open_apply_confirmation,
+};
 use scriberig_app::{ApplicationContext, HistoryRequest, OperationProvider, SnapshotSelector};
 use scriberig_project::ProjectService;
 use scriberig_project::ProjectSourceEffectKind;
@@ -113,15 +116,15 @@ pub(super) fn assert_candidate_conflicts_are_visible(
     fs::create_dir_all(create_path.parent().expect("create parent"))
         .expect("create external path parent");
     let external_create = b"external bytes must survive Apply conflict\n";
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
+    open_apply_confirmation(tui);
     fs::write(&create_path, external_create).expect("external create");
-    tui.send(b"\r");
+    confirm_candidate_apply(tui);
     assert!(
         tui.read_until_for("filesystem_conflict", Duration::from_secs(30)),
         "{}",
         tui.diagnostic()
     );
+    assert_confirmation_closed(tui);
     assert!(tui.screen().contains("source changed externally:"));
     assert_eq!(
         fs::read(&create_path).expect("external create survives"),
@@ -136,19 +139,19 @@ pub(super) fn assert_candidate_conflicts_are_visible(
     fs::remove_dir_all(checkout.join("crates/domains/scriberig-domain-php"))
         .expect("remove external conflict fixture");
 
-    open_candidate_review(tui);
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
+    reopen_candidate_review(tui);
+    open_apply_confirmation(tui);
     let manifest_path = checkout.join("Cargo.toml");
     let base_manifest = fs::read(&manifest_path).expect("base manifest");
     let external_update = b"external manifest edit\n";
     fs::write(&manifest_path, external_update).expect("external update");
-    tui.send(b"\r");
+    confirm_candidate_apply(tui);
     assert!(
         tui.read_until_for("filesystem_conflict", Duration::from_secs(30)),
         "{}",
         tui.diagnostic()
     );
+    assert_confirmation_closed(tui);
     assert!(tui.screen().contains("source changed externally:"));
     assert_eq!(
         fs::read(&manifest_path).expect("external update survives"),
@@ -161,23 +164,29 @@ pub(super) fn assert_candidate_conflicts_are_visible(
             .exists()
     );
     fs::write(&manifest_path, base_manifest).expect("restore exact base manifest");
-    open_candidate_review(tui);
+    reopen_candidate_review(tui);
 }
 
 /// Opens the durable project candidate review with a local command.
 ///
 /// - `tui`: Active native TUI process.
-fn open_candidate_review(tui: &mut TuiPty) {
-    tui.send(b"\x1b");
+fn reopen_candidate_review(tui: &mut TuiPty) {
+    tui.send(b"\x10");
     assert!(
-        tui.read_until_for("Message [ACTIVE]", Duration::from_secs(20)),
-        "{}",
+        tui.read_until_for("Command palette", Duration::from_secs(120)),
+        "command palette did not open for candidate review: {}",
         tui.diagnostic()
     );
-    tui.send_slow(b"/changes\r");
+    tui.send_slow(b"Review candidate");
+    tui.send(b"\r");
     assert!(
-        tui.read_until_for("Change review", Duration::from_secs(60)),
-        "{}",
+        tui.read_until_not("operation_failed"),
+        "candidate review did not clear its previous operation error: {}",
+        tui.diagnostic()
+    );
+    assert!(
+        tui.read_until("Validation: Passed"),
+        "candidate review did not finish refreshing: {}",
         tui.diagnostic()
     );
 }

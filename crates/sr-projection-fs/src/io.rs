@@ -14,6 +14,9 @@ pub enum IoError {
     Directory(std::io::Error),
     Remove(std::io::Error),
     OwnershipDenied,
+    BaselineMismatch,
+    /// Artifact materialization plan has empty, unsafe, or duplicate members.
+    UnsafeArtifactPlan,
 }
 impl std::fmt::Display for IoError {
     /// Formats an IO error.

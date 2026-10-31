@@ -39,6 +39,8 @@ struct ActivityProjection {
     id: EntityId,
     /// Optional parent activity identity.
     parent: Option<String>,
+    /// Owning application operation for model execution activity.
+    operation: Option<String>,
     /// Provider-neutral activity kind.
     kind: Kind,
     /// Current lifecycle state.
@@ -82,6 +84,7 @@ fn project_item(
         sequence: u64::try_from(sequence).unwrap_or(u64::MAX),
         branch: branch.id.to_string(),
         parent,
+        operation: projection.operation,
         kind: projection.kind,
         state: projection.state,
         summary: bounded_summary(&projection.summary),
@@ -152,6 +155,7 @@ fn project_model_invocation(id: EntityId, branch: &Branch) -> Option<ActivityPro
         kind: Kind::ModelInvocation,
         state: model_invocation_state(branch.status, invocation.output.is_some()),
         summary,
+        operation: invocation.operation.as_ref().map(ToString::to_string),
         model,
         thinking_level: invocation.thinking_level.clone(),
         tool_name: None,
@@ -194,6 +198,7 @@ fn project_human_input(id: EntityId, branch: &Branch) -> Option<ActivityProjecti
             kind: Kind::HumanInput,
             state: State::Completed,
             summary: "Human input".to_owned(),
+            operation: None,
             model: None,
             thinking_level: None,
             tool_name: None,
@@ -228,6 +233,7 @@ fn project_assistant_output(id: EntityId, branch: &Branch) -> Option<ActivityPro
         kind: Kind::AssistantOutput,
         state: State::Completed,
         summary,
+        operation: None,
         model: None,
         thinking_level: None,
         tool_name: None,
@@ -263,6 +269,7 @@ fn project_tool_invocation(id: EntityId, branch: &Branch) -> Option<ActivityProj
             .presentation_label
             .clone()
             .unwrap_or_else(|| format!("Tool: {}", invocation.name)),
+        operation: None,
         model: None,
         thinking_level: None,
         tool_name: Some(invocation.name.clone()),
@@ -289,6 +296,7 @@ fn project_tool_result(id: EntityId, branch: &Branch) -> Option<ActivityProjecti
             State::Completed
         },
         summary: tool_result_summary(result, result.failed),
+        operation: None,
         model: None,
         thinking_level: None,
         tool_name: None,
@@ -310,6 +318,7 @@ fn child_branch_projection(id: EntityId, parent: Option<EntityId>) -> ActivityPr
         kind: Kind::BranchStarted,
         state: State::Running,
         summary: "Child branch".to_owned(),
+        operation: None,
         model: None,
         thinking_level: None,
         tool_name: None,
@@ -339,6 +348,7 @@ fn project_branch_result(id: EntityId, branch: &Branch) -> Option<ActivityProjec
             .summary
             .as_deref()
             .map_or_else(|| "Branch result".to_owned(), bounded_summary),
+        operation: None,
         model: None,
         thinking_level: None,
         tool_name: None,

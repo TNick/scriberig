@@ -208,4 +208,48 @@ mod tests {
         );
         assert_eq!(state.transient_agent_activities, []);
     }
+
+    /// Keeps provider-visible summary order when application events arrive late.
+    #[test]
+    fn reasoning_summary_rejects_out_of_order_invocation_events() {
+        let mut state = TuiState {
+            reasoning_visibility: ReasoningVisibility::Shown,
+            ..TuiState::default()
+        };
+
+        observe_agent_activity(
+            &mut state,
+            "operation-ordered",
+            "branch-ordered",
+            scriberig_session::AgentActivityKind::ReasoningSummary,
+            scriberig_session::AgentActivityState::Running,
+            "first provider summary",
+            1,
+        );
+        observe_agent_activity(
+            &mut state,
+            "operation-ordered",
+            "branch-ordered",
+            scriberig_session::AgentActivityKind::ReasoningSummary,
+            scriberig_session::AgentActivityState::Running,
+            "latest provider summary",
+            3,
+        );
+        observe_agent_activity(
+            &mut state,
+            "operation-ordered",
+            "branch-ordered",
+            scriberig_session::AgentActivityKind::ReasoningSummary,
+            scriberig_session::AgentActivityState::Running,
+            "late stale summary",
+            2,
+        );
+
+        assert_eq!(state.transient_agent_activities.len(), 1);
+        assert_eq!(
+            state.transient_agent_activities[0].summary,
+            "latest provider summary"
+        );
+        assert_eq!(state.transient_agent_activities[0].ordinal, 3);
+    }
 }

@@ -16,6 +16,8 @@ use scriberig_session_sqlite::SqliteSessionStore;
 
 #[path = "remote_project_conformance/candidate.rs"]
 mod candidate_support;
+#[path = "remote_project_conformance/rich_artifact.rs"]
+mod rich_artifact;
 use candidate_support::exercise_remote_aggregate_candidate;
 use scriberig_store_sqlite::SqliteStore;
 use serde_json::json;
@@ -74,6 +76,7 @@ fn state(store: Arc<SqliteStore>, sessions: Arc<SqliteSessionStore>) -> HttpStat
         allowed_origin: None,
         project_store: Some(store),
         allowed_project_roots: Vec::new(),
+        agent_execution_handler: None,
         plan_lifecycle_handler: None,
         provider_readiness_handler: None,
     }
@@ -165,6 +168,64 @@ fn golden_conformance_remote_public_project_path() {
         &sessions,
         &aggregate_candidate,
         &aggregate_successor,
+    );
+}
+
+/// Keeps the server's deterministic project agent proposal limited to the changed expression.
+#[test]
+fn server_project_agent_returns_a_validated_expression_candidate() {
+    let (root, store) = fixture("agent-expression");
+    let project_service = ProjectService::new(Arc::clone(&store));
+    let scanned = project_service
+        .scan(Some("agent-expression".to_owned()), &root)
+        .expect("scan agent fixture");
+    let imported = project_service
+        .import(scanned.project.id)
+        .expect("import agent fixture");
+    let entity = project_service
+        .symbols(scanned.project.id)
+        .expect("agent fixture symbols")
+        .into_iter()
+        .find(|symbol| symbol.name.as_deref() == Some("add"))
+        .expect("add symbol")
+        .entity;
+    let sessions = Arc::new(SqliteSessionStore::open_in_memory().expect("session store"));
+    let state = Arc::new(state(Arc::clone(&store), sessions));
+    let client = Client::new(InProcessProjectTransport::new(state));
+
+    let candidate = client
+        .project(
+            "agent",
+            json!({
+                "project": scanned.project.id.to_string(),
+                "entity": entity.to_string(),
+                "snapshot": imported.snapshot.to_string(),
+                "prompt": "Saturate addition on overflow."
+            }),
+        )
+        .expect("server project agent candidate");
+
+    assert_eq!(candidate["scope"]["entity"], entity.to_string());
+    assert_eq!(
+        candidate["scope"]["snapshot"],
+        imported.snapshot.to_string()
+    );
+    assert_eq!(candidate["validation"], "passed");
+    assert!(
+        candidate["old"]
+            .as_str()
+            .expect("old source")
+            .contains("left + right")
+    );
+    assert!(
+        candidate["new"]
+            .as_str()
+            .expect("new source")
+            .contains("left.saturating_add(right)")
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("src/lib.rs")).expect("live source"),
+        "pub mod math { pub struct Calculator; impl Calculator { pub fn add(&self, left: i32, right: i32) -> i32 { left + right } } }\n"
     );
 }
 

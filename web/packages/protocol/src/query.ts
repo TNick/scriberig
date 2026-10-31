@@ -1,6 +1,31 @@
 /** @file Defines transport-neutral query request vocabulary. */
 import type { EntityId, SnapshotId, TypeId } from "./ids";
 import type { CollectionPage, ObjectDescription, ObjectSummary } from "./objects";
+/** Domain-owned anchor metadata that never replaces semantic entity identity. */
+export type ProjectionAnchor =
+  | { kind: "textRange"; start: number; end: number }
+  | { kind: "pageRegion"; page: number; x: number; y: number; width: number; height: number }
+  | { kind: "spreadsheetCell"; worksheetId: EntityId; row: number; column: number }
+  | {
+      kind: "spreadsheetRange";
+      worksheetId: EntityId;
+      firstRow: number;
+      firstColumn: number;
+      lastRow: number;
+      lastColumn: number;
+    }
+  | { kind: "geometryBounds"; crs: string; minX: string; minY: string; maxX: string; maxY: string }
+  | {
+      kind: "cadBounds";
+      drawingId: EntityId;
+      space: string;
+      minX: string;
+      minY: string;
+      maxX: string;
+      maxY: string;
+    }
+  | { kind: "opaque"; adapter: string; anchorKind: string; value: string };
+
 /** Resolves a query against an exact snapshot or named root. */
 export type SnapshotSelector =
   { kind: "exact"; snapshotId: SnapshotId } | { kind: "root"; name: string } | { kind: "current" };

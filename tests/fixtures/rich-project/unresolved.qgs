@@ -1,0 +1,1 @@
+<qgis><title>Unresolved</title><projectlayers><maplayer><id>missing-layer</id><layername>Missing</layername><datasource>./missing.gpkg|layername=missing</datasource><provider>ogr</provider></maplayer></projectlayers></qgis>

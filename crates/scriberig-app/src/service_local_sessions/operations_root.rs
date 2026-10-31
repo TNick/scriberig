@@ -1,6 +1,6 @@
 //! Implements root agent session completion operations.
 
-use super::super::persist_execution_evidence;
+use super::super::require_open_branch;
 use crate::{ApplicationError, ApplicationService};
 use scriberig_session::{BranchResult, Turn};
 
@@ -55,8 +55,13 @@ impl<B> ApplicationService<B> {
         )
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "One settlement records ordered evidence, output, branch result, and operation completion under a single session mutation."
+    )]
     /// Completes a root branch and persists its executed tool evidence.
     ///
+    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `handle`: Pending operation and branch handle.
     /// - `final_output`: Complete externally meaningful agent output.
@@ -66,11 +71,11 @@ impl<B> ApplicationService<B> {
     ///
     /// The structured application agent result stored on the operation.
     ///
-    /// Returns an application error when the branch or operation is unavailable.
     /// # Returns
-    /// The operation result.
+    /// The structured result of the completed agent operation.
+    ///
     /// # Errors
-    /// Returns an error when the operation fails.
+    /// Returns an error when the branch or pending operation is unavailable.
     pub fn complete_local_agent_with_evidence(
         &self,
         handle: &crate::LocalAgentHandle,
@@ -92,7 +97,13 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.root_branch.to_string(),
             })?;
-        persist_execution_evidence(self, branch, tool_evidence, model_requests);
+        require_open_branch(branch, "local_agent_complete")?;
+        self.persist_execution_evidence_for_operation(
+            branch,
+            &handle.operation,
+            tool_evidence,
+            model_requests,
+        );
         let output_turn = if let Some(turn) = branch.turns.iter_mut().rev().find(|turn| {
             turn.agent.is_none()
                 && turn

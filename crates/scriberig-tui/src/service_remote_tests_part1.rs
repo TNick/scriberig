@@ -1,6 +1,7 @@
 //! Covers additional focused cases for the parent test module.
 
 use super::*;
+use crate::service::TuiRuntimeService;
 
 /// Verifies remote operation preserves agent result handles.
 #[test]
@@ -59,8 +60,12 @@ fn remote_operation_preserves_agent_result_handles() {
     );
 }
 
-/// Verifies remote session reads reconstruct ordered branch activity.
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "This regression validates the complete remote session/activity wire fixture and reconstructed branch ordering."
+)]
+/// Verifies remote session reads reconstruct ordered branch activity.
 fn remote_session_read_reconstructs_branch_activity() {
     let session = EntityId::from_bytes([5; 16]);
     let branch = EntityId::from_bytes([6; 16]);
@@ -94,6 +99,7 @@ fn remote_session_read_reconstructs_branch_activity() {
                             session: session.to_string(),
                             sequence: 0,
                             branch: branch.to_string(),
+                            operation: None,
                             parent: None,
                             kind: SessionActivityKind::HumanInput,
                             state: SessionActivityState::Completed,
@@ -111,6 +117,7 @@ fn remote_session_read_reconstructs_branch_activity() {
                             session: session.to_string(),
                             sequence: 1,
                             branch: branch.to_string(),
+                            operation: None,
                             parent: Some(format!("{turn}:human")),
                             kind: SessionActivityKind::AssistantOutput,
                             state: SessionActivityState::Completed,
@@ -216,6 +223,7 @@ fn remote_capabilities_are_decoded_without_provider_details() {
                     id: "agent".to_owned(),
                     enabled: true,
                 }],
+                cad_providers: Vec::new(),
             }),
         },
     };

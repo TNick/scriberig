@@ -3,9 +3,10 @@
 use std::fmt;
 
 use scriberig_core::{EntityId, RevisionId};
+use serde::{Deserialize, Serialize};
 
 /// Identifies an immutable style revision or exact adapter-supplied value.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum StyleRef {
     /// References a style entity at one immutable revision.
     Revision {
@@ -19,11 +20,11 @@ pub enum StyleRef {
 }
 
 /// Carries an exact adapter-defined style value.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct StyleValue(Vec<u8>);
 
 /// Identifies the adapter-owned style schema that interprets resolved values.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct StyleSchemaRef {
     /// Stable adapter or schema identifier.
     adapter_id: String,
@@ -37,7 +38,7 @@ pub struct StyleSchemaRef {
 /// canonical adapter-defined value consumed by the renderer, and the optional
 /// schema needed to validate that value. Renderers therefore never need to
 /// consult storage or ambient user settings to interpret a style revision.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ResolvedStyle {
     /// Exact provenance reference selected by style resolution.
     reference: StyleRef,
@@ -52,6 +53,8 @@ pub struct ResolvedStyle {
 pub enum StyleResolutionError {
     /// An inline style reference names bytes different from the resolved value.
     ReferenceValueMismatch,
+    /// A revision-backed style reference was used without its resolved value.
+    RevisionValueRequired,
 }
 
 // Keep style values immutable after construction.
@@ -199,6 +202,42 @@ impl ResolvedStyle {
     pub fn schema(&self) -> Option<&StyleSchemaRef> {
         self.schema.as_ref()
     }
+
+    /// Resolves an inline style reference without reaching any store.
+    ///
+    /// - `reference`: Style reference selected by an earlier resolution step.
+    ///
+    /// A revision-backed reference cannot be resolved this way because its exact
+    /// value must be loaded before rendering. That refusal is deliberate: it is
+    /// what prevents a renderer from being handed a style revision it would then
+    /// have to dereference through hidden state.
+    ///
+    /// # Returns
+    /// The resolved style for an inline value reference.
+    ///
+    /// # Errors
+    /// Returns `StyleResolutionError::RevisionValueRequired` when the reference
+    /// names a semantic style revision whose value has not been loaded, and
+    /// `StyleResolutionError::ReferenceValueMismatch` for an inconsistent inline
+    /// pair.
+    pub fn from_reference(reference: &StyleRef) -> Result<Self, StyleResolutionError> {
+        match reference {
+            StyleRef::Value(value) => Self::new(reference.clone(), value.clone(), None),
+            StyleRef::Revision { .. } => Err(StyleResolutionError::RevisionValueRequired),
+        }
+    }
+
+    /// Returns a stable digest of the exact resolved value.
+    ///
+    /// The digest lets render and cache identity depend on canonical style bytes
+    /// without copying them into every key.
+    ///
+    /// # Returns
+    /// Thirty-two BLAKE3 digest bytes of the canonical value.
+    #[must_use]
+    pub fn value_digest(&self) -> [u8; 32] {
+        *blake3::hash(self.value.as_bytes()).as_bytes()
+    }
 }
 
 impl fmt::Display for StyleResolutionError {
@@ -217,6 +256,8 @@ impl fmt::Display for StyleResolutionError {
             Self::ReferenceValueMismatch => {
                 formatter.write_str("inline style reference does not match the resolved value")
             }
+            Self::RevisionValueRequired => formatter
+                .write_str("style revision reference requires a resolved value before rendering"),
         }
     }
 }
@@ -271,5 +312,42 @@ mod tests {
         );
         assert_eq!(style.value().as_bytes(), &[7, 8, 9]);
         assert_eq!(style.schema(), None);
+    }
+
+    /// Verifies an inline reference resolves without any store access.
+    #[test]
+    fn inline_reference_resolves_to_exact_value() {
+        let reference = StyleRef::Value(StyleValue::new(b"indent=2".to_vec()));
+        let style = ResolvedStyle::from_reference(&reference).expect("inline reference");
+
+        assert_eq!(style.value().as_bytes(), b"indent=2");
+        assert_eq!(style.reference(), &reference);
+    }
+
+    /// Verifies a bare revision reference cannot reach a renderer valueless.
+    #[test]
+    fn revision_reference_without_value_is_rejected() {
+        let reference = StyleRef::Revision {
+            entity: scriberig_core::EntityId::from_bytes([3; 16]),
+            revision: scriberig_core::RevisionId::new([4; 32]),
+        };
+
+        assert_eq!(
+            ResolvedStyle::from_reference(&reference),
+            Err(StyleResolutionError::RevisionValueRequired)
+        );
+    }
+
+    /// Verifies equal values digest equally and different values do not.
+    #[test]
+    fn value_digest_tracks_exact_canonical_bytes() {
+        assert_eq!(
+            ResolvedStyle::inline(StyleValue::new(b"a".to_vec())).value_digest(),
+            ResolvedStyle::inline(StyleValue::new(b"a".to_vec())).value_digest()
+        );
+        assert_ne!(
+            ResolvedStyle::inline(StyleValue::new(b"a".to_vec())).value_digest(),
+            ResolvedStyle::inline(StyleValue::new(b"b".to_vec())).value_digest()
+        );
     }
 }

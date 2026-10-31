@@ -1,5 +1,6 @@
 //! Defines runtime capability metadata without implementing authorization policy.
 
+use crate::ApplicationContext;
 use crate::operation::OperationKind;
 use std::collections::BTreeSet;
 #[path = "capability_descriptor.rs"]
@@ -11,6 +12,21 @@ pub use capability_descriptor::{
 };
 
 use scriberig_core::{EntityId, ObjectType, PrincipalId, RootName, SnapshotId};
+
+/// Stable capability required by the inspect agent tool.
+pub const INSPECT_CAPABILITY: &str = "inspect.entity";
+
+/// Reports whether a trusted context exposes the inspect tool surface.
+///
+/// - `context`: Trusted application context.
+///
+/// # Returns
+/// `true` when the inspect capability is granted.
+#[must_use]
+pub fn inspect_available(context: &ApplicationContext) -> bool {
+    CapabilityId::new(INSPECT_CAPABILITY)
+        .is_ok_and(|capability| context.capabilities.allows(&capability))
+}
 
 /// Names an action that a capability can authorize.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]

@@ -1,6 +1,9 @@
 //! Exercises project candidate materialization failure and recovery.
 use super::{FileSystem, LocalFileSystem, ProjectService};
-use crate::{ProjectSourceChange, ProjectSourceChangeKind};
+use crate::{
+    ProjectCandidate, ProjectSourceChange, ProjectSourceChangeKind, ProjectSourceObservation,
+};
+use scriberig_core::{ProjectId, SnapshotId};
 use sr_projection_fs::{FileMetadata, IoError};
 use std::fs;
 use std::path::Path;
@@ -96,7 +99,7 @@ impl FileSystem for FailSecondWrite {
     }
 }
 
-/// Verifies partial materialization is durable and safely retryable.
+/// Verifies partial materialization remains recoverable across a store restart.
 #[test]
 fn partial_effect_failure_is_truthful_and_recoverable() {
     let root = std::env::temp_dir().join(format!(
@@ -112,10 +115,8 @@ fn partial_effect_failure_is_truthful_and_recoverable() {
     .expect("manifest");
     let base_bytes = b"pub fn base() -> u8 { 1 }\n";
     fs::write(root.join("src/lib.rs"), base_bytes).expect("base source");
-    let store = Arc::new(
-        scriberig_store_sqlite::SqliteStore::open(root.with_extension(".sqlite"))
-            .expect("database"),
-    );
+    let database = root.with_extension(".sqlite");
+    let store = Arc::new(scriberig_store_sqlite::SqliteStore::open(&database).expect("database"));
     let service = ProjectService::new(Arc::clone(&store));
     let scan = service
         .scan(Some("candidate-recovery".to_owned()), &root)
@@ -148,6 +149,94 @@ fn partial_effect_failure_is_truthful_and_recoverable() {
     let error = service
         .apply_candidate_with_filesystem(&candidate, &filesystem)
         .expect_err("second effect must fail");
+    assert_partial_failure_state(
+        &store,
+        &service,
+        &candidate,
+        base,
+        scan.project.id,
+        &root,
+        &error,
+    );
+
+    drop(service);
+    drop(store);
+    let store = Arc::new(scriberig_store_sqlite::SqliteStore::open(&database).expect("reopen db"));
+    let service = ProjectService::new(Arc::clone(&store));
+    assert_eq!(
+        service
+            .workspace(scan.project.id)
+            .expect("workspace")
+            .snapshot,
+        base
+    );
+    let recovered = service
+        .apply_candidate(&candidate)
+        .expect("idempotent retry");
+    assert_eq!(recovered.effect_state, "applied");
+    assert_ne!(recovered.successor_snapshot, base);
+    assert!(root.join("src/z-generated.rs").exists());
+    assert_source_watch_receipt(&service, scan.project.id, &root);
+    assert_eq!(
+        store
+            .project_effect_paths(&candidate.id)
+            .expect("recovered path receipts")
+            .iter()
+            .filter(|receipt| receipt.state == "applied")
+            .count(),
+        2
+    );
+    assert_successor_artifact_digests(&service, scan.project.id, &root);
+}
+
+/// Verifies candidate receipts suppress matching watcher events only.
+///
+/// # Parameters
+/// - `service`: Project service that applied and recorded candidate effects.
+/// - `project`: Exact project identity for the observed source path.
+/// - `root`: Project checkout containing the committed source bytes.
+fn assert_source_watch_receipt(service: &ProjectService, project: ProjectId, root: &Path) {
+    let committed_bytes = fs::read(root.join("src/lib.rs")).expect("committed source bytes");
+    let committed_digest = *blake3::hash(&committed_bytes).as_bytes();
+    assert_eq!(
+        service
+            .classify_source_observation(project, "src/lib.rs", Some(committed_digest))
+            .expect("classify committed write"),
+        ProjectSourceObservation::SelfWrite
+    );
+    assert_eq!(
+        service
+            .classify_source_observation(project, "src/lib.rs", Some(committed_digest))
+            .expect("duplicate watcher event"),
+        ProjectSourceObservation::SelfWrite
+    );
+    assert_eq!(
+        service
+            .classify_source_observation(project, "src/lib.rs", Some([7; 32]))
+            .expect("external modification event"),
+        ProjectSourceObservation::ExternalChange
+    );
+}
+
+/// Verifies the durable partial state before and after the injected write failure.
+///
+/// # Parameters
+/// - `store`: Durable store containing effect receipts.
+/// - `service`: Project service still at the exact base snapshot.
+/// - `candidate`: Candidate whose first member was committed.
+/// - `base`: Original project snapshot.
+/// - `project`: Exact project identity.
+/// - `root`: Project checkout containing the partial materialization.
+/// - `error`: Failed apply result.
+fn assert_partial_failure_state(
+    store: &scriberig_store_sqlite::SqliteStore,
+    service: &ProjectService,
+    candidate: &ProjectCandidate,
+    base: SnapshotId,
+    project: ProjectId,
+    root: &Path,
+    error: &crate::ProjectError,
+) {
     assert_eq!(error.code, "filesystem_write_failed");
     let aggregate = store
         .project_effect(&candidate.id)
@@ -160,11 +249,22 @@ fn partial_effect_failure_is_truthful_and_recoverable() {
         .expect("per-path receipts");
     assert_eq!(receipts[0].state, "applied");
     assert_eq!(receipts[1].state, "failed");
+    let public_receipt = service
+        .materialization_receipt(&candidate.id)
+        .expect("public recovery receipt")
+        .expect("receipt after partial materialization");
+    assert_eq!(public_receipt.candidate, candidate.id);
+    assert_eq!(public_receipt.state, "unknown");
+    assert_eq!(public_receipt.paths[0].state, "applied");
+    assert_eq!(public_receipt.paths[1].state, "failed");
+    assert!(
+        public_receipt.paths[1]
+            .diagnostic
+            .as_deref()
+            .is_some_and(|message| !message.is_empty())
+    );
     assert_eq!(
-        service
-            .workspace(scan.project.id)
-            .expect("base remains")
-            .snapshot,
+        service.workspace(project).expect("base remains").snapshot,
         base
     );
     assert!(
@@ -173,20 +273,25 @@ fn partial_effect_failure_is_truthful_and_recoverable() {
             .contains("{ 2 }")
     );
     assert!(!root.join("src/z-generated.rs").exists());
+}
 
-    let recovered = service
-        .apply_candidate(&candidate)
-        .expect("idempotent retry");
-    assert_eq!(recovered.effect_state, "applied");
-    assert_ne!(recovered.successor_snapshot, base);
-    assert!(root.join("src/z-generated.rs").exists());
-    assert_eq!(
-        store
-            .project_effect_paths(&candidate.id)
-            .expect("recovered path receipts")
-            .iter()
-            .filter(|receipt| receipt.state == "applied")
-            .count(),
-        2
-    );
+/// Verifies refreshed artifact records use the exact committed source bytes.
+///
+/// # Parameters
+/// - `service`: Reopened project service with the recovered successor.
+/// - `project`: Project whose artifact summaries are checked.
+/// - `root`: Materialized project checkout.
+fn assert_successor_artifact_digests(service: &ProjectService, project: ProjectId, root: &Path) {
+    let artifacts = service
+        .artifacts(project)
+        .expect("successor artifact baseline");
+    for path in ["src/lib.rs", "src/z-generated.rs"] {
+        let expected =
+            *blake3::hash(&fs::read(root.join(path)).expect("materialized bytes")).as_bytes();
+        assert!(artifacts.iter().any(|artifact| {
+            artifact.members.iter().any(|member| {
+                member.project_path.as_deref() == Some(path) && member.digest == expected
+            })
+        }));
+    }
 }

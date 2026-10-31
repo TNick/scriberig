@@ -9,10 +9,11 @@ use scriberig_store_memory::MemoryStore;
 use sr_change::Operation;
 use sr_markdown::{CanonicalNode, MarkdownBlock, MarkdownDocument, parse};
 use sr_projection::{
-    ProjectionKind, ProjectionRef, ProjectionSpecRef, ProjectionStatus, RenderRequest,
-    RendererVersion, RenderingContext, SemanticScopeRef, SemanticStateRef, StyleRef, StyleValue,
+    FidelityAssessment, ProjectionAdapterIdentity, ProjectionKind, ProjectionRef,
+    ProjectionSpecRef, ProjectionStatus, ReconciliationBaseline, RenderRequest, RendererVersion,
+    RenderingContext, ResolvedStyle, SemanticScopeRef, SemanticStateRef, StyleValue,
 };
-use sr_projection_fs::{ProjectionLocation, ProjectionOwnership, SyncState, digest_bytes};
+use sr_projection_fs::{ProjectionLocation, ProjectionOwnership, SyncState};
 
 pub const SOURCE: &str = "# Architecture\n\n## Storage\n\nObjects are immutable.\n\n## Rendering\n\nFiles are projections.\n";
 pub const EDITED_SOURCE: &str = "# Architecture\n\n## Storage\n\nObjects are immutable and content addressed.\n\n## Sessions\n\nSessions use the same object store.\n\n## Rendering\n\nFiles are projections.\n";
@@ -179,7 +180,7 @@ pub fn render_request(snapshot: SnapshotId) -> RenderRequest {
         },
         base_state: SemanticStateRef(snapshot),
         kind: ProjectionKind::new("markdown").expect("kind"),
-        style: StyleRef::Value(StyleValue::new(b"default".to_vec())),
+        style: ResolvedStyle::inline(StyleValue::new(b"default".to_vec())),
         renderer: RendererVersion::new("test"),
         context: RenderingContext::default(),
     }
@@ -201,22 +202,18 @@ pub fn sync_state(
     bytes: &[u8],
     ownership: ProjectionOwnership,
 ) -> SyncState {
-    SyncState {
-        projection: ProjectionRef(EntityId::from_bytes([92; 16])),
-        specification: ProjectionSpecRef(EntityId::from_bytes([90; 16])),
-        scope: SemanticScopeRef {
-            entity: EntityId::from_bytes([91; 16]),
-            revision: None,
-        },
-        kind: ProjectionKind::new("markdown").expect("kind"),
-        location: ProjectionLocation::new(path),
+    SyncState::new(
+        ProjectionRef(EntityId::from_bytes([92; 16])),
+        ReconciliationBaseline::from_render(
+            &render_request(snapshot),
+            Some(ProjectionRef(EntityId::from_bytes([92; 16]))),
+            bytes.to_vec(),
+            ProjectionAdapterIdentity::new("markdown", "1").expect("adapter identity"),
+            FidelityAssessment::lossless(),
+        ),
+        ProjectionLocation::new(path),
         ownership,
-        base: SemanticStateRef(snapshot),
-        current: SemanticStateRef(snapshot),
-        style: StyleRef::Value(StyleValue::new(b"default".to_vec())),
-        renderer: RendererVersion::new("test"),
-        rendered: digest_bytes(bytes),
-        observed: None,
-        status: ProjectionStatus::Synchronized,
-    }
+        SemanticStateRef(snapshot),
+        ProjectionStatus::Synchronized,
+    )
 }

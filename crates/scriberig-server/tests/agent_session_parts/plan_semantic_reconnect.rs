@@ -52,13 +52,13 @@ fn client_reconnect_reads_authoritative_semantic_plan_projection() {
         .expect("create plan");
     let node = plan.nodes.first().expect("plan node");
     let updated = client
-        .mutate_plan_semantics(scriberig_protocol::SessionPlanSemanticMutationRequest {
+        .mutate_plan(scriberig_protocol::SessionPlanMutationRequest {
             session: SessionReference {
                 id: session.to_owned(),
             },
             plan: plan.id.clone(),
             expected_revision: plan.revision,
-            mutation: scriberig_protocol::SessionPlanSemanticMutation::AddGate {
+            mutation: scriberig_protocol::SessionPlanMutation::AddGate {
                 owner: node.id.clone(),
                 phase: scriberig_protocol::SessionPlanGatePhase::Entry,
                 requirement: scriberig_protocol::SessionPlanGateRequirement::EvidencePresent {
@@ -73,11 +73,29 @@ fn client_reconnect_reads_authoritative_semantic_plan_projection() {
         .read_session(session)
         .expect("read session after reconnect");
 
-    assert_eq!(loaded.plans, vec![updated.clone()]);
-    assert_eq!(loaded.plans[0].gates.len(), 1);
-    assert_eq!(loaded.plans[0].gates[0].owner, node.id);
+    let reloaded_plan = loaded
+        .plans
+        .iter()
+        .find(|candidate| candidate.id == updated.id)
+        .expect("compact plan is available after reconnect");
+    assert_eq!(reloaded_plan.exact_revision, updated.exact_revision);
     assert_eq!(
-        loaded.plans[0].nodes[0].entry_gates.pending, 1,
-        "the exact mutated plan view is reloaded without event replay"
+        reloaded_plan.nodes[0].entry_gates.pending, 1,
+        "the authoritative compact projection retains the gate summary"
     );
+    let details = reconnected
+        .plan_details(scriberig_protocol::SessionPlanDetailsRequest {
+            session: SessionReference {
+                id: session.to_owned(),
+            },
+            plan: updated.id,
+            expected_revision: updated.revision,
+            snapshot: None,
+            gate_offset: 0,
+            evidence_offset: 0,
+            limit: 10,
+        })
+        .expect("read canonical gate details after reconnect");
+    assert_eq!(details.gate_total, 1);
+    assert_eq!(details.gates[0].owner, node.id);
 }

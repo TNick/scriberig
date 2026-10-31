@@ -10,23 +10,6 @@ mod event;
 #[path = "server_helpers_session_plan.rs"]
 pub(super) mod session_plan;
 pub(crate) use session_plan::project as project_session_plan;
-pub(crate) use session_plan::project_details as project_session_plan_details;
-
-/// Projects a session using reference evaluation for isolated helper tests.
-///
-/// - `session`: Durable session value returned by the application boundary.
-///
-/// # Returns
-/// Session tree containing ordered activity and compact plan projections.
-///
-/// # Errors
-/// Returns a plan projection error when a shared view cannot be assembled.
-#[cfg(test)]
-pub(super) fn session_response(
-    session: scriberig_session::Session,
-) -> Result<scriberig_protocol::SessionReadResponse, scriberig_app::ApplicationError> {
-    session_response_with_rollups(session, &std::collections::BTreeMap::new())
-}
 
 pub(super) use event::event_from_application;
 
@@ -34,22 +17,19 @@ pub(super) use event::event_from_application;
 #[path = "server_helpers_session_tests.rs"]
 mod session_plan_tests;
 
-/// Projects a session with shared exact-snapshot plan rollups.
+/// Converts a durable session into a compact provider-neutral response.
 ///
+/// - `super`: Server protocol module namespace used by the response type.
 /// - `session`: Durable session value returned by the application boundary.
-/// - `rollups`: Per-plan node rollups read through the application store.
 ///
-/// # Returns
 /// Session tree containing ordered activity and compact result handles.
+/// # Returns
+/// The operation result.
 ///
 /// # Errors
-/// Returns a plan projection error when a shared view cannot be assembled.
-pub(super) fn session_response_with_rollups(
+/// Returns an error when the requested operation cannot complete.
+pub(super) fn session_response(
     session: scriberig_session::Session,
-    rollups: &std::collections::BTreeMap<
-        scriberig_core::EntityId,
-        std::collections::BTreeMap<scriberig_core::EntityId, scriberig_session::PlanNodeRollup>,
-    >,
 ) -> Result<scriberig_protocol::SessionReadResponse, scriberig_app::ApplicationError> {
     let session_id = session.id;
     let execution = session.execution;
@@ -61,10 +41,7 @@ pub(super) fn session_response_with_rollups(
     let plans = session
         .plans
         .into_iter()
-        .map(|plan| {
-            let plan_rollups = rollups.get(&plan.id);
-            session_plan::project_with_rollups(plan, Some(&results), plan_rollups)
-        })
+        .map(|plan| session_plan::project(plan, Some(&results)))
         .collect::<Result<Vec<_>, _>>()?;
     let mut branches = session
         .branches
@@ -141,6 +118,43 @@ pub(super) fn session_response_with_rollups(
                 .collect(),
         },
     })
+}
+
+/// Converts a session into a protocol response with bounded plan summaries.
+///
+/// # Parameters
+/// - `session`: Compact durable session projection.
+/// - `read_views`: Shared application read for each plan's exact current view.
+///
+/// # Returns
+/// A session tree with compact plan/node summaries and no embedded histories.
+///
+/// # Errors
+/// Returns an application error when a plan view or protocol projection fails.
+pub(super) fn session_response_compact(
+    session: scriberig_session::Session,
+    mut read_views: impl FnMut(
+        scriberig_core::EntityId,
+        scriberig_core::EntityId,
+    ) -> Result<
+        (
+            scriberig_session::PlanView,
+            Vec<scriberig_session::PlanNodeView>,
+        ),
+        scriberig_app::ApplicationError,
+    >,
+) -> Result<scriberig_protocol::SessionReadResponse, scriberig_app::ApplicationError> {
+    let session_id = session.id;
+    let mut response = session_response(session.clone())?;
+    response.plans = session
+        .plans
+        .into_iter()
+        .map(|plan| {
+            let (view, nodes) = read_views(session_id, plan.id)?;
+            session_plan::project_compact(plan, &view, nodes)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(response)
 }
 
 /// Extracts stable result handles without exposing canonical result payloads.

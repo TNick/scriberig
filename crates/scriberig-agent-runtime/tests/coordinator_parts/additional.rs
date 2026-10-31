@@ -9,6 +9,10 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
     let service = ApplicationService::new(Backend {
         store: std::sync::Arc::new(MemoryStore::new()),
     })
+    .with_session_store(std::sync::Arc::new(
+        scriberig_session_sqlite::SqliteSessionStore::open_in_memory()
+            .expect("open durable session store"),
+    ))
     .with_upstream_models(vec![
         rpi_ai::Model::new(
             "wire-a",

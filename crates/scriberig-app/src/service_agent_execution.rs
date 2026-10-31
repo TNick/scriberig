@@ -36,6 +36,34 @@ impl<B> ApplicationService<B> {
         )
     }
 
+    /// Begins an exact-anchor continuation and leaves it pending for the runtime.
+    ///
+    /// - `self`: Application service owning session and operation state.
+    /// - `context`: Caller capabilities and semantic scope.
+    /// - `request`: Session, exact reply anchor, prompt, and optional selection.
+    ///
+    /// The pending operation, session, and continuation branch handles.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when authorization, anchor validation, or persistence fails.
+    pub fn begin_continue_agent_at(
+        &self,
+        context: &ApplicationContext,
+        request: crate::AgentContinueAtRequest,
+    ) -> Result<crate::LocalAgentHandle, ApplicationError> {
+        self.begin_agent_execution(
+            context,
+            &crate::AgentCommandRequest {
+                session: request.session,
+                branch: None,
+                anchor: Some(request.anchor),
+                prompt: request.prompt,
+                selection: request.selection,
+            },
+        )
+    }
+
     /// Begins a local agent operation after checking its public capability.
     ///
     /// The returned operation remains running so a composed provider runtime can

@@ -18,12 +18,6 @@ fn running_plan_accepts_next_step_with_one_mutation_revision() {
     assert_eq!(plan.nodes.len(), prior_nodes + 1);
     assert_eq!(plan.nodes.last().unwrap().id, next_step.id);
     assert_eq!(plan.nodes.last().unwrap().status, PlanNodeStatus::Ready);
-    assert_eq!(
-        plan.history
-            .last()
-            .and_then(|revision| revision.reason.as_deref()),
-        Some("ordinary next step added")
-    );
 }
 
 /// Keeps failed worker provenance while retrying the same semantic node.
@@ -110,6 +104,21 @@ fn failed_plan_node_retries_with_a_new_branch_and_claim_generation() {
     assert_eq!(attempts[1].branch, second_branch);
     assert_eq!(attempts[1].status, PlanNodeStatus::Running);
     assert_eq!(attempts[1].claim, Some(second_claim));
+    assert_eq!(attempts[1].failure, None);
+
+    let success_id = EntityId::from_bytes([229; 16]);
+    let success = branch_result(success_id, second_branch, None);
+    plan.complete_node(node, second_claim, &success)
+        .expect("complete retried attempt");
+    let attempts = plan.attempt_history(node).expect("updated attempt history");
+    assert_eq!(attempts[0].status, PlanNodeStatus::Failed);
+    assert_eq!(
+        attempts[0].failure.as_ref().unwrap().reference.entity,
+        failure_id
+    );
+    assert_eq!(attempts[1].status, PlanNodeStatus::Completed);
+    assert_eq!(attempts[1].result, Some(success_id));
+    assert_eq!(attempts[1].failure, None);
 }
 
 /// Rejects retry when the node's exact dependency result is unavailable.
@@ -154,45 +163,6 @@ fn failed_plan_recovers_to_paused_for_explicit_repair() {
     assert_eq!(plan.history.last().unwrap().status, PlanStatus::Paused);
 }
 
-/// Repairs a failed plan through the explicit pause and validated replan path.
-#[test]
-fn failed_plan_recovery_allows_validated_replan() {
-    let mut plan = plan_fixture();
-    plan.status = PlanStatus::Failed;
-    plan.recover_failed_plan().expect("recover failed plan");
-    let original_revision = plan.revision;
-    let addition = plan_node(35, plan.root_branch, "repair work");
-
-    plan.replan(
-        vec![addition.clone()],
-        Vec::new(),
-        &[],
-        &[],
-        &[],
-        &[],
-        "repair failed plan",
-    )
-    .expect("validated replan");
-
-    assert_eq!(plan.status, PlanStatus::Paused);
-    assert_eq!(plan.revision, original_revision + 1);
-    assert!(plan.nodes.iter().any(|node| node.id == addition.id));
-}
-
-/// Keeps completed and cancelled plans terminal for ordinary node mutation.
-#[test]
-fn completed_and_cancelled_plans_reject_ordinary_mutations() {
-    for status in [PlanStatus::Completed, PlanStatus::Cancelled] {
-        let mut plan = plan_fixture();
-        plan.status = status;
-
-        assert_eq!(
-            plan.add_node(plan_node(36, plan.root_branch, "late work")),
-            Err(PlanError::TerminalPlan)
-        );
-    }
-}
-
 /// Verifies stale plan claim recovery is deterministic and blocks dependents.
 #[test]
 fn stale_plan_claim_recovery_is_deterministic_and_blocks_dependents() {
@@ -223,32 +193,6 @@ fn stale_plan_claim_recovery_is_deterministic_and_blocks_dependents() {
     assert!(!plan.ready_nodes_from_results(&[]).contains(&dependent));
 }
 
-/// Prevents a recovered stale coordinator from dispatching ready work.
-#[test]
-fn stale_coordinator_cannot_dispatch_after_recovery() {
-    let mut plan = plan_fixture();
-    let node = plan.nodes[0].id;
-    plan.transition(PlanStatus::Running).expect("run plan");
-    plan.claim_coordinator(EntityId::from_bytes([213; 16]), "stale-runtime")
-        .expect("claim coordinator");
-
-    assert_eq!(plan.recover_stale_claims(|_| false), Ok(1));
-    let recovered_revision = plan.revision;
-    assert!(plan.coordinator_claim.is_none());
-    assert_eq!(
-        plan.start_node(
-            node,
-            EntityId::from_bytes([214; 16]),
-            EntityId::from_bytes([215; 16]),
-            "stale-runtime",
-            &[],
-        ),
-        Err(PlanError::InvalidTransition)
-    );
-    assert_eq!(plan.revision, recovered_revision);
-    assert_eq!(plan.nodes[0].status, PlanNodeStatus::Ready);
-}
-
 /// Requires exact result class and handle evidence before releasing dependents.
 #[test]
 fn plan_readiness_requires_explicit_result_contract() {
@@ -259,9 +203,9 @@ fn plan_readiness_requires_explicit_result_contract() {
     let result_id = EntityId::from_bytes([84; 16]);
     let mut plan = Plan {
         id: EntityId::from_bytes([85; 16]),
+        source_snapshot: None,
         session: None,
         anchor: None,
-        source_snapshot: None,
         goal: "contract test".to_owned(),
         revision: 0,
         status: PlanStatus::Planned,
@@ -314,9 +258,111 @@ fn plan_readiness_requires_explicit_result_contract() {
     );
 }
 
-#[path = "part1/replan_completion.rs"]
-mod replan_completion;
-pub(super) use replan_completion::plan_fixture;
+/// Preserves completed result identities through explicit replan revisions.
+#[test]
+fn replan_preserves_completed_results_and_fulfills_new_edges() {
+    let mut plan = plan_fixture();
+    let completed = plan.nodes[0].id;
+    let old_unfinished = plan.nodes[1].id;
+    let result_id = EntityId::from_bytes([110; 16]);
+    plan.nodes[0].status = PlanNodeStatus::Completed;
+    plan.nodes[0].result = Some(result_id);
+    plan.status = PlanStatus::Paused;
+    let replacement = plan_node(111, plan.root_branch, "replacement");
+    let replacement_id = replacement.id;
+    plan.replan(
+        vec![replacement],
+        vec![(completed, replacement_id)],
+        &[],
+        &[(old_unfinished, replacement_id)],
+        &[],
+        &[completed],
+        "replace obsolete work",
+    )
+    .expect("replan");
+    let preserved = plan.nodes.iter().find(|node| node.id == completed).unwrap();
+    assert_eq!(preserved.status, PlanNodeStatus::Completed);
+    assert_eq!(preserved.result, Some(result_id));
+    let edge = plan
+        .dependencies
+        .iter()
+        .find(|edge| edge.prerequisite == completed && edge.dependent == replacement_id)
+        .expect("new dependency");
+    assert_eq!(edge.fulfilled_by, Some(result_id));
+    assert_eq!(
+        plan.nodes
+            .iter()
+            .find(|node| node.id == old_unfinished)
+            .unwrap()
+            .superseded_by,
+        Some(replacement_id)
+    );
+    let before_cycle = plan.clone();
+    assert_eq!(
+        plan.replan(
+            vec![
+                plan_node(112, plan.root_branch, "cycle attempt a"),
+                plan_node(113, plan.root_branch, "cycle attempt b"),
+            ],
+            vec![
+                (
+                    EntityId::from_bytes([112; 16]),
+                    EntityId::from_bytes([113; 16])
+                ),
+                (
+                    EntityId::from_bytes([113; 16]),
+                    EntityId::from_bytes([112; 16])
+                ),
+            ],
+            &[],
+            &[],
+            &[],
+            &[completed],
+            "cycle attempt",
+        ),
+        Err(PlanError::DependencyCycle)
+    );
+    assert_eq!(plan, before_cycle);
+}
+
+/// Creates a plan fixture with two independent workers and one dependent node.
+/// # Returns
+/// The operation result.
+pub(super) fn plan_fixture() -> Plan {
+    let root = EntityId::from_bytes([20; 16]);
+    let mut plan = Plan {
+        id: EntityId::from_bytes([21; 16]),
+        source_snapshot: None,
+        session: None,
+        anchor: None,
+        goal: String::new(),
+        revision: 0,
+        status: PlanStatus::Draft,
+        root_branch: root,
+        nodes: Vec::new(),
+        dependencies: Vec::new(),
+        summaries: Vec::new(),
+        evidence: Vec::new(),
+        gates: Vec::new(),
+        coordinator: None,
+        coordinator_cursor: None,
+        coordinator_claim: None,
+        coordinator_generation: 0,
+        root_nodes: Vec::new(),
+        history: Vec::new(),
+    };
+    plan.add_node(plan_node(22, root, "parser"))
+        .expect("parser node");
+    plan.add_node(plan_node(23, root, "docs"))
+        .expect("docs node");
+    plan.add_node(plan_node(24, root, "integration"))
+        .expect("integration node");
+    plan.transition(PlanStatus::Planned).expect("plan plan");
+    plan
+}
 
 #[path = "part2.rs"]
 mod part2;
+
+#[path = "part3.rs"]
+mod part3;

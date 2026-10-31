@@ -6,7 +6,7 @@ use crate::effect::Effect;
 use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
     ApplicationResult, ApplicationService, InspectRequest, InspectResult, QueryService,
-    RuntimeCapability, SnapshotResolution,
+    SnapshotResolution,
 };
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use scriberig_session::Session;
@@ -31,11 +31,11 @@ mod service_operation_helpers;
 #[path = "service_operation_model_request.rs"]
 mod service_operation_model_request;
 #[macro_use]
-#[path = "service_application_operation_method.rs"]
-mod service_application_operation_method;
-#[macro_use]
 #[path = "service_plan_contract_methods.rs"]
 mod service_plan_contract_methods;
+#[macro_use]
+#[path = "service_domain_contract_methods.rs"]
+mod service_domain_contract_methods;
 #[macro_use]
 #[path = "service_contract_methods.rs"]
 mod service_contract_methods;
@@ -57,8 +57,6 @@ mod service_remote;
 mod service_remote_agent;
 #[path = "service_remote_mapping.rs"]
 mod service_remote_mapping;
-#[cfg(test)]
-pub(crate) use service_remote_mapping::session_plan_from_response;
 #[path = "service_remote_model_request.rs"]
 mod service_remote_model_request;
 #[path = "service_remote_models.rs"]
@@ -67,16 +65,80 @@ mod service_remote_models;
 pub use agent_handle::{AgentExecutionFailure, AgentHandle, AgentWorkspace};
 pub use service_agent_runner::{AgentCommandRunner, SharedAgentCommandRunner};
 pub use service_application::ApplicationAdapter;
+#[path = "service_recovery.rs"]
+mod service_recovery;
+#[path = "service_runtime.rs"]
+mod service_runtime;
 use service_effects::select_branch_subtree;
 pub use service_effects::{TuiOperationService, execute_effect};
 pub use service_operation_adapter::{ApplicationOperationAdapter, ExplorerLabels};
 pub use service_operations::{execute_operation, execute_operation_effect};
 pub use service_project_projection::ProjectProjection;
 use service_project_projection::render as render_project_source;
+pub use service_recovery::TuiRecoveryService;
 pub use service_remote::RemoteAdapter;
+pub use service_runtime::TuiRuntimeService;
 
 /// Supplies semantic reads to the TUI without exposing storage internals.
-pub trait TuiService: TuiModelRequestService {
+pub trait TuiService: TuiModelRequestService + TuiRecoveryService + TuiRuntimeService {
+    tui_domain_methods!();
+
+    /// Returns the optional upstream registry for plugin-supplied components.
+    ///
+    /// # Returns
+    /// A clone of the product's active extension component mailbox.
+    fn extension_component_mailbox(&self) -> Option<rpi_extensions::ExtensionStatusMailbox> {
+        None
+    }
+
+    /// Returns upstream plugin commands authorized by the local product host.
+    ///
+    /// # Returns
+    /// Command metadata that can be shown in the unified palette.
+    fn plugin_commands(&self) -> Vec<rpi_extensions::isolated::WorkerCommandSpec> {
+        Vec::new()
+    }
+
+    /// Executes one upstream plugin command through the injected product runner.
+    ///
+    /// - `command`: Exact normalized command identity.
+    /// - `arguments`: Raw text following the command name.
+    ///
+    /// # Returns
+    /// The plugin's structured command response.
+    ///
+    /// # Errors
+    /// Returns a safe failure when the command is unavailable or rejected.
+    fn invoke_plugin_command(
+        &self,
+        command: &str,
+        arguments: &str,
+    ) -> Result<serde_json::Value, String> {
+        let _ = (command, arguments);
+        Err("plugin commands are unavailable".to_owned())
+    }
+
+    /// Continues an upstream plugin command using an action from its UI response.
+    ///
+    /// - `command`: Exact normalized command identity.
+    /// - `arguments`: Raw text following the command name.
+    /// - `action`: Structured selection or submitted text.
+    ///
+    /// # Returns
+    /// The next structured command response.
+    ///
+    /// # Errors
+    /// Returns a safe failure when the command is unavailable or rejected.
+    fn invoke_plugin_command_action(
+        &self,
+        command: &str,
+        arguments: &str,
+        action: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        let _ = action;
+        self.invoke_plugin_command(command, arguments)
+    }
+
     /// Inspects one entity through the shared application contract.
     ///
     /// - `context`: Application context for the request.
@@ -147,21 +209,6 @@ pub trait TuiService: TuiModelRequestService {
         })
     }
 
-    /// Returns runtime capabilities exposed by the application composition.
-    /// - `_context`: Application context for capability resolution.
-    ///   The capabilities available to the TUI.
-    ///   Returns the structured application error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn runtime_capabilities(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
-        Ok(Vec::new())
-    }
-
     /// Reads local upstream model property descriptors for one provider model.
     ///
     /// - `_context`: Trusted local authorization context.
@@ -208,112 +255,24 @@ pub trait TuiService: TuiModelRequestService {
         })
     }
 
-    /// Reads one authoritative operation lifecycle record.
-    ///
-    /// - `_context`: Application context for the lookup.
-    /// - `_operation`: Operation identity to resolve.
-    ///
-    /// The current operation record.
-    ///
-    /// Returns an unsupported-operation error by default.
-    /// - `_context`: Argument named `_context`.
-    /// - `operation`: Argument named `operation`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
-    /// - `_context`: Argument named `_context`.
-    /// - `operation`: Argument named `operation`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
+    /// Executes one shared application operation when the adapter supports it.
+    /// - `_context`: Application context for the operation.
+    /// - `_request`: Public operation request.
+    ///   The operation result when supported.
+    ///   Returns a structured application error when the operation is unavailable
+    ///   or rejected by the owning application subsystem.
     /// # Returns
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    fn operation_status(
+    fn execute_operation(
         &self,
         _context: &ApplicationContext,
-        _operation: &scriberig_core::OperationId,
-    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
+        _request: &ApplicationRequest,
+    ) -> Result<ApplicationResult, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
-            operation: "operation status".to_owned(),
+            operation: "tui semantic operation".to_owned(),
         })
-    }
-
-    /// Requests application-owned cancellation of one operation.
-    ///
-    /// - `_context`: Application context for the cancellation.
-    /// - `_operation`: Operation identity to cancel.
-    ///
-    /// The cancelled operation record.
-    ///
-    /// Returns an unsupported-operation error by default.
-    /// - `_context`: Argument named `_context`.
-    /// - `operation`: Argument named `operation`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
-    /// - `_context`: Argument named `_context`.
-    /// - `operation`: Argument named `operation`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn cancel_operation(
-        &self,
-        _context: &ApplicationContext,
-        _operation: &scriberig_core::OperationId,
-    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "operation cancellation".to_owned(),
-        })
-    }
-
-    /// Returns a snapshot of the application's tracked operation records.
-    ///
-    /// - `_context`: Application context for operation visibility.
-    ///
-    /// Current operation records available to this service.
-    ///
-    /// Returns an operation access error when the service cannot list records.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn operation_records(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<scriberig_app::OperationRecord>, ApplicationError> {
-        Ok(Vec::new())
-    }
-
-    /// Returns application events observed since the previous runtime poll.
-    ///
-    /// - `_context`: Application context for event access.
-    ///
-    /// Retained application events.
-    ///
-    /// Returns an unsupported event-access error when unavailable.
-    /// - `_context`: Argument named `_context`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
-    /// - `_context`: Argument named `_context`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn application_events(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<scriberig_app::ApplicationEvent>, ApplicationError> {
-        Ok(Vec::new())
     }
 
     /// Reads one public session tree.
@@ -379,8 +338,6 @@ pub trait TuiService: TuiModelRequestService {
             operation: "session removal".to_owned(),
         })
     }
-
-    tui_application_operation_methods!();
 
     tui_plan_methods!();
 

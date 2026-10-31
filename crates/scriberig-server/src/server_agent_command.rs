@@ -77,6 +77,29 @@ fn submit_agent_command<B: ApplicationBackend>(
     kind: &str,
     payload: &serde_json::Value,
 ) -> Result<Operation, ApplicationError> {
+    let request = decode_agent_command(kind, payload)?;
+    let operation =
+        scriberig_app::SessionBackend::submit_agent_command(service, context, &request)?;
+    service.operation_status(&operation.to_string())
+}
+
+/// Decodes a protocol agent payload into the shared application request.
+///
+/// - `kind`: Agent command family used for validation errors.
+/// - `payload`: Provider-neutral agent payload.
+///
+/// A shared agent request with exact session, branch, prompt, and selection.
+///
+/// Returns a structured validation error for malformed identifiers or selection.
+/// # Returns
+/// The decoded shared application agent request.
+///
+/// # Errors
+/// Returns a validation error when required identifiers or selection are malformed.
+pub(crate) fn decode_agent_command(
+    kind: &str,
+    payload: &serde_json::Value,
+) -> Result<scriberig_app::AgentCommandRequest, ApplicationError> {
     let session = payload
         .get("session")
         .and_then(serde_json::Value::as_str)
@@ -158,16 +181,11 @@ fn submit_agent_command<B: ApplicationBackend>(
             })
         }
     };
-    let operation = scriberig_app::SessionBackend::submit_agent_command(
-        service,
-        context,
-        &scriberig_app::AgentCommandRequest {
-            session,
-            branch,
-            anchor: None,
-            prompt: prompt.to_owned(),
-            selection,
-        },
-    )?;
-    service.operation_status(&operation.to_string())
+    Ok(scriberig_app::AgentCommandRequest {
+        session,
+        branch,
+        anchor: None,
+        prompt: prompt.to_owned(),
+        selection,
+    })
 }

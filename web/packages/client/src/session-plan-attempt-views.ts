@@ -1,10 +1,10 @@
 /** @file Normalizes bounded semantic plan attempt history pages. */
 import type {
-  SessionPlanAttempt,
+  SessionPlanAttempt as SessionPlanAttemptRecord,
   SessionPlanAttemptHistoryPage,
   SessionPlanNodeStatus,
 } from "@scriberig/protocol";
-import { normalizePlanEvidenceReference } from "./session-plan-semantic-views";
+import { normalizeEvidenceReference } from "./session-plan-semantic-views";
 
 /** Normalizes a bounded page of exact-snapshot attempt records.
  * @param value Unknown response value from the transport.
@@ -25,7 +25,7 @@ export function normalizePlanAttemptHistory(value: unknown): SessionPlanAttemptH
  * @param value Unknown semantic attempt record.
  * @returns A valid attempt or `undefined` when required identities are absent.
  */
-function normalizeAttempt(value: unknown): SessionPlanAttempt | undefined {
+function normalizeAttempt(value: unknown): SessionPlanAttemptRecord | undefined {
   if (!isObject(value)) return undefined;
   const id = value.id;
   const exactRevision = value.exactRevision ?? value.exact_revision;
@@ -42,12 +42,12 @@ function normalizeAttempt(value: unknown): SessionPlanAttempt | undefined {
   const generation = value.claimGeneration ?? value.claim_generation;
   const claim = value.claim;
   const result = value.result;
-  const failure = normalizePlanEvidenceReference(value.failure);
+  const failure = normalizeEvidenceReference(value.failure);
   return {
     id,
     exactRevision,
     node,
-    branch,
+    branch: branch as SessionPlanAttemptRecord["branch"],
     claimGeneration: typeof generation === "number" ? generation : 0,
     ...(typeof claim === "string" ? { claim } : {}),
     status: normalizeStatus(value.status),

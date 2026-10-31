@@ -8,15 +8,30 @@ mod plan_contract_methods;
 #[macro_use]
 #[path = "service_remote_session_methods.rs"]
 mod session_methods;
+#[macro_use]
+#[path = "service_remote_cad_methods.rs"]
+mod remote_cad_methods;
+#[macro_use]
+#[path = "service_remote_qgis_methods.rs"]
+mod remote_qgis_methods;
+#[macro_use]
+#[path = "service_remote_geopackage_document_methods.rs"]
+mod remote_geopackage_document_methods;
+#[macro_use]
+#[path = "service_remote_spreadsheet_artifact_methods.rs"]
+mod remote_spreadsheet_artifact_methods;
 use super::service_remote_mapping::{
     map_remote_operation, protocol_agent_selection, remote_error, session_from_response,
 };
 use super::service_remote_models;
 use super::*;
+use scriberig_app::RuntimeCapability;
 use std::collections::BTreeSet;
 
 #[path = "service_remote_plan_operations.rs"]
 mod plan_operations;
+#[path = "service_remote_recovery.rs"]
+mod recovery;
 #[path = "service_remote_events.rs"]
 mod remote_events;
 
@@ -49,21 +64,27 @@ impl<T> RemoteAdapter<T> {
 }
 
 impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
+    remote_cad_methods!();
+
+    remote_qgis_methods!();
+
+    remote_geopackage_document_methods!();
+
+    remote_spreadsheet_artifact_methods!();
+
     /// Continues a remote conversation from an exact durable anchor.
     ///
-    /// - `self`: Remote service adapter.
+    /// # Parameters
     /// - `_context`: Local context; remote authorization is transport-owned.
     /// - `session`: Owning session identity.
     /// - `anchor`: Exact replyable location.
     /// - `prompt`: User-authored follow-up.
     ///
+    /// # Returns
     /// Authoritative operation, session, and continuation branch handles.
     ///
-    /// Returns sanitized protocol or identity errors.
-    /// # Returns
-    /// The operation result.
     /// # Errors
-    /// Returns an error when the operation fails.
+    /// Returns sanitized protocol or identity errors.
     fn continue_agent_at_handle(
         &self,
         _context: &ApplicationContext,
@@ -254,90 +275,6 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
         super::service_remote_mapping::find_entities(&self.client, snapshot, query)
     }
 
-    /// Converts remote capability descriptors into application metadata.
-    ///
-    /// - `_context`: Application context for capability access.
-    ///
-    /// Decoded runtime capabilities.
-    ///
-    /// Returns a protocol capability-discovery error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn runtime_capabilities(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
-        service_remote_models::runtime_capabilities(self)
-    }
-
-    /// Reads a remote operation lifecycle record through the public client.
-    ///
-    /// - `_context`: Application context for the lookup.
-    /// - `operation`: Operation identity to resolve.
-    ///
-    /// The remote operation record.
-    ///
-    /// Returns a remote protocol or decoding error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn operation_status(
-        &self,
-        _context: &ApplicationContext,
-        operation: &scriberig_core::OperationId,
-    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        let response = self
-            .client
-            .operation_status(operation.to_string())
-            .map_err(remote_error)?;
-        map_remote_operation(response.operation)
-    }
-
-    /// Requests remote cancellation and returns the reported lifecycle state.
-    ///
-    /// - `_context`: Application context for cancellation.
-    /// - `operation`: Operation identity to cancel.
-    ///
-    /// The cancelled remote operation record.
-    ///
-    /// Returns a remote protocol or decoding error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn cancel_operation(
-        &self,
-        _context: &ApplicationContext,
-        operation: &scriberig_core::OperationId,
-    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        let response = self
-            .client
-            .cancel_operation(operation.to_string())
-            .map_err(remote_error)?;
-        map_remote_operation(response.operation)
-    }
-
-    /// Polls public remote events for the runtime event/action path.
-    ///
-    /// - `_context`: Application context for event access.
-    ///
-    /// Decoded remote application events.
-    ///
-    /// Returns a remote protocol error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn application_events(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<scriberig_app::ApplicationEvent>, ApplicationError> {
-        remote_events::application_events(self)
-    }
-
     /// Reads and reconstructs the compact remote session view.
     ///
     /// - `_context`: Authorized application context.
@@ -367,6 +304,84 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
 
     remote_plan_contract_methods!();
     remote_session_methods!();
+}
+
+impl<T: scriberig_protocol::ProtocolTransport> TuiRuntimeService for RemoteAdapter<T> {
+    /// Converts remote capability descriptors into application metadata.
+    ///
+    /// - `_context`: Application context for capability access.
+    ///
+    /// # Returns
+    /// The decoded runtime capabilities.
+    ///
+    /// # Errors
+    /// Returns a protocol capability-discovery error.
+    fn runtime_capabilities(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
+        service_remote_models::runtime_capabilities(self)
+    }
+
+    /// Reads a remote operation lifecycle record through the public client.
+    ///
+    /// - `_context`: Application context for the lookup.
+    /// - `operation`: Operation identity to resolve.
+    ///
+    /// # Returns
+    /// The remote operation record.
+    ///
+    /// # Errors
+    /// Returns a remote protocol or decoding error.
+    fn operation_status(
+        &self,
+        _context: &ApplicationContext,
+        operation: &scriberig_core::OperationId,
+    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
+        let response = self
+            .client
+            .operation_status(operation.to_string())
+            .map_err(remote_error)?;
+        map_remote_operation(response.operation)
+    }
+
+    /// Requests remote cancellation and returns the reported lifecycle state.
+    ///
+    /// - `_context`: Application context for cancellation.
+    /// - `operation`: Operation identity to cancel.
+    ///
+    /// # Returns
+    /// The cancelled remote operation record.
+    ///
+    /// # Errors
+    /// Returns a remote protocol or decoding error.
+    fn cancel_operation(
+        &self,
+        _context: &ApplicationContext,
+        operation: &scriberig_core::OperationId,
+    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
+        let response = self
+            .client
+            .cancel_operation(operation.to_string())
+            .map_err(remote_error)?;
+        map_remote_operation(response.operation)
+    }
+
+    /// Polls public remote events for the runtime event/action path.
+    ///
+    /// - `_context`: Application context for event access.
+    ///
+    /// # Returns
+    /// Decoded remote application events.
+    ///
+    /// # Errors
+    /// Returns a remote protocol or transport error.
+    fn application_events(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<Vec<scriberig_app::ApplicationEvent>, ApplicationError> {
+        remote_events::application_events(self)
+    }
 }
 
 #[cfg(test)]

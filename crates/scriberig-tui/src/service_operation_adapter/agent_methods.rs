@@ -20,7 +20,11 @@ macro_rules! operation_agent_methods {
             let models =
                 scriberig_app::AgentConsoleBackend::agent_model_library(&self.service, context)?;
             let mut response = super::service_application::query::model_library_response(models);
-            response.provider_readiness = self.agent_runner.provider_readiness();
+            super::service_application::query::attach_provider_readiness(
+                &mut response,
+                self.agent_runner.provider_readiness(),
+                self.service.model_catalog_generation(),
+            );
             Ok(response)
         }
 

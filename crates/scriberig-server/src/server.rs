@@ -7,20 +7,19 @@ mod server_query_contract;
 #[path = "server_presentation_contract.rs"]
 mod server_presentation_contract;
 #[path = "server_agent_command.rs"]
-mod server_agent_command;
+pub(crate) mod server_agent_command;
 #[path = "server_agent_console.rs"]
 mod server_agent_console;
 #[path = "server_agent_preferences.rs"]
 mod server_agent_preferences;
 #[macro_use]
 #[path = "server_session_operations.rs"]
-mod server_session_operations;
+pub(crate) mod server_session_operations;
 #[macro_use]
 #[path = "server_plan_operations.rs"]
 mod server_plan_operations;
-#[macro_use]
-#[path = "server_plan_node_detail_contract.rs"]
-mod server_plan_node_detail_contract;
+#[path = "server_spreadsheet.rs"]
+mod server_spreadsheet;
 
 use scriberig_app::{
     ApplicationContext, ApplicationError, ApplicationEvent, ApplicationRequest, ApplyRequest,
@@ -30,8 +29,55 @@ use scriberig_app::{
 use scriberig_protocol::{Event, EventKind, Operation};
 use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryResult, QuerySpec};
 
+#[macro_use]
+#[path = "server_recovery_contract.rs"]
+mod recovery_contract;
+#[macro_use]
+#[path = "server_document_contract.rs"]
+mod document_contract;
+#[macro_use]
+#[path = "server_cad_contract.rs"]
+mod cad_contract;
+#[macro_use]
+#[path = "server_rich_artifact_contract.rs"]
+mod rich_artifact_contract;
+#[macro_use]
+#[path = "server_spreadsheet_rename_contract.rs"]
+mod spreadsheet_rename_contract;
+#[macro_use]
+#[path = "server_projection_style_contract.rs"]
+mod projection_style_contract;
+
+#[macro_use]
+#[path = "server_events_contract.rs"]
+mod server_events_contract;
+
 /// Application semantics supplied to protocol dispatch.
 pub trait ApplicationService {
+    document_edit_contract!();
+    shared_rich_artifact_contract!();
+    shared_cad_contract!();
+    spreadsheet_rename_contract!();
+    server_projection_style_contract!();
+
+    /// Creates a project service configured with this host's injected providers.
+    ///
+    /// Product routes use this factory instead of constructing project services
+    /// directly, preserving one provider configuration for scans, imports, and
+    /// artifact fidelity.
+    ///
+    /// # Parameters
+    /// - `store`: Durable project catalog and semantic store.
+    ///
+    /// # Returns
+    /// A project service for the current server application.
+    fn project_service(
+        &self,
+        store: std::sync::Arc<scriberig_store_sqlite::SqliteStore>,
+    ) -> scriberig_project::ProjectService {
+        scriberig_project::ProjectService::new(store)
+    }
+
     /// Reads canonical detail for one migration proposal.
     ///
     /// - `_context`: Trusted request context.
@@ -79,12 +125,34 @@ pub trait ApplicationService {
     /// The operation result.
     fn capabilities(&self) -> Vec<RuntimeCapability>;
 
+    /// Reports provider-neutral CAD format capabilities available on this server.
+    ///
+    /// Hosts with injected providers should override this method with their actual
+    /// initialized provider descriptors. The default reports DWG as unavailable.
+    ///
+    /// # Returns
+    /// Server-side CAD provider state; this is independent of client machine libraries.
+    fn cad_provider_capabilities(&self) -> Vec<scriberig_protocol::CadProviderCapabilityInfo> {
+        vec![scriberig_protocol::CadProviderCapabilityInfo {
+            format: scriberig_protocol::CadProviderFormat::Dwg,
+            availability: scriberig_protocol::CadProviderAvailability::Unavailable,
+            provider_id: None,
+            provider_version: None,
+            can_read: false,
+            can_write: false,
+            can_validate: false,
+            opaque_preservation: scriberig_protocol::CadOpaquePreservation::Unproven,
+        }]
+    }
+
     /// Reads one compact durable session tree.
     ///
     /// - `_context`: Trusted request context.
     /// - `_session`: Stable session identity.
     ///
     /// Provider-neutral session and branch activity summaries.
+    ///
+    /// Returns a structured application error when the session is unavailable.
     /// # Returns
     /// The operation result.
     /// # Errors
@@ -99,7 +167,9 @@ pub trait ApplicationService {
         })
     }
 
-    server_plan_node_detail_contract!();
+    shared_plan_attempt_read_contract!();
+    shared_plan_details_read_contract!();
+    shared_plan_view_read_contract!();
 
     /// Starts a session through the shared application service.
     ///
@@ -245,59 +315,7 @@ pub trait ApplicationService {
 
     agent_presentation_methods!();
 
-    /// Changes the upstream provider/model used by future invocations.
-    ///
-    /// - `_context`: Trusted caller context.
-    /// - `_session`: Stable session identity.
-    /// - `_expected_revision`: Selection revision observed by the caller.
-    /// - `_provider_id`: Exact upstream provider identity.
-    /// - `_model_id`: Provider-scoped upstream model identity.
-    ///
-    /// Updated session execution selection.
-    ///
-    /// Returns unsupported-operation when selection mutation is unavailable.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn set_session_model(
-        &self,
-        _context: &ApplicationContext,
-        _session: &str,
-        _expected_revision: u64,
-        _provider_id: &str,
-        _model_id: &str,
-    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "session model selection".to_owned(),
-        })
-    }
-
-    /// Changes the thinking level used by future session invocations.
-    ///
-    /// - `_context`: Trusted caller context.
-    /// - `_session`: Stable session identity.
-    /// - `_expected_revision`: Selection revision observed by the caller.
-    /// - `_thinking_level`: Advertised thinking id to select.
-    ///
-    /// Updated session execution selection.
-    ///
-    /// Returns unsupported-operation when selection mutation is unavailable.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn set_session_thinking_level(
-        &self,
-        _context: &ApplicationContext,
-        _session: &str,
-        _expected_revision: u64,
-        _thinking_level: &str,
-    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "session thinking selection".to_owned(),
-        })
-    }
+    server_recovery_contract_methods!();
 
     /// Returns one operation status in protocol-independent form.
     ///
@@ -347,29 +365,7 @@ pub trait ApplicationService {
         })
     }
 
-    /// Returns public events after a reconnect cursor.
-    ///
-    /// - `event_kinds`: Event kind filters.
-    /// - `after`: Last cursor already processed by the caller.
-    ///
-    /// Retained events newer than `after`.
-    ///
-    /// Returns an error when the replay cursor is no longer retained.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn events_after(
-        &self,
-        event_kinds: &[String],
-        after: u64,
-    ) -> Result<Vec<Event>, ApplicationError> {
-        Ok(self
-            .events(event_kinds)?
-            .into_iter()
-            .filter(|event| event.sequence > after)
-            .collect())
-    }
+    server_events_contract!();
 
     server_query_contract!();
 }
@@ -378,6 +374,12 @@ pub trait ApplicationService {
 mod server_application;
 #[path = "server_borrowed.rs"]
 mod server_borrowed;
+#[path = "server_plan_attempts.rs"]
+mod server_plan_attempts;
+#[path = "server_plan_details.rs"]
+mod server_plan_details;
+#[path = "server_plan_view.rs"]
+mod server_plan_view;
 
 /// Decodes a protocol command into the transport-independent application model.
 /// - `kind`: Argument named `kind`.

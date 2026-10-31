@@ -47,6 +47,9 @@ pub struct PlanNodeStatusCounts {
 /// - `contains_abandoned`: Whether this subtree contains abandoned work.
 /// - `child_counts`: Direct-child counts by canonical status.
 /// - `unsatisfied_completion_gates`: Pending/failed completion gate count.
+/// - `entry_gates`: Entry gate counts by evaluated state.
+/// - `completion_gates`: Completion gate counts by evaluated state.
+/// - `evidence_count`: Node and gate evidence association count.
 ///
 /// # Private members
 /// None.
@@ -66,21 +69,37 @@ pub struct PlanNodeRollup {
     pub child_counts: PlanNodeStatusCounts,
     /// Pending/failed completion gate count.
     pub unsatisfied_completion_gates: u32,
+    /// Entry gate counts by evaluated state.
+    pub entry_gates: super::super::PlanGateCounts,
+    /// Completion gate counts by evaluated state.
+    pub completion_gates: super::super::PlanGateCounts,
+    /// Number of node and gate evidence associations.
+    pub evidence_count: u32,
 }
 
+/// Computes reference subtree rollups for every node in one plan snapshot.
+///
+/// Abandoned ignored descendants set `contains_ignored` without forcing their
+/// ancestors to Abandoned. Required child gates still block parent completion.
+///
+/// # Parameters
+/// - `self`: Plan snapshot with exact structural and gate state.
+///
+/// A deterministic rollup for every `PlanNode`.
+///
+/// Returns `StructuralCycle` for invalid cyclic parent relations.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 impl Plan {
-    /// Computes deterministic effective state for every plan node.
+    /// Computes deterministic status rollups from the plan snapshot.
     ///
-    /// Abandoned ignored descendants remain visible without forcing ancestor
-    /// nodes to Abandoned. Required child gates still block completion.
-    ///
-    /// - `self`: Plan snapshot with exact structural and gate state.
-    ///
-    /// A rollup for every plan node keyed by its stable identity.
     /// # Returns
-    /// The calculated rollups.
+    /// A map from node identity to derived subtree status.
+    ///
     /// # Errors
-    /// Returns `StructuralCycle` or `MissingNode` for invalid structure.
+    /// Returns `MissingNode` when a structural parent is absent.
     pub fn node_rollups(&self) -> Result<BTreeMap<EntityId, PlanNodeRollup>, PlanError> {
         let mut children = BTreeMap::<EntityId, Vec<EntityId>>::new();
         for node in &self.nodes {
@@ -166,9 +185,9 @@ fn compute_rollup(
                 )
             })
         })
-        .count();
-    let unsatisfied_completion_gates =
-        u32::try_from(unsatisfied_completion_gates).unwrap_or(u32::MAX);
+        .count()
+        .try_into()
+        .unwrap_or(u32::MAX);
     let relevant_children = child_rollups
         .iter()
         .filter(|child| {
@@ -194,6 +213,9 @@ fn compute_rollup(
         contains_abandoned,
         child_counts: counts,
         unsatisfied_completion_gates,
+        entry_gates: plan.gate_counts(node_id, PlanGatePhase::Entry),
+        completion_gates: plan.gate_counts(node_id, PlanGatePhase::Completion),
+        evidence_count: plan.evidence_count(node_id),
     };
     rollups.insert(node_id, rollup);
     Ok(rollup)
@@ -207,8 +229,9 @@ fn compute_rollup(
 /// - `unsatisfied_gates`: Pending or failed completion gates.
 ///
 /// The deterministic effective status.
+///
 /// # Returns
-/// The effective lifecycle status after required descendants and gates.
+/// The value described by the return type.
 pub(super) fn rollup_status(
     direct: PlanNodeStatus,
     children: &[&PlanNodeRollup],

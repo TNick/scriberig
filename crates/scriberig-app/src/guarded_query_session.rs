@@ -63,40 +63,24 @@ impl<S: crate::SessionBackend> crate::SessionBackend for GuardedQueryService<S> 
         self.inner.read_session(context, request)
     }
 
-    /// Delegates paged node attempt history through the wrapped session boundary.
+    /// Delegates compact session projection reads through the guarded service.
     ///
     /// - `context`: Caller authorization and snapshot context.
-    /// - `request`: Stable node identity, exact snapshot, and page range.
+    /// - `request`: Stable session identity to read.
     ///
-    /// The requested attempt page.
+    /// The wrapped session projection.
+    ///
     /// # Returns
-    /// The operation result.
+    /// The compact projection when supported by the wrapped service.
+    ///
     /// # Errors
     /// Returns the wrapped session backend error.
-    fn read_plan_attempt_history(
+    fn read_session_projection(
         &self,
         context: &ApplicationContext,
-        request: &crate::PlanAttemptHistoryRequest,
-    ) -> Result<Vec<scriberig_session::PlanSemanticAttempt>, ApplicationError> {
-        self.inner.read_plan_attempt_history(context, request)
-    }
-
-    /// Delegates bounded node details through the wrapped session boundary.
-    ///
-    /// - `context`: Caller authorization and snapshot context.
-    /// - `request`: Stable node identity, exact snapshot, and page range.
-    ///
-    /// The requested gates and evidence.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns the wrapped session backend error.
-    fn read_plan_node_details(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanNodeDetailsRequest,
-    ) -> Result<scriberig_session::PlanSemanticNodeDetails, ApplicationError> {
-        self.inner.read_plan_node_details(context, request)
+        request: &crate::SessionRequest,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        self.inner.read_session_projection(context, request)
     }
 
     /// Delegates durable plan creation through the guarded service.
@@ -159,84 +143,6 @@ impl<S: crate::SessionBackend> crate::SessionBackend for GuardedQueryService<S> 
         action: crate::PlanLifecycleAction,
     ) -> Result<scriberig_session::Plan, ApplicationError> {
         self.inner.plan_lifecycle(context, request, action)
-    }
-
-    /// Delegates a failed-node retry through the wrapped application boundary.
-    ///
-    /// - `context`: Caller authorization and snapshot context.
-    /// - `request`: Session, plan, node, and observed revision.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns the wrapped session backend error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn retry_plan_node(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanRetryRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        self.inner.retry_plan_node(context, request)
-    }
-
-    /// Delegates a next-step mutation through the wrapped application boundary.
-    ///
-    /// - `context`: Caller authorization and snapshot context.
-    /// - `request`: Plan revision and proposed next-step fields.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns the wrapped session backend error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn add_plan_next_step(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanNextStepRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        self.inner.add_plan_next_step(context, request)
-    }
-
-    /// Delegates a decomposition mutation through the wrapped boundary.
-    ///
-    /// - `context`: Caller authorization and snapshot context.
-    /// - `request`: Parent node, expected revision, and proposed children.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns the wrapped session backend error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn decompose_plan_node(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanDecomposeRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        self.inner.decompose_plan_node(context, request)
-    }
-
-    /// Delegates one typed semantic plan mutation through the wrapped boundary.
-    ///
-    /// - `context`: Caller authorization and snapshot context.
-    /// - `request`: Exact plan revision and mutation details.
-    ///
-    /// Updated plan.
-    /// # Returns
-    /// The updated plan.
-    /// # Errors
-    /// Returns the wrapped session backend error.
-    fn mutate_plan_semantics(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanSemanticMutationRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        self.inner.mutate_plan_semantics(context, request)
     }
 
     /// Delegates a safe node assignment mutation.

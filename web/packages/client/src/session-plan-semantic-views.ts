@@ -1,238 +1,98 @@
-/** @file Validates semantic plan records received from the session protocol. */
+/** @file Normalizes typed semantic plan gate, evidence, and summary views. */
 
 import type {
   SessionPlanEvidenceAssociation,
   SessionPlanEvidenceKind,
-  SessionPlanEvidenceOwner,
   SessionPlanEvidenceReference,
-  SessionPlanEvidenceRole,
   SessionPlanGate,
-  SessionPlanGatePhase,
+  SessionPlanGateCounts,
   SessionPlanGateRequirement,
-  SessionPlanGateWaiver,
+  SessionPlanNode,
   SessionPlanNodeDetailsPage,
-  SessionPlanSemanticPredicate,
+  SessionPlanStatusCounts,
   SessionPlanSummary,
   SessionSemanticReference,
 } from "@scriberig/protocol";
 
-/** Normalizes typed gates while dropping malformed records.
- * @param value Unknown gate list from the transport.
- * @returns Valid typed gates.
+/** Normalizes a list of exact stable identity strings.
+ * @param value Unknown wire value.
+ * @returns Valid string values.
  */
-export function normalizePlanGates(value: unknown): SessionPlanGate[] {
+export function normalizeStrings(value: unknown): string[] {
   return Array.isArray(value)
-    ? value.flatMap((item) => {
-        const gate = normalizePlanGate(item);
-        return gate === undefined ? [] : [gate];
-      })
+    ? value.filter((item): item is string => typeof item === "string")
     : [];
 }
 
-/** Normalizes exact evidence associations while dropping malformed records.
- * @param value Unknown evidence list from the transport.
- * @returns Valid exact evidence associations.
+/** Normalizes direct status counters without deriving local rollup semantics.
+ * @param value Unknown wire counter record.
+ * @returns Bounded counters supplied by the shared semantic view.
  */
-export function normalizePlanEvidence(value: unknown): SessionPlanEvidenceAssociation[] {
-  return Array.isArray(value)
-    ? value.flatMap((item) => {
-        const evidence = normalizeEvidenceAssociation(item);
-        return evidence === undefined ? [] : [evidence];
-      })
-    : [];
-}
-
-/** Normalizes a bounded exact-snapshot node detail page.
- * @param value Unknown detail page from the transport.
- * @returns Validated page with malformed records removed.
- */
-export function normalizePlanNodeDetails(value: unknown): SessionPlanNodeDetailsPage {
-  const source = isObject(value) ? value : {};
-  const offset = source.offset;
+export function normalizeStatusCounts(value: unknown): SessionPlanStatusCounts {
+  const counts = isObject(value) ? value : {};
   return {
-    offset: typeof offset === "number" && Number.isInteger(offset) && offset >= 0 ? offset : 0,
-    gates: normalizePlanGates(source.gates),
-    evidence: normalizePlanEvidence(source.evidence),
+    planned: count(counts.planned),
+    ready: count(counts.ready),
+    running: count(counts.running),
+    completed: count(counts.completed),
+    failed: count(counts.failed),
+    abandoned: count(counts.abandoned),
   };
 }
 
-/** Normalizes concise summaries and their exact source references.
- * @param value Unknown summary list from the transport.
- * @returns Valid node summaries.
+/** Normalizes one gate count group.
+ * @param value Unknown wire gate counts.
+ * @returns Counts supplied by the semantic view, or `undefined`.
  */
-export function normalizePlanSummaries(value: unknown): SessionPlanSummary[] {
-  return Array.isArray(value)
-    ? value.flatMap((item) => {
-        if (!isObject(item)) return [];
-        const id = item.id;
-        const node = item.node;
-        const text = item.text;
-        if (typeof id !== "string" || typeof node !== "string" || typeof text !== "string") {
-          return [];
-        }
-        return [{ id, node, text, sources: normalizeSemanticReferences(item.sources) }];
-      })
-    : [];
+export function normalizeGateCounts(value: unknown): SessionPlanGateCounts | undefined {
+  if (!isObject(value)) return undefined;
+  return {
+    pending: count(value.pending),
+    satisfied: count(value.satisfied),
+    failed: count(value.failed),
+    waived: count(value.waived),
+  };
 }
 
-/** Normalizes one exact typed evidence reference.
- * @param value Unknown evidence reference.
- * @returns A validated evidence reference or `undefined` when malformed.
+/** Converts an unknown numeric count to a finite nonnegative integer.
+ * @param value Unknown wire value.
+ * @returns Safe count.
  */
-export function normalizePlanEvidenceReference(
+function count(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
+
+/** Checks the known typed node abandonment values.
+ * @param value Unknown wire reason.
+ * @returns Whether the value is a registered reason.
+ */
+export function isAbandonReason(
   value: unknown,
-): SessionPlanEvidenceReference | undefined {
-  if (!isObject(value)) return undefined;
-  const kind = normalizeEvidenceKind(value.kind);
-  const reference = normalizeSemanticReference(value.reference);
-  if (kind === undefined || reference === undefined) return undefined;
-  const attributes = isObject(value.attributes) ? value.attributes : {};
+): value is NonNullable<SessionPlanNode["abandonReason"]> {
+  return ["Ignored", "Superseded", "Cancelled", "Obsolete"].includes(String(value));
+}
+
+/** Normalizes one exact semantic source reference.
+ * @param value Unknown wire reference.
+ * @returns Exact source handle or `undefined` for malformed input.
+ */
+function normalizeSemanticReference(value: unknown): SessionSemanticReference | undefined {
+  if (!isObject(value) || typeof value.entity !== "string") return undefined;
+  const revision = value.revision;
+  const snapshot = value.snapshot;
   return {
-    kind,
-    reference,
-    attributes: Object.fromEntries(
-      Object.entries(attributes).filter(
-        (entry): entry is [string, string] => typeof entry[1] === "string",
-      ),
-    ),
+    entity: value.entity,
+    ...(typeof revision === "string" ? { revision } : {}),
+    ...(typeof snapshot === "string" ? { snapshot } : {}),
   };
 }
 
-/** Validates one typed gate and optional waiver provenance.
- * @param value Unknown gate record.
- * @returns A validated gate or `undefined` when malformed.
- */
-function normalizePlanGate(value: unknown): SessionPlanGate | undefined {
-  if (!isObject(value)) return undefined;
-  const { id, owner } = value;
-  const phase = normalizeGatePhase(value.phase);
-  const requirement = normalizeGateRequirement(value.requirement);
-  if (
-    typeof id !== "string" ||
-    typeof owner !== "string" ||
-    phase === undefined ||
-    requirement === undefined
-  ) {
-    return undefined;
-  }
-  const waiver = normalizeWaiver(value.waiver);
-  return { id, owner, phase, requirement, ...(waiver === undefined ? {} : { waiver }) };
-}
-
-/** Validates one supported non-executable gate condition.
- * @param value Unknown gate requirement.
- * @returns A supported typed requirement or `undefined` when malformed.
- */
-function normalizeGateRequirement(value: unknown): SessionPlanGateRequirement | undefined {
-  if (!isObject(value)) return undefined;
-  if (isObject(value.EvidencePresent)) {
-    const kind = normalizeEvidenceKind(value.EvidencePresent.kind);
-    return kind === undefined ? undefined : { EvidencePresent: { kind } };
-  }
-  if (isObject(value.ValidationPassed)) {
-    const profile = value.ValidationPassed.profile;
-    return {
-      ValidationPassed: {
-        ...(typeof profile === "string" ? { profile } : {}),
-      },
-    };
-  }
-  if (isObject(value.DecisionResolved)) {
-    const decision = value.DecisionResolved.decision;
-    return typeof decision === "string" ? { DecisionResolved: { decision } } : undefined;
-  }
-  if (isObject(value.HumanApproval)) {
-    const { policy, role } = value.HumanApproval;
-    if (typeof policy !== "string") return undefined;
-    return {
-      HumanApproval: {
-        policy,
-        ...(typeof role === "string" ? { role } : {}),
-      },
-    };
-  }
-  if (isObject(value.SemanticCondition)) {
-    const reference = normalizeSemanticReference(value.SemanticCondition.reference);
-    const predicate = normalizePredicate(value.SemanticCondition.predicate);
-    return reference === undefined || predicate === undefined
-      ? undefined
-      : { SemanticCondition: { reference, predicate } };
-  }
-  if (isObject(value.RequiredChildCompleted)) {
-    const child = value.RequiredChildCompleted.child;
-    return typeof child === "string" ? { RequiredChildCompleted: { child } } : undefined;
-  }
-  return undefined;
-}
-
-/** Validates one evidence association and its typed source.
- * @param value Unknown association record.
- * @returns A valid evidence association or `undefined` when malformed.
- */
-function normalizeEvidenceAssociation(value: unknown): SessionPlanEvidenceAssociation | undefined {
-  if (!isObject(value)) return undefined;
-  const id = value.id;
-  const owner = normalizeEvidenceOwner(value.owner);
-  const role = normalizeEvidenceRole(value.role);
-  const evidence = normalizePlanEvidenceReference(value.evidence);
-  if (
-    typeof id !== "string" ||
-    owner === undefined ||
-    role === undefined ||
-    evidence === undefined
-  ) {
-    return undefined;
-  }
-  return {
-    id,
-    owner,
-    role,
-    evidence,
-    ...(typeof value.note === "string" ? { note: value.note } : {}),
-    ...(typeof value.actor === "string" ? { actor: value.actor } : {}),
-  };
-}
-
-/** Validates a node-or-gate evidence owner.
- * @param value Unknown owner value.
- * @returns A validated owner or `undefined` when malformed.
- */
-function normalizeEvidenceOwner(value: unknown): SessionPlanEvidenceOwner | undefined {
-  if (!isObject(value)) return undefined;
-  if (typeof value.Node === "string") return { Node: value.Node };
-  if (typeof value.Gate === "string") return { Gate: value.Gate };
-  return undefined;
-}
-
-/** Normalizes one evidence association role.
- * @param value Unknown evidence role.
- * @returns A valid role or `undefined` when malformed.
- */
-function normalizeEvidenceRole(value: unknown): SessionPlanEvidenceRole | undefined {
-  return value === "Supports" || value === "Contradicts" || value === "Informational"
-    ? value
-    : undefined;
-}
-
-/** Normalizes an optional gate waiver with safe provenance.
- * @param value Unknown waiver record.
- * @returns A validated waiver or `undefined` when absent or malformed.
- */
-function normalizeWaiver(value: unknown): SessionPlanGateWaiver | undefined {
-  if (!isObject(value) || typeof value.reason !== "string") return undefined;
-  return {
-    reason: value.reason,
-    ...(typeof value.actor === "string" ? { actor: value.actor } : {}),
-    ...(typeof value.operation === "string" ? { operation: value.operation } : {}),
-  };
-}
-
-/** Normalizes supported evidence categories.
- * @param value Unknown evidence category.
- * @returns A known category or `undefined` when malformed.
+/** Normalizes one evidence category without exposing source payloads.
+ * @param value Unknown wire evidence category.
+ * @returns Registered category or `Other` wrapper.
  */
 function normalizeEvidenceKind(value: unknown): SessionPlanEvidenceKind | undefined {
-  const kinds = [
+  const known = [
     "BranchResult",
     "ValidationResult",
     "Decision",
@@ -241,57 +101,175 @@ function normalizeEvidenceKind(value: unknown): SessionPlanEvidenceKind | undefi
     "Artifact",
     "Failure",
   ] as const;
-  if (typeof value === "string" && kinds.includes(value as (typeof kinds)[number])) {
+  if (typeof value === "string" && known.includes(value as (typeof known)[number]))
     return value as SessionPlanEvidenceKind;
+  if (isObject(value) && typeof value.Other === "string") return { Other: value.Other };
+  return undefined;
+}
+
+/** Normalizes one exact evidence reference and its bounded attributes.
+ * @param value Unknown wire evidence reference.
+ * @returns Safe evidence projection or `undefined`.
+ */
+export function normalizeEvidenceReference(
+  value: unknown,
+): SessionPlanEvidenceReference | undefined {
+  if (!isObject(value)) return undefined;
+  const kind = normalizeEvidenceKind(value.kind);
+  const reference = normalizeSemanticReference(value.reference);
+  if (kind === undefined || reference === undefined) return undefined;
+  const attributes = isObject(value.attributes)
+    ? Object.fromEntries(
+        Object.entries(value.attributes).filter(
+          (entry): entry is [string, string] => typeof entry[1] === "string",
+        ),
+      )
+    : {};
+  return { kind, reference, attributes };
+}
+
+/** Normalizes one durable gate projection.
+ * @param value Unknown wire gate.
+ * @returns A valid gate projection or an empty list.
+ */
+export function normalizeGate(value: unknown): SessionPlanGate[] {
+  if (!isObject(value) || typeof value.id !== "string" || typeof value.owner !== "string")
+    return [];
+  const phase = value.phase;
+  const requirement = normalizeGateRequirement(value.requirement);
+  if ((phase !== "Entry" && phase !== "Completion") || requirement === undefined) return [];
+  const waiverValue = value.waiver;
+  const waiver =
+    isObject(waiverValue) && typeof waiverValue.reason === "string"
+      ? {
+          reason: waiverValue.reason,
+          ...(typeof waiverValue.actor === "string" ? { actor: waiverValue.actor } : {}),
+          ...(typeof waiverValue.operation === "string"
+            ? { operation: waiverValue.operation }
+            : {}),
+        }
+      : undefined;
+  return [{ id: value.id, owner: value.owner, phase, requirement, ...(waiver ? { waiver } : {}) }];
+}
+
+/** Validates one tagged non-executable plan gate requirement.
+ * @param value Unknown wire requirement.
+ * @returns A typed requirement or `undefined`.
+ */
+function normalizeGateRequirement(value: unknown): SessionPlanGateRequirement | undefined {
+  if (!isObject(value)) return undefined;
+  const [tag, raw] = Object.entries(value)[0] ?? [];
+  const payload = isObject(raw) ? raw : {};
+  if (tag === "EvidencePresent") {
+    const kind = normalizeEvidenceKind(payload.kind);
+    return kind === undefined ? undefined : { EvidencePresent: { kind } };
   }
-  return isObject(value) && typeof value.Other === "string" ? { Other: value.Other } : undefined;
+  if (tag === "ValidationPassed") {
+    const profile = nullableString(payload.profile);
+    return {
+      ValidationPassed: {
+        ...(profile === undefined ? {} : { profile }),
+      },
+    };
+  }
+  if (tag === "DecisionResolved" && typeof payload.decision === "string") {
+    return { DecisionResolved: { decision: payload.decision } };
+  }
+  if (tag === "HumanApproval" && typeof payload.policy === "string") {
+    const role = nullableString(payload.role);
+    return {
+      HumanApproval: {
+        policy: payload.policy,
+        ...(role === undefined ? {} : { role }),
+      },
+    };
+  }
+  if (tag === "RequiredChildCompleted" && typeof payload.child === "string") {
+    return { RequiredChildCompleted: { child: payload.child } };
+  }
+  if (tag === "SemanticCondition") {
+    const reference = normalizeSemanticReference(payload.reference);
+    const predicate = payload.predicate;
+    if (reference && (predicate === "EntityExists" || predicate === "ExactRevision")) {
+      return { SemanticCondition: { reference, predicate } };
+    }
+  }
+  return undefined;
 }
 
-/** Normalizes a supported lifecycle gate phase.
- * @param value Unknown gate phase.
- * @returns A valid phase or `undefined` when malformed.
+/** Normalizes a nullable string field.
+ * @param value Unknown wire value.
+ * @returns String, null, or `undefined` when malformed.
  */
-function normalizeGatePhase(value: unknown): SessionPlanGatePhase | undefined {
-  return value === "Entry" || value === "Completion" ? value : undefined;
+function nullableString(value: unknown): string | null | undefined {
+  return value === null ? null : typeof value === "string" ? value : undefined;
 }
 
-/** Normalizes a supported semantic predicate.
- * @param value Unknown predicate.
- * @returns A supported predicate or `undefined` when malformed.
+/** Normalizes one exact evidence association.
+ * @param value Unknown wire association.
+ * @returns A valid association or an empty list.
  */
-function normalizePredicate(value: unknown): SessionPlanSemanticPredicate | undefined {
-  return value === "EntityExists" || value === "ExactRevision" ? value : undefined;
+export function normalizeEvidence(value: unknown): SessionPlanEvidenceAssociation[] {
+  if (!isObject(value) || typeof value.id !== "string" || !isObject(value.owner)) return [];
+  const [ownerKind, ownerId] = Object.entries(value.owner)[0] ?? [];
+  const evidence = normalizeEvidenceReference(value.evidence);
+  const role = value.role;
+  if (
+    (ownerKind !== "Node" && ownerKind !== "Gate") ||
+    typeof ownerId !== "string" ||
+    evidence === undefined ||
+    (role !== "Supports" && role !== "Contradicts" && role !== "Informational")
+  )
+    return [];
+  return [
+    {
+      id: value.id,
+      owner: ownerKind === "Node" ? { Node: ownerId } : { Gate: ownerId },
+      role,
+      evidence,
+      ...(typeof value.note === "string" ? { note: value.note } : {}),
+      ...(typeof value.actor === "string" ? { actor: value.actor } : {}),
+    },
+  ];
 }
 
-/** Normalizes exact semantic references.
- * @param value Unknown reference list.
- * @returns Valid references only.
+/** Normalizes one concise summary and its exact source references.
+ * @param value Unknown wire summary.
+ * @returns A valid summary or an empty list.
  */
-function normalizeSemanticReferences(value: unknown): SessionSemanticReference[] {
-  return Array.isArray(value)
-    ? value.flatMap((item) => {
-        const reference = normalizeSemanticReference(item);
-        return reference === undefined ? [] : [reference];
+export function normalizeSummary(value: unknown): SessionPlanSummary[] {
+  if (
+    !isObject(value) ||
+    typeof value.id !== "string" ||
+    typeof value.node !== "string" ||
+    typeof value.text !== "string"
+  )
+    return [];
+  const sources = Array.isArray(value.sources)
+    ? value.sources.flatMap((item) => {
+        const normalized = normalizeSemanticReference(item);
+        return normalized === undefined ? [] : [normalized];
       })
     : [];
+  return [{ id: value.id, node: value.node, text: value.text, sources }];
 }
 
-/** Validates one entity and its optional exact content location.
- * @param value Unknown semantic reference.
- * @returns A safe reference or `undefined` when malformed.
+/** Normalizes one bounded node gate and evidence page.
+ * @param value Untrusted wire page.
+ * @returns Safe typed detail rows and their page offset.
  */
-function normalizeSemanticReference(value: unknown): SessionSemanticReference | undefined {
-  if (!isObject(value) || typeof value.entity !== "string") return undefined;
+export function normalizePlanNodeDetails(value: unknown): SessionPlanNodeDetailsPage {
+  const record = isObject(value) ? value : {};
   return {
-    entity: value.entity,
-    ...(typeof value.revision === "string" ? { revision: value.revision } : {}),
-    ...(typeof value.snapshot === "string" ? { snapshot: value.snapshot } : {}),
+    offset: count(record.offset),
+    gates: Array.isArray(record.gates) ? record.gates.flatMap(normalizeGate) : [],
+    evidence: Array.isArray(record.evidence) ? record.evidence.flatMap(normalizeEvidence) : [],
   };
 }
 
-/** Narrows one unknown JSON object.
- * @param value Candidate input.
- * @returns Whether the input is a non-array object.
+/** Checks whether a value is a JSON object record.
+ * @param value Unknown JSON value.
+ * @returns Whether the value is a non-null object record.
  */
 function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

@@ -24,6 +24,10 @@ impl BootstrapImportFailureProvider {
         context: &Context,
         model: &Model,
     ) -> Result<rpi_ai::AssistantMessage, String> {
+        let context_debug = format!("{context:?}");
+        if context_debug.matches("tool error:").count() >= 3 {
+            return Err("project import failed: manifest_changed".to_owned());
+        }
         let mut response = BootstrapProvider::respond(context, model)?;
         for content in &mut response.content {
             let rpi_ai::types::Content::ToolCall(call) = content else {

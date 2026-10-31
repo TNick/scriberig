@@ -3,8 +3,9 @@
 use crate::coordinator::SyncCoordinator;
 use crate::{FailureStage, FileSystem, ImportCompletion, ImportRequest, IoError};
 use sr_projection::{
-    ProjectionAdapter, ProjectionDiagnostic, ProjectionRef, ReconciliationContext,
-    ReconciliationOutcome, RenderRequest, RenderingContext, SemanticStateRef,
+    ProjectionAdapter, ProjectionDiagnostic, ProjectionRef, ReconciliationBaseline,
+    ReconciliationContext, ReconciliationOutcome, RenderRequest, RenderingContext, ResolvedStyle,
+    SemanticStateRef, invalid_style_diagnostic,
 };
 
 /// Error returned when adapter rendering or filesystem synchronization fails.
@@ -42,7 +43,7 @@ impl std::fmt::Display for RenderError {
 impl std::error::Error for RenderError {}
 
 impl<F: FileSystem> SyncCoordinator<F> {
-    /// Renders a managed projection through its adapter and writes it atomically.
+    /// Renders a managed projection using the style recorded in its state.
     ///
     /// - `projection`: Projection to render.
     /// - `adapter`: Domain adapter that owns deterministic rendering.
@@ -60,18 +61,64 @@ impl<F: FileSystem> SyncCoordinator<F> {
             .find_projection(projection)
             .cloned()
             .ok_or(RenderError::Io(IoError::OwnershipDenied))?;
+        let style = state.baseline.rendered.style.clone();
+        self.render_managed_projection_with_style(projection, adapter, &style)
+    }
+
+    /// Renders a managed projection under one exact style supplied by the caller.
+    ///
+    /// Materialization is a shared purpose: the caller resolves the style once
+    /// (workspace materialization policy, never a personal preference or view
+    /// override) and hands the exact value down. The filesystem layer therefore
+    /// never consults configuration state, and personal style cannot reach a
+    /// materialized file through this path.
+    ///
+    /// - `projection`: Projection to render.
+    /// - `adapter`: Domain adapter that owns deterministic rendering.
+    /// - `style`: Exact resolved style the rendered bytes must carry.
+    ///
+    /// Unit after the file and synchronization state are updated. The recorded
+    /// style becomes the one used by later observation and import reconciliation,
+    /// so a style change cannot be reconciled against stale render identity.
+    ///
+    /// # Errors
+    /// Returns an adapter diagnostic or filesystem failure when rendering cannot
+    /// complete.
+    pub fn render_managed_projection_with_style<A: ProjectionAdapter>(
+        &mut self,
+        projection: ProjectionRef,
+        adapter: &A,
+        style: &ResolvedStyle,
+    ) -> Result<(), RenderError> {
+        let state = self
+            .states()
+            .find_projection(projection)
+            .cloned()
+            .ok_or(RenderError::Io(IoError::OwnershipDenied))?;
         let request = RenderRequest {
-            specification: state.specification,
-            scope: state.scope,
+            specification: state.baseline.rendered.cache_key.specification,
+            scope: state.baseline.rendered.cache_key.scope,
             base_state: state.current,
-            kind: state.kind,
-            style: state.style,
-            renderer: state.renderer,
+            kind: state.baseline.rendered.kind.clone(),
+            style: style.clone(),
+            renderer: state.baseline.rendered.renderer.clone(),
             context: RenderingContext::default(),
         };
         let rendered = adapter.render(&request).map_err(RenderError::Diagnostic)?;
+        let baseline = ReconciliationBaseline::new(
+            rendered.clone(),
+            state.baseline.adapter.clone(),
+            state.baseline.fidelity.clone(),
+        )
+        .map_err(|_| RenderError::Io(crate::IoError::BaselineMismatch))?;
         self.write_rendered(projection, &rendered.bytes, state.current)
-            .map_err(RenderError::Io)
+            .map_err(RenderError::Io)?;
+        let Some(state) = self.states_mut().find_projection_mut(projection) else {
+            return Err(RenderError::Io(crate::IoError::OwnershipDenied));
+        };
+        state.baseline = baseline;
+        self.states().persist().map_err(RenderError::Io)?;
+        Ok(())
     }
 
     /// Runs the adapter import lifecycle and synchronizes an accepted result.
@@ -99,7 +146,24 @@ impl<F: FileSystem> SyncCoordinator<F> {
         ) -> Result<SemanticStateRef, Box<ProjectionDiagnostic>>,
         Conflict: FnOnce(A::Conflict) -> ProjectionDiagnostic,
     {
-        let candidate = match adapter.parse(&request.kind, &request.bytes) {
+        let kind = &request.baseline.rendered.kind;
+        if !request.baseline.fidelity.fidelity.is_editable() {
+            let diagnostic = invalid_style_diagnostic(
+                kind,
+                "projection-baseline-read-only",
+                "this exact projection baseline is not editable",
+                Vec::new(),
+            );
+            return self.complete_import(
+                request.projection,
+                ImportCompletion::Failed {
+                    request,
+                    stage: FailureStage::Validate,
+                    diagnostic,
+                },
+            );
+        }
+        let candidate = match adapter.parse(kind, &request.bytes) {
             Ok(candidate) => candidate,
             Err(diagnostic) => {
                 return self.complete_import(
@@ -123,11 +187,8 @@ impl<F: FileSystem> SyncCoordinator<F> {
             );
         }
         let context = ReconciliationContext {
-            base: request.base,
+            baseline: request.baseline.clone(),
             current: request.current,
-            scope: request.scope,
-            specification: request.specification,
-            metadata: std::collections::BTreeMap::new(),
         };
         match adapter.reconcile(candidate, &context) {
             ReconciliationOutcome::NoSemanticChange => {
@@ -191,12 +252,12 @@ impl<F: FileSystem> SyncCoordinator<F> {
         base: SemanticStateRef,
     ) -> Result<(), IoError> {
         let render_request = RenderRequest {
-            specification: request.specification,
-            scope: request.scope,
+            specification: request.baseline.rendered.cache_key.specification,
+            scope: request.baseline.rendered.cache_key.scope,
             base_state: base,
-            kind: request.kind.clone(),
-            style: request.style.clone(),
-            renderer: request.renderer.clone(),
+            kind: request.baseline.rendered.kind.clone(),
+            style: request.baseline.rendered.style.clone(),
+            renderer: request.baseline.rendered.renderer.clone(),
             context: RenderingContext::default(),
         };
         let rendered = match adapter.render(&render_request) {
@@ -212,12 +273,36 @@ impl<F: FileSystem> SyncCoordinator<F> {
                 );
             }
         };
+        let baseline = match ReconciliationBaseline::new(
+            rendered.clone(),
+            request.baseline.adapter.clone(),
+            request.baseline.fidelity.clone(),
+        ) {
+            Ok(baseline) => baseline,
+            Err(error) => {
+                let diagnostic = invalid_style_diagnostic(
+                    &request.baseline.rendered.kind,
+                    "invalid-rendered-baseline",
+                    error,
+                    Vec::new(),
+                );
+                return self.complete_import(
+                    request.projection,
+                    ImportCompletion::Failed {
+                        request,
+                        stage: FailureStage::Rerender,
+                        diagnostic,
+                    },
+                );
+            }
+        };
         self.complete_import(
             request.projection,
             ImportCompletion::NoSemanticChange {
                 request,
                 bytes: rendered.bytes,
                 base,
+                baseline,
             },
         )
     }

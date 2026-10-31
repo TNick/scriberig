@@ -8,11 +8,10 @@ use scriberig_core::EntityId;
 use scriberig_session::Session;
 
 #[path = "service_local_sessions.rs"]
-mod service_local_sessions;
+pub(crate) mod service_local_sessions;
 
-#[path = "service_sessions/agent_submission.rs"]
-mod agent_submission;
 #[path = "service_sessions/management.rs"]
+#[macro_use]
 mod management;
 #[path = "service_sessions/plan_attempts.rs"]
 mod plan_attempts;
@@ -21,57 +20,35 @@ mod plan_attempts;
 mod plan_node_details;
 #[path = "service_sessions/plan_store.rs"]
 mod plan_store;
+#[path = "service_sessions/plan_operations.rs"]
+#[macro_use]
+mod plan_operations;
 
 #[path = "service_session_authorization.rs"]
 mod service_session_authorization;
-pub(super) use service_session_authorization::authorize_session_read;
+use service_session_authorization::authorize_agent_command;
 pub(super) use service_session_authorization::{
-    authorize_model_library_read, authorize_session_model_selection,
+    authorize_model_library_read, authorize_plan_read, authorize_session_model_selection,
+    authorize_session_mutation, authorize_session_read,
 };
 
+/// Authorizes a compact plan read with the session-tree capability.
+///
+/// - `context`: Authorized caller context.
+/// - `session`: Stable `ScribeRig` session identity.
+///
+/// Unit when the caller may inspect the session tree.
+///
+/// Returns permission-denied when the caller lacks read access.
+/// # Returns
+/// The authorization result.
+/// # Errors
+/// Returns an authorization construction or permission error.
 #[path = "service_agent_execution.rs"]
 mod service_agent_execution;
 
 impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
-    /// Lists complete durable sessions through the application authorization boundary.
-    ///
-    /// - `self`: Shared application service.
-    /// - `context`: Authorized caller context.
-    ///
-    /// Sessions ordered by stable identity.
-    ///
-    /// Returns authorization or persistence failures.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn list_sessions(
-        &self,
-        context: &ApplicationContext,
-    ) -> Result<Vec<Session>, ApplicationError> {
-        management::list_sessions(self, context)
-    }
-
-    /// Removes a durable session through the application authorization boundary.
-    ///
-    /// - `self`: Shared application service.
-    /// - `context`: Authorized caller context.
-    /// - `session`: Stable identity to remove.
-    ///
-    /// Unit after the exact session is removed.
-    ///
-    /// Returns authorization, active-work, or persistence failures.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn remove_session(
-        &self,
-        context: &ApplicationContext,
-        session: EntityId,
-    ) -> Result<(), ApplicationError> {
-        management::remove_session(self, context, session)
-    }
+    service_session_management_methods!();
 
     /// Continues at an exact anchor through the shared application operation.
     ///
@@ -148,16 +125,47 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         }
     }
 
-    /// Reads a bounded page of node attempts through the authorized semantic store.
+    /// Reads a compact projection for routine session tree responses.
     ///
-    /// - `context`: Authorized request context.
-    /// - `request`: Node, exact snapshot, and page range to inspect.
+    /// - `context`: Application context for the request.
+    /// - `request`: Stable session identity to resolve.
     ///
-    /// The requested attempts ordered by generation.
+    /// The session projection with compact semantic plan state when storage
+    /// supports it.
+    ///
     /// # Returns
-    /// The operation result.
+    /// The authorized session projection.
+    ///
     /// # Errors
-    /// Returns authorization, invalid-page, history, or persistence failures.
+    /// Returns an authorization, lookup, or persistence error.
+    fn read_session_projection(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::SessionRequest,
+    ) -> Result<Session, ApplicationError> {
+        authorize_session_read(context, request)?;
+        match self.backend.read_session_projection(context, request) {
+            Ok(session) => Ok(session),
+            Err(error) if error.category() == "unsupported_operation" => self
+                .load_session_read_projection_state(request.session)?
+                .ok_or_else(|| ApplicationError::NotFound {
+                    subject: request.session.to_string(),
+                }),
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Reads a bounded exact-snapshot plan-attempt page through the repository.
+    ///
+    /// # Parameters
+    /// - `context`: Authorized request context.
+    /// - `request`: Node, snapshot, and page range to inspect.
+    ///
+    /// # Returns
+    /// The transcript-free attempt page.
+    ///
+    /// # Errors
+    /// Returns authorization, limit, history, or persistence failures.
     fn read_plan_attempt_history(
         &self,
         context: &ApplicationContext,
@@ -184,10 +192,12 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         session: &Session,
     ) -> Result<(), ApplicationError> {
         service_session_authorization::authorize_session_mutation(context, session.id)?;
-        match self.backend.save_session(context, session) {
+        let mut compacted = session.clone();
+        compacted.compact_branch_results();
+        match self.backend.save_session(context, &compacted) {
             Ok(()) => Ok(()),
             Err(error) if error.category() == "unsupported_operation" => {
-                self.save_session_state(session.clone())
+                self.save_session_state(compacted)
             }
             Err(error) => Err(error),
         }
@@ -215,158 +225,7 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         plan_store::compare_and_swap_plan(self, context, session, plan, expected_revision)
     }
 
-    /// Creates a durable plan through the application plan service.
-    ///
-    /// - `context`: Authorized request context.
-    /// - `request`: Goal, exact anchor, nodes, and dependencies.
-    ///
-    /// The authoritative persisted plan.
-    ///
-    /// Returns plan validation, authorization, or persistence failures.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn create_plan(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanCreateRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        ApplicationService::create_plan(self, context, request)
-    }
-
-    /// Applies a replan proposal through the shared application plan service.
-    ///
-    /// - `context`: Authorized request context.
-    /// - `request`: Complete plan revision proposal.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns plan validation, conflict, authorization, or persistence errors.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn replan(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanReplanRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        ApplicationService::replan(self, context, request)
-    }
-
-    /// Applies one lifecycle action through the shared application service.
-    ///
-    /// - `context`: Authorized request context.
-    /// - `request`: Plan and expected revision.
-    /// - `action`: Requested transition.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns plan transition, revision conflict, authorization, or persistence errors.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn plan_lifecycle(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanLifecycleRequest,
-        action: crate::PlanLifecycleAction,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        match action {
-            crate::PlanLifecycleAction::Start => {
-                ApplicationService::start_plan(self, context, request)
-            }
-            crate::PlanLifecycleAction::Pause => {
-                ApplicationService::pause_plan(self, context, request)
-            }
-            crate::PlanLifecycleAction::Resume => {
-                ApplicationService::resume_plan(self, context, request)
-            }
-            crate::PlanLifecycleAction::Stop => {
-                ApplicationService::stop_plan(self, context, request)
-            }
-            crate::PlanLifecycleAction::Complete => {
-                ApplicationService::complete_plan(self, context, request)
-            }
-        }
-    }
-
-    /// Retries a failed node through shared plan validation and persistence.
-    /// - `context`: Authorized caller context.
-    /// - `request`: Plan, node, and expected revision.
-    /// # Returns
-    /// The updated plan.
-    /// # Errors
-    /// Returns validation, conflict, or persistence errors.
-    fn retry_plan_node(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanRetryRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        ApplicationService::retry_plan_node(self, context, request)
-    }
-    /// Adds ordinary work through the shared plan boundary.
-    /// - `context`: Authorized caller context.
-    /// - `request`: Plan revision and proposed next step.
-    /// # Returns
-    /// The updated plan.
-    /// # Errors
-    /// Returns validation, conflict, assignment, or persistence errors.
-    fn add_plan_next_step(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanNextStepRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        ApplicationService::add_plan_next_step(self, context, request)
-    }
-
-    /// Decomposes one node through the shared plan boundary.
-    /// - `context`: Authorized caller context.
-    /// - `request`: Parent, revision, children, and requirement policy.
-    /// # Returns
-    /// The updated plan.
-    /// # Errors
-    /// Returns validation, conflict, assignment, or persistence errors.
-    fn decompose_plan_node(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanDecomposeRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        ApplicationService::decompose_plan_node(self, context, request)
-    }
-
-    /// Applies one typed semantic mutation through the application service.
-    ///
-    /// - `context`: Authorized caller context.
-    /// - `request`: Exact plan revision and semantic mutation.
-    /// # Returns
-    /// The updated plan.
-    /// # Errors
-    /// Returns validation, conflict, authorization, or persistence errors.
-    fn mutate_plan_semantics(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanSemanticMutationRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        ApplicationService::mutate_plan_semantics(self, context, request)
-    }
-
-    /// Changes one node assignment through the application service.
-    /// - `context`: Authorized request context.
-    /// - `request`: Plan, node, revision, and safe assignment.
-    /// # Returns
-    /// The authoritative updated plan.
-    /// # Errors
-    /// Returns validation, authorization, or persistence errors.
-    fn set_plan_node_assignment(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::PlanAssignmentRequest,
-    ) -> Result<scriberig_session::Plan, ApplicationError> {
-        ApplicationService::set_plan_node_assignment(self, context, request)
-    }
+    application_plan_operation_methods!();
 
     /// Delegates agent submission to the backend or accepts local session state.
     ///
@@ -385,7 +244,42 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         context: &ApplicationContext,
         request: &crate::AgentCommandRequest,
     ) -> Result<scriberig_core::OperationId, ApplicationError> {
-        agent_submission::submit(self, context, request)
+        authorize_agent_command(context, request)?;
+        if let Some(anchor) = request.anchor {
+            if request.branch.is_some() {
+                return Err(ApplicationError::InvalidRequest {
+                    operation: "agent_continue_at".to_owned(),
+                    message: "an exact anchor cannot be combined with a branch-head target"
+                        .to_owned(),
+                });
+            }
+            let session = self.read_session(
+                context,
+                &crate::SessionRequest {
+                    session: request.session,
+                },
+            )?;
+            session
+                .resolve_anchor(anchor)
+                .map_err(|error| ApplicationError::InvalidRequest {
+                    operation: "agent_continue_at".to_owned(),
+                    message: error.to_string(),
+                })?;
+        }
+        let operation = match self.backend.submit_agent_command(context, request) {
+            Ok(operation) => operation,
+            Err(error) if error.category() == "unsupported_operation" => {
+                self.accept_local_agent(request)?
+            }
+            Err(error) => return Err(error),
+        };
+        if self.operations.get(&operation).is_err() {
+            self.operations
+                .start(operation.clone(), crate::OperationKind::Agent)?;
+            self.operations
+                .transition(&operation, crate::OperationStatus::Running)?;
+        }
+        Ok(operation)
     }
 }
 

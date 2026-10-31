@@ -23,6 +23,7 @@
     "build": "vite build --config ../../vite.lib.config.mts && tsc -p tsconfig.build.json --emitDeclarationOnly"
   },
   "dependencies": {
+    "@scriberig/client": "workspace:*",
     "@scriberig/model": "workspace:*",
     "@scriberig/protocol": "workspace:*"
   }

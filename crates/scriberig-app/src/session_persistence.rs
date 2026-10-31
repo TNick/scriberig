@@ -6,6 +6,30 @@ use scriberig_session::Session;
 use crate::{ApplicationError, ApplicationService};
 
 impl<B> ApplicationService<B> {
+    /// Loads a compact session read projection from durable or local state.
+    ///
+    /// - `self`: Application service owning session persistence.
+    /// - `session_id`: Stable session identity to load.
+    ///
+    /// The stored projection when the session exists.
+    ///
+    /// # Returns
+    /// The projection, or `None` when no session exists.
+    ///
+    /// # Errors
+    /// Returns a repository or lock failure.
+    pub(super) fn load_session_read_projection_state(
+        &self,
+        session_id: EntityId,
+    ) -> Result<Option<Session>, ApplicationError> {
+        if let Some(store) = &self.session_store {
+            return store
+                .load_read_projection(session_id)
+                .map_err(|message| ApplicationError::Internal { message });
+        }
+        self.load_session_state(session_id)
+    }
+
     /// Loads one session from durable storage or the process-local fallback.
     ///
     /// - `super`: Application service.
@@ -49,7 +73,8 @@ impl<B> ApplicationService<B> {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub(super) fn save_session_state(&self, session: Session) -> Result<(), ApplicationError> {
+    pub(super) fn save_session_state(&self, mut session: Session) -> Result<(), ApplicationError> {
+        session.compact_branch_results();
         if let Some(store) = &self.session_store {
             store
                 .save(&session)

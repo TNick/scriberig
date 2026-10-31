@@ -1,31 +1,13 @@
 //! Derives stable project-owned source identities and roots.
 
-use scriberig_core::{EntityId, ProjectId, RootName};
+use scriberig_core::{ProjectId, RootName};
 
 use crate::ProjectError;
 use crate::errors::invalid_input;
 
-/// Derives a stable source entity identity.
-///
-/// - `project`: Project identity.
-/// - `path`: Project-relative path.
-/// - `crate`: Internal visibility marker.
-///
-/// Stable source entity identity.
-/// # Returns
-/// The operation result.
-pub(crate) fn source_entity(project: ProjectId, path: &str) -> EntityId {
-    let mut bytes = Vec::with_capacity(16 + path.len());
-    bytes.extend_from_slice(project.as_bytes());
-    bytes.extend_from_slice(path.as_bytes());
-    let digest = blake3::hash(&bytes);
-    let mut identity = [0; 16];
-    identity.copy_from_slice(&digest.as_bytes()[..16]);
-    EntityId::from_bytes(identity)
-}
-
 /// Creates the named root assigned to one project.
 ///
+/// # Parameters
 /// - `project`: Project identity.
 /// - `crate`: Internal visibility marker.
 ///

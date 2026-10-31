@@ -9,6 +9,7 @@ pub mod revision;
 pub mod revision_store;
 pub mod roots;
 pub mod snapshot;
+pub mod snapshot_relation;
 pub mod snapshot_store;
 pub mod stats;
 
@@ -26,6 +27,7 @@ pub use roots::{CasOutcome, RootError, RootStore};
 pub use snapshot::{
     Snapshot, SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError,
 };
+pub use snapshot_relation::{SnapshotRelation, SnapshotRelationChange};
 pub use snapshot_store::SnapshotStore;
 pub use stats::{
     GcReport, IndexStatus, RootStatus, StoreErrorCategory, StoreObservability, StoreOperationError,
@@ -122,6 +124,60 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
         changes: &[SnapshotChange],
     ) -> Result<scriberig_core::SnapshotId, SnapshotError> {
         (**self).apply_changes(base, changes)
+    }
+
+    /// Delegates relation changes to the shared backend.
+    ///
+    /// - `base`: Existing immutable snapshot.
+    /// - `changes`: Typed relation changes.
+    ///
+    /// # Returns
+    /// The resulting snapshot identity.
+    ///
+    /// # Errors
+    /// Returns the backend snapshot error.
+    fn apply_relation_changes(
+        &self,
+        base: scriberig_core::SnapshotId,
+        changes: &[SnapshotRelationChange],
+    ) -> Result<scriberig_core::SnapshotId, SnapshotError> {
+        (**self).apply_relation_changes(base, changes)
+    }
+
+    /// Delegates atomic entity and relation changes to the shared backend.
+    ///
+    /// - `base`: Existing immutable snapshot.
+    /// - `entity_changes`: Entity-to-revision changes.
+    /// - `relation_changes`: Typed relation changes.
+    ///
+    /// # Returns
+    /// The resulting snapshot identity.
+    ///
+    /// # Errors
+    /// Returns the backend snapshot error.
+    fn apply_changes_with_relations(
+        &self,
+        base: scriberig_core::SnapshotId,
+        entity_changes: &[SnapshotChange],
+        relation_changes: &[SnapshotRelationChange],
+    ) -> Result<scriberig_core::SnapshotId, SnapshotError> {
+        (**self).apply_changes_with_relations(base, entity_changes, relation_changes)
+    }
+
+    /// Delegates relation reads to the shared backend.
+    ///
+    /// - `snapshot`: Exact immutable snapshot.
+    ///
+    /// # Returns
+    /// Relations visible at that snapshot.
+    ///
+    /// # Errors
+    /// Returns the backend snapshot error.
+    fn relations(
+        &self,
+        snapshot: scriberig_core::SnapshotId,
+    ) -> Result<Vec<SnapshotRelation>, SnapshotError> {
+        (**self).relations(snapshot)
     }
 
     /// Delegates deterministic snapshot iteration to the shared backend.

@@ -188,7 +188,7 @@ impl AgentTool for SemanticAgentTool {
                 if error.is_abort() {
                     error
                 } else {
-                    UpstreamAgentError::tool("semantic tool execution failed")
+                    UpstreamAgentError::tool(error.to_string())
                 }
             })?;
         Ok(bound_tool_result(result))

@@ -79,4 +79,14 @@ fn prompt_visibility_requests_missing_model_details() {
         state.prompt_visibility,
         crate::state::PromptVisibility::Hidden
     );
+
+    let effects =
+        crate::state::state_presentation::activate_palette_control(&mut state, "toggle-reasoning")
+            .expect("reasoning toggle");
+
+    assert_eq!(effects, vec![Effect::None]);
+    assert_eq!(
+        state.reasoning_visibility,
+        crate::state::ReasoningVisibility::Shown
+    );
 }

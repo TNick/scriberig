@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
+use serde::{Deserialize, Serialize};
 
 use crate::style::StyleRef;
 
@@ -20,7 +21,7 @@ pub enum ProjectionClass {
 }
 
 /// Identifies a projection format without closing the set of formats.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct ProjectionKind(String);
 
 /// Identifies an external representation without imposing filesystem details.
@@ -28,11 +29,11 @@ pub struct ProjectionKind(String);
 pub struct ExternalLocation(String);
 
 /// Identifies one projection instance independently of its location.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ProjectionRef(pub EntityId);
 
 /// Identifies the semantic entity and optional exact revision being projected.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct SemanticScopeRef {
     /// Stable entity that owns the projected scope.
     pub entity: EntityId,
@@ -41,7 +42,7 @@ pub struct SemanticScopeRef {
 }
 
 /// Identifies a persistent projection specification.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ProjectionSpecRef(pub EntityId);
 
 /// Stores user-meaningful projection configuration without a physical location.
@@ -81,11 +82,11 @@ pub enum OwnershipClass {
 }
 
 /// Identifies a renderer implementation release.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RendererVersion(pub String);
 
 /// Binds projection rendering or reconciliation to an exact semantic snapshot.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct SemanticStateRef(pub SnapshotId);
 
 // Provide validated construction and access for extensible projection kinds.

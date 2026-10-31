@@ -46,7 +46,7 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
     SlashCommandDescriptor {
         name: "/plan",
         summary: "Create or control a durable plan",
-        argument_hint: " <goal|show|next|child|retry|waive|lifecycle>",
+        argument_hint: " <goal|show|next|child|retry|waive|action>",
     },
     SlashCommandDescriptor {
         name: "/session",
@@ -61,7 +61,7 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
     SlashCommandDescriptor {
         name: "/inspect",
         summary: "Inspect the selected entity",
-        argument_hint: " [entity] [snapshot]",
+        argument_hint: " [entity] [--snapshot <id>]",
     },
     SlashCommandDescriptor {
         name: "/find",
@@ -84,6 +84,11 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
         argument_hint: "",
     },
     SlashCommandDescriptor {
+        name: "/source-style",
+        summary: "Inspect or set your personal Rust source projection style",
+        argument_hint: " <show|indent=spaces,indent-width=2,blank-lines=1|clear>",
+    },
+    SlashCommandDescriptor {
         name: "/changes",
         summary: "Review candidate changes",
         argument_hint: "",
@@ -97,6 +102,121 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
         name: "/project",
         summary: "Show the active project",
         argument_hint: "",
+    },
+    SlashCommandDescriptor {
+        name: "/artifacts",
+        summary: "Inspect bounded project artifacts and fidelity",
+        argument_hint: " [project-id] [offset]",
+    },
+    SlashCommandDescriptor {
+        name: "/artifact-members",
+        summary: "Read a bounded page of exact artifact members",
+        argument_hint: " <project-id> <artifact-id> [offset]",
+    },
+    SlashCommandDescriptor {
+        name: "/spreadsheet",
+        summary: "Read a bounded page from the selected worksheet",
+        argument_hint: " [A1:C20] [offset]",
+    },
+    SlashCommandDescriptor {
+        name: "/cad",
+        summary: "Inspect a bounded semantic CAD drawing page",
+        argument_hint: " [offset]",
+    },
+    SlashCommandDescriptor {
+        name: "/cad-select",
+        summary: "Select an entity from the loaded CAD page",
+        argument_hint: " <entity-id>",
+    },
+    SlashCommandDescriptor {
+        name: "/cad-layer",
+        summary: "Propose moving a CAD entity to another layer",
+        argument_hint: " <entity-id> <layer-id>",
+    },
+    SlashCommandDescriptor {
+        name: "/geo",
+        summary: "Inspect a GeoPackage catalog at the selected snapshot",
+        argument_hint: " <project-relative-path> [layer-offset]",
+    },
+    SlashCommandDescriptor {
+        name: "/qgis",
+        summary: "Inspect a QGIS project's layer references at the selected snapshot",
+        argument_hint: " <project-relative-path>",
+    },
+    SlashCommandDescriptor {
+        name: "/qgis-layer",
+        summary: "Open the GeoPackage catalog linked by a loaded QGIS reference",
+        argument_hint: " <reference-id>",
+    },
+    SlashCommandDescriptor {
+        name: "/qgis-rename",
+        summary: "Propose renaming a QGIS layer reference for shared review",
+        argument_hint: " <reference-id> <new-name>",
+    },
+    SlashCommandDescriptor {
+        name: "/qgis-order",
+        summary: "Propose a complete QGIS layer-reference order for shared review",
+        argument_hint: " <reference-id> <reference-id> ...",
+    },
+    SlashCommandDescriptor {
+        name: "/geo-features",
+        summary: "Read a bounded page from a verified geospatial layer",
+        argument_hint: " <layer-id> [offset]",
+    },
+    SlashCommandDescriptor {
+        name: "/geo-query",
+        summary: "Query a geospatial layer with a typed attribute or CRS envelope predicate",
+        argument_hint: " <layer-id> <predicate-json> [offset]",
+    },
+    SlashCommandDescriptor {
+        name: "/geo-set",
+        summary: "Propose a typed feature attribute change for shared review",
+        argument_hint: " <feature-id> <field> <kind:value>",
+    },
+    SlashCommandDescriptor {
+        name: "/geo-select",
+        summary: "Select a feature from the loaded exact-snapshot page",
+        argument_hint: " <feature-id>",
+    },
+    SlashCommandDescriptor {
+        name: "/geo-geometry",
+        summary: "Propose typed feature geometry JSON for shared review",
+        argument_hint: " <feature-id> <geometry-json>",
+    },
+    SlashCommandDescriptor {
+        name: "/spreadsheet-cell",
+        summary: "Inspect one exact semantic worksheet cell",
+        argument_hint: " <A1>",
+    },
+    SlashCommandDescriptor {
+        name: "/spreadsheet-set",
+        summary: "Propose a typed worksheet value candidate",
+        argument_hint: " <A1> <text|number|boolean|blank> <value>",
+    },
+    SlashCommandDescriptor {
+        name: "/spreadsheet-formula",
+        summary: "Propose a worksheet formula candidate",
+        argument_hint: " <A1> <formula>",
+    },
+    SlashCommandDescriptor {
+        name: "/document",
+        summary: "Read the selected semantic document outline and content",
+        argument_hint: " [row-offset]",
+    },
+    SlashCommandDescriptor {
+        name: "/document-select",
+        summary: "Select a paragraph or table cell from the loaded document",
+        argument_hint: " <entity-id>",
+    },
+    SlashCommandDescriptor {
+        name: "/document-replace",
+        summary: "Propose replacement text for a selected semantic paragraph",
+        argument_hint: " <paragraph-id> <replacement text>",
+    },
+    SlashCommandDescriptor {
+        name: "/document-cell-replace",
+        summary: "Propose replacement text for a semantic table cell",
+        argument_hint: " <cell-id> <replacement text>",
     },
     SlashCommandDescriptor {
         name: "/status",
@@ -127,6 +247,11 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
         name: "/remove-session",
         summary: "Remove an idle saved conversation by ID",
         argument_hint: " <session-id>",
+    },
+    SlashCommandDescriptor {
+        name: "/recover",
+        summary: "Inspect or map preserved legacy model selections",
+        argument_hint: " [map <path> <revision> <provider> <model> [thinking]]",
     },
 ];
 

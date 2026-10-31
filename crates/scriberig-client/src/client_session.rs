@@ -6,14 +6,78 @@ use scriberig_protocol::{
     AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesResponse,
     AgentPresentationPreferencesSetRequest, BranchReference, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
-    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanAttemptHistoryPage,
-    SessionPlanAttemptHistoryRequest, SessionPlanCreateRequest, SessionPlanDecomposeRequest,
-    SessionPlanLifecycleRequest, SessionPlanNextStepRequest, SessionPlanReplanRequest,
-    SessionPlanRetryRequest, SessionPlanSemanticMutationRequest, SessionReadRequest,
-    SessionReadResponse, SessionReference, ToolResultDetailRequest, ToolResultDetailResponse,
+    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanAttemptsRequest,
+    SessionPlanAttemptsResponse, SessionPlanCreateRequest, SessionPlanDetailsRequest,
+    SessionPlanDetailsResponse, SessionPlanGraphView, SessionPlanLifecycleRequest,
+    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionPlanViewRequest,
+    SessionReadRequest, SessionReadResponse, SessionReference, ToolResultDetailRequest,
+    ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
+    /// Reads a compact plan graph with exact semantic revision references.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan, and optional exact snapshot.
+    ///
+    /// # Returns
+    /// Compact plan graph without history or full detail collections.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_view(
+        &self,
+        request: SessionPlanViewRequest,
+    ) -> Result<SessionPlanGraphView, ClientError> {
+        match self.send(Request::PlanView(request))?.response {
+            Response::PlanView(view) => Ok(view),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads one bounded page of attempts for a plan node.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan, node, and attempt-page identities.
+    ///
+    /// # Returns
+    /// Safe attempt metadata without worker transcript content.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_attempts(
+        &self,
+        request: SessionPlanAttemptsRequest,
+    ) -> Result<SessionPlanAttemptsResponse, ClientError> {
+        match self.send(Request::PlanAttempts(request))?.response {
+            Response::PlanAttempts(attempts) => Ok(attempts),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads bounded gate and evidence pages from one observed plan revision.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan revision, and independent page offsets.
+    ///
+    /// # Returns
+    /// Typed gate/evidence details from the requested plan revision.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_details(
+        &self,
+        request: SessionPlanDetailsRequest,
+    ) -> Result<SessionPlanDetailsResponse, ClientError> {
+        match self.send(Request::PlanDetails(request))?.response {
+            Response::PlanDetails(details) => Ok(details),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
     /// Creates a durable plan from a structured, provider-neutral proposal.
     ///
     /// - `request`: Exact anchor and validated plan proposal input.
@@ -99,51 +163,9 @@ impl<T: ProtocolTransport> Client<T> {
         }
     }
 
-    /// Retries one failed plan node at an observed plan revision.
+    /// Applies one typed semantic mutation to a durable plan.
     ///
-    /// - `request`: Session, plan, node, and expected revision.
-    ///
-    /// The authoritative updated plan.
-    ///
-    /// Returns a structured server or transport error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn retry_plan_node(
-        &self,
-        request: SessionPlanRetryRequest,
-    ) -> Result<SessionPlan, ClientError> {
-        match self.send(Request::PlanRetry(request))?.response {
-            Response::Plan(plan) => Ok(plan),
-            Response::Error(error) => Err(error.into()),
-            _ => Err(ClientError::UnexpectedResponse),
-        }
-    }
-
-    /// Reads one bounded page of a node's exact-snapshot attempt history.
-    ///
-    /// - `request`: Session, plan, node, snapshot, and page range.
-    ///
-    /// Attempt outcomes ordered by claim generation.
-    /// # Returns
-    /// The requested page.
-    /// # Errors
-    /// Returns a structured server, transport, or response-mismatch error.
-    pub fn plan_attempt_history(
-        &self,
-        request: SessionPlanAttemptHistoryRequest,
-    ) -> Result<SessionPlanAttemptHistoryPage, ClientError> {
-        match self.send(Request::PlanAttemptHistory(request))?.response {
-            Response::PlanAttemptHistory(page) => Ok(page),
-            Response::Error(error) => Err(error.into()),
-            _ => Err(ClientError::UnexpectedResponse),
-        }
-    }
-
-    /// Adds ordinary work to a running plan at its observed revision.
-    ///
-    /// - `request`: Session, plan, revision, and the next work item.
+    /// - `request`: Plan identity, observed revision, and semantic mutation.
     ///
     /// The authoritative updated plan projection.
     ///
@@ -152,53 +174,11 @@ impl<T: ProtocolTransport> Client<T> {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub fn add_plan_next_step(
+    pub fn mutate_plan(
         &self,
-        request: SessionPlanNextStepRequest,
+        request: SessionPlanMutationRequest,
     ) -> Result<SessionPlan, ClientError> {
-        match self.send(Request::PlanNextStep(request))?.response {
-            Response::Plan(plan) => Ok(plan),
-            Response::Error(error) => Err(error.into()),
-            _ => Err(ClientError::UnexpectedResponse),
-        }
-    }
-
-    /// Decomposes one plan node into structural child work.
-    ///
-    /// - `request`: Parent, revision, children, and completion requirement.
-    ///
-    /// The authoritative updated plan projection.
-    ///
-    /// Returns a structured server or transport error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn decompose_plan_node(
-        &self,
-        request: SessionPlanDecomposeRequest,
-    ) -> Result<SessionPlan, ClientError> {
-        match self.send(Request::PlanDecompose(request))?.response {
-            Response::Plan(plan) => Ok(plan),
-            Response::Error(error) => Err(error.into()),
-            _ => Err(ClientError::UnexpectedResponse),
-        }
-    }
-
-    /// Applies one typed summary, evidence, gate, or waiver mutation.
-    ///
-    /// - `request`: Exact plan revision and semantic mutation.
-    ///
-    /// The authoritative updated plan projection.
-    /// # Returns
-    /// The updated plan.
-    /// # Errors
-    /// Returns a structured server or transport error.
-    pub fn mutate_plan_semantics(
-        &self,
-        request: SessionPlanSemanticMutationRequest,
-    ) -> Result<SessionPlan, ClientError> {
-        match self.send(Request::PlanSemanticMutation(request))?.response {
+        match self.send(Request::PlanMutation(request))?.response {
             Response::Plan(plan) => Ok(plan),
             Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),

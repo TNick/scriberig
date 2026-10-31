@@ -334,6 +334,18 @@ export function storeAgentSession(
   };
 }
 
+/** Replaces one durable plan returned by a shared mutation operation.
+ * @param state Current agent workspace state.
+ * @param plan Authoritative plan returned by the application client.
+ * @returns Updated state with the plan ordered by stable identity.
+ */
+export function storeAgentPlan(state: AgentWorkspaceState, plan: SessionPlan): AgentWorkspaceState {
+  const plans = state.plans.filter((known) => known.id !== plan.id);
+  plans.push(plan);
+  plans.sort((left, right) => left.id.localeCompare(right.id));
+  return { ...state, plans, stale: false };
+}
+
 /** Stores the safe public model library without persisting provider secrets.
  * @param state Current agent workspace state.
  * @param library Safe upstream-derived model descriptors.

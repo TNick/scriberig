@@ -5,8 +5,8 @@ use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 use rpi_tui::{
-    Component, Editor, EditorOptions, EditorStyle, Focusable, Keybindings, ProcessTerminal,
-    ScrollView, StackEntryOptions, TUI, TuiAltScreen, VStack,
+    Component, Editor, EditorOptions, EditorStyle, Focusable, Keybindings, ProcessTerminal, TUI,
+    TuiAltScreen, VStack,
 };
 
 use crate::debug_log::TuiDebugLog;
@@ -19,17 +19,29 @@ mod components;
 mod controls;
 #[path = "upstream/event_loop.rs"]
 mod event_loop;
+#[cfg(test)]
+#[path = "upstream/lifecycle_tests.rs"]
+mod lifecycle_tests;
 #[path = "upstream/modal_overlay.rs"]
 mod modal_overlay;
+#[path = "upstream/plugin_overlays.rs"]
+mod plugin_overlays;
 #[path = "upstream/property_editor.rs"]
 mod property_editor;
 #[path = "upstream/selector_factory.rs"]
 mod selector_factory;
 #[path = "upstream/semantic_views.rs"]
 mod semantic_views;
+#[path = "upstream/shell_panes.rs"]
+mod shell_panes;
+#[cfg(test)]
+#[path = "upstream/transcript_follow_tests.rs"]
+mod transcript_follow_tests;
 
-use components::{ComposerAdapter, SelectionStatusPanel};
+use components::{ComposerAdapter, ExtensionFooterPanels, SelectionStatusPanel};
+use plugin_overlays::PluginOverlays;
 use semantic_views::SemanticViewPanel;
+use shell_panes::ShellPanes;
 
 /// Retains the current `ScribeRig` semantic-list row identity.
 ///
@@ -110,6 +122,15 @@ pub(super) enum ComposerInput {
     CloseHelp,
     /// Apply a selected command palette row.
     PaletteSelected(String),
+    /// Continue a plugin command after its upstream UI returned an action.
+    PluginCommandAction {
+        /// Exact host-authorized plugin command identity.
+        command: String,
+        /// Original arguments supplied with the command.
+        arguments: String,
+        /// Structured action selected or submitted by the user.
+        action: serde_json::Value,
+    },
     /// Apply a selected upstream model control row.
     Selected(SelectorChoice),
     /// Cancel the active selector.
@@ -130,12 +151,14 @@ pub(super) enum ComposerInput {
 ///
 /// - `input_sender`: Channel receiving the application quit intent.
 /// - `keybindings`: Upstream bindings including the `ScribeRig` quit action.
+/// - `state`: Shared presentation state for operation cancellation routing.
 ///
 /// # Returns
 /// A thread-safe upstream input callback.
 fn global_quit_handler(
     input_sender: mpsc::Sender<ComposerInput>,
     keybindings: Arc<Keybindings>,
+    state: Arc<Mutex<TuiState>>,
 ) -> Arc<dyn Fn(&rpi_tui::InputEvent) -> bool + Send + Sync> {
     Arc::new(move |event| {
         let rpi_tui::InputEvent::Key(key) = event else {
@@ -144,6 +167,33 @@ fn global_quit_handler(
         if keybindings.matches(key, controls::QUIT) {
             let _ = input_sender.send(ComposerInput::Quit);
             true
+        } else if keybindings.matches(key, controls::CANCEL_OPERATION)
+            && let Ok(state) = state.lock()
+            && state.primary_view == crate::selection::PrimaryView::Operations
+            && let Some(operation) = state
+                .operations
+                .get(state.cursor)
+                .filter(|operation| operation.cancellable())
+                .or_else(|| {
+                    state
+                        .operations
+                        .iter()
+                        .rev()
+                        .find(|operation| operation.kind == "Agent" && operation.cancellable())
+                })
+                .or_else(|| {
+                    state
+                        .operations
+                        .iter()
+                        .rev()
+                        .find(|operation| operation.cancellable())
+                })
+        {
+            input_sender
+                .send(ComposerInput::PresentationAction(Box::new(
+                    crate::action::Action::OperationCancelRequested(operation.id.clone()),
+                )))
+                .is_ok()
         } else {
             false
         }
@@ -202,6 +252,7 @@ pub(super) fn run<S: TuiService + Sync>(
     state: TuiState,
     debug_log: Option<&mut TuiDebugLog>,
 ) -> io::Result<()> {
+    let initial_view = state.primary_view;
     let shared_state = Arc::new(Mutex::new(state));
     let (input_sender, input_receiver) = mpsc::channel();
     let mut keybindings = rpi_tui::get_keybindings().clone();
@@ -234,16 +285,22 @@ pub(super) fn run<S: TuiService + Sync>(
         Arc::clone(&shared_state),
         controls::control_hints(&keybindings),
     ));
-    let transcript = Arc::new(ScrollView::primary(conversation.clone()));
-    let root = Arc::new(VStack::new());
-    root.add_child_with_options(
-        selection_status,
-        StackEntryOptions::with_basis(3).min_size(2),
-    );
-    root.add_child_with_options(transcript, StackEntryOptions::default().grow(1).min_size(1));
-    root.add_child_with_options(
-        composer.clone(),
-        StackEntryOptions::with_basis(5).min_size(3),
+    let extension_mailbox = service.extension_component_mailbox();
+    let status_pane: Arc<dyn Component> = if let Some(mailbox) = extension_mailbox.as_ref() {
+        let status_stack = Arc::new(VStack::new());
+        status_stack.add_child(selection_status);
+        status_stack.add_child(Arc::new(ExtensionFooterPanels::new(mailbox.clone())));
+        status_stack
+    } else {
+        selection_status
+    };
+    let composer_pane: Arc<dyn Component> = Arc::clone(&composer) as Arc<dyn Component>;
+    let mut panes = ShellPanes::new(
+        &conversation,
+        status_pane,
+        composer_pane,
+        initial_view,
+        extension_mailbox,
     );
 
     let screen = Arc::new(TuiAltScreen::new(
@@ -254,8 +311,9 @@ pub(super) fn run<S: TuiService + Sync>(
     screen.set_global_input_handler(Some(global_quit_handler(
         input_sender.clone(),
         Arc::clone(&keybindings),
+        Arc::clone(&shared_state),
     )));
-    screen.set_layout_root(Some(root));
+    screen.set_layout_root(Some(panes.root()));
     composer.set_focused(true);
     let focused_composer: Arc<dyn Component> = composer.clone();
     screen.set_focus(Some(focused_composer));
@@ -265,6 +323,7 @@ pub(super) fn run<S: TuiService + Sync>(
         config,
         state: &shared_state,
         screen: &screen,
+        panes: &mut panes,
         editor: &editor,
         composer: &composer,
         semantic_view: &conversation,

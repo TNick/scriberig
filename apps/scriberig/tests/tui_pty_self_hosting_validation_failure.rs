@@ -1,7 +1,5 @@
 //! Verifies failed PHP candidate validation remains reviewable and unapplied.
 
-#[path = "tui_pty_support/onboarding_wait.rs"]
-mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -10,13 +8,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use onboarding_wait::{wait_for_branch_completion, wait_for_onboarding};
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_project::{CandidateValidation, ProjectService};
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
-use tui_pty_support::{TuiPty, test_lock};
+use tui_pty_support::onboarding_wait::{wait_for_branch_completion, wait_for_onboarding};
+use tui_pty_support::{TuiPty, candidate_review, test_lock};
 
 /// Drives an intentionally invalid PHP candidate through the native TUI.
 #[test]
@@ -171,7 +169,7 @@ fn onboard_failure_scenario(repair: bool) -> FailureScenario {
     } else {
         TuiPty::start_self_hosting_validation_failure()
     };
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Onboard the current project.\r");
     let session = visible_session(&tui);
     wait_for_onboarding(&mut tui, session);
@@ -287,10 +285,9 @@ fn assert_project_unchanged(scenario: &FailureScenario, candidate: &str) {
 ///
 /// - `tui`: Active TUI with the failed candidate in its durable session result.
 fn review_failed_candidate(tui: &mut TuiPty) {
-    tui.send_slow(b"/changes\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    candidate_review::open_candidate_review(tui, "Validation: Failed");
     assert!(
-        tui.screen().contains("validation: Failed"),
+        tui.screen().contains("Validation: Failed"),
         "{}",
         tui.screen()
     );

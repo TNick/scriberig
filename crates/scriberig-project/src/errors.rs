@@ -125,6 +125,7 @@ pub(crate) fn adapter_diagnostics_error(
     let diagnostics = messages
         .iter()
         .map(|message| ImportDiagnostic {
+            entity: None,
             path: file.relative_path.clone(),
             adapter: file.adapter.clone(),
             stage: stage.to_owned(),

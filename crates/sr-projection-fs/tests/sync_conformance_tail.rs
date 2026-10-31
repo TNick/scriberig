@@ -8,11 +8,14 @@ use sr_projection::{
 };
 use sr_projection::{ProjectionRef, ProjectionStatus, SemanticStateRef};
 use sr_projection_fs::{
-    FileSystem, LocalFileSystem, MemorySyncStore, Observation, ProjectionLocation,
-    ProjectionOwnership, SyncCoordinator, SyncState, digest_bytes,
+    FileMetadata, FileSystem, IoError, LocalFileSystem, MemorySyncStore, Observation,
+    ProjectionLocation, ProjectionOwnership, SyncCoordinator, SyncState,
 };
 use std::cell::Cell;
 use std::fs;
+use std::path::Path;
+
+mod common;
 
 /// Verifies initial managed rendering uses the adapter and synchronization boundary.
 #[test]
@@ -128,6 +131,133 @@ fn ambiguous_adapter_result_enters_conflict() {
     let _ = fs::remove_dir_all(root);
 }
 
+/// Verifies a mismatched write leaves the exact prior reconciliation baseline intact.
+#[test]
+fn mismatched_write_does_not_advance_synchronization_baseline() {
+    let root = std::env::temp_dir().join(format!("scriberig-fs-baseline-{}", std::process::id()));
+    let _ = fs::create_dir_all(&root);
+    let path = root.join("projection.txt");
+    let io = AlteredWriteFileSystem(LocalFileSystem);
+    io.0.write_atomic(&path, b"rendered").expect("seed file");
+    let mut coordinator = coordinator_with_fs(io, &path, b"rendered");
+    let prior = coordinator
+        .states()
+        .find(&ProjectionLocation::new(&path))
+        .expect("state")
+        .clone();
+
+    assert!(matches!(
+        coordinator.write_rendered(
+            ProjectionRef(EntityId::from_bytes([1; 16])),
+            b"requested",
+            SemanticStateRef(SnapshotId::new([8; 32])),
+        ),
+        Err(IoError::BaselineMismatch)
+    ));
+
+    let state = coordinator
+        .states()
+        .find(&ProjectionLocation::new(&path))
+        .expect("state remains available");
+    assert_eq!(state.baseline, prior.baseline);
+    assert_eq!(state.current, prior.current);
+    assert_eq!(state.status, ProjectionStatus::ExternallyModified);
+    assert_eq!(
+        io.0.read(&path).expect("read altered output"),
+        b"requested!"
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[derive(Clone, Copy)]
+/// Simulates a successful atomic write that stores bytes different from its input.
+struct AlteredWriteFileSystem(LocalFileSystem);
+
+impl FileSystem for AlteredWriteFileSystem {
+    /// Reads bytes from the local filesystem.
+    ///
+    /// - `self`: Altered-write filesystem.
+    /// - `path`: Path to read.
+    ///
+    /// The exact file bytes.
+    ///
+    /// # Returns
+    /// The bytes when the read succeeds.
+    ///
+    /// # Errors
+    /// Returns the local filesystem read error.
+    fn read(&self, path: &Path) -> Result<Vec<u8>, IoError> {
+        self.0.read(path)
+    }
+
+    /// Reads metadata from the local filesystem.
+    ///
+    /// - `self`: Altered-write filesystem.
+    /// - `path`: Path to inspect.
+    ///
+    /// Metadata when the path exists.
+    ///
+    /// # Returns
+    /// The optional file metadata.
+    ///
+    /// # Errors
+    /// Returns the local filesystem metadata error.
+    fn metadata(&self, path: &Path) -> Result<Option<FileMetadata>, IoError> {
+        self.0.metadata(path)
+    }
+
+    /// Stores a deliberately altered byte sequence to exercise read-back validation.
+    ///
+    /// - `self`: Altered-write filesystem.
+    /// - `path`: Target file path.
+    /// - `bytes`: Requested output bytes.
+    ///
+    /// Unit after the altered bytes are stored.
+    ///
+    /// # Returns
+    /// Unit after the local atomic write succeeds.
+    ///
+    /// # Errors
+    /// Returns the local filesystem write error.
+    fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError> {
+        let mut altered = bytes.to_vec();
+        altered.push(b'!');
+        self.0.write_atomic(path, &altered)
+    }
+
+    /// Creates directories through the local filesystem.
+    ///
+    /// - `self`: Altered-write filesystem.
+    /// - `path`: Directory path to create.
+    ///
+    /// Unit after directory creation.
+    ///
+    /// # Returns
+    /// Unit after the local operation succeeds.
+    ///
+    /// # Errors
+    /// Returns the local filesystem directory error.
+    fn create_dir_all(&self, path: &Path) -> Result<(), IoError> {
+        self.0.create_dir_all(path)
+    }
+
+    /// Removes a file through the local filesystem.
+    ///
+    /// - `self`: Altered-write filesystem.
+    /// - `path`: File path to remove.
+    ///
+    /// Unit after removal.
+    ///
+    /// # Returns
+    /// Unit after the local operation succeeds.
+    ///
+    /// # Errors
+    /// Returns the local filesystem removal error.
+    fn remove_file(&self, path: &Path) -> Result<(), IoError> {
+        self.0.remove_file(path)
+    }
+}
+
 #[derive(Default)]
 /// Provides a deterministic projection adapter for conformance tests.
 struct TestAdapter {
@@ -239,24 +369,33 @@ pub(crate) fn coordinator(
     path: &std::path::Path,
     rendered: &[u8],
 ) -> SyncCoordinator<LocalFileSystem> {
+    coordinator_with_fs(LocalFileSystem, path, rendered)
+}
+
+/// Creates a synchronization coordinator with one managed projection and caller-supplied IO.
+///
+/// - `filesystem`: Filesystem implementation used by the coordinator.
+/// - `path`: Projection file path.
+/// - `rendered`: Previously rendered bytes.
+///
+/// A coordinator containing one managed editable projection.
+fn coordinator_with_fs<F: FileSystem>(
+    filesystem: F,
+    path: &std::path::Path,
+    rendered: &[u8],
+) -> SyncCoordinator<F> {
     let mut states = MemorySyncStore::default();
-    states.put(SyncState {
-        projection: ProjectionRef(EntityId::from_bytes([1; 16])),
-        specification: sr_projection::ProjectionSpecRef(EntityId::from_bytes([4; 16])),
-        scope: sr_projection::SemanticScopeRef {
-            entity: EntityId::from_bytes([5; 16]),
-            revision: None,
-        },
-        kind: sr_projection::ProjectionKind::new("text").expect("kind"),
-        location: ProjectionLocation::new(path),
-        ownership: ProjectionOwnership::ManagedEditable,
-        base: SemanticStateRef(SnapshotId::new([2; 32])),
-        current: SemanticStateRef(SnapshotId::new([3; 32])),
-        style: sr_projection::StyleRef::Value(sr_projection::StyleValue::new(Vec::new())),
-        renderer: sr_projection::RendererVersion::new("test"),
-        rendered: digest_bytes(rendered),
-        observed: None,
-        status: ProjectionStatus::Synchronized,
-    });
-    SyncCoordinator::new(LocalFileSystem, states)
+    let mut state = SyncState::new(
+        ProjectionRef(EntityId::from_bytes([1; 16])),
+        common::baseline("text", SnapshotId::new([2; 32]), &[], rendered),
+        ProjectionLocation::new(path),
+        ProjectionOwnership::ManagedEditable,
+        SemanticStateRef(SnapshotId::new([3; 32])),
+        ProjectionStatus::Synchronized,
+    );
+    state.baseline.rendered.cache_key.scope.entity = EntityId::from_bytes([5; 16]);
+    state.baseline.rendered.cache_key.specification =
+        sr_projection::ProjectionSpecRef(EntityId::from_bytes([4; 16]));
+    states.put(state);
+    SyncCoordinator::new(filesystem, states)
 }

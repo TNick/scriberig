@@ -242,7 +242,6 @@ fn session_fixture() -> Session {
         tasks: Vec::new(),
         plans: vec![scriberig_session::Plan {
             id: plan_id,
-            source_snapshot: None,
             session: Some(session),
             anchor: Some(scriberig_session::ContinuationAnchor::BranchHead { branch }),
             goal: "inspect fixture semantics".to_owned(),
@@ -290,6 +289,7 @@ fn session_fixture() -> Session {
                 dependent: consumer_id,
                 fulfilled_by: Some(result_id),
             }],
+            source_snapshot: None,
             summaries: Vec::new(),
             evidence: Vec::new(),
             gates: Vec::new(),

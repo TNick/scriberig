@@ -67,10 +67,14 @@ pub(crate) fn write_rollup_row(
                  contains_ignored, contains_abandoned, child_planned,
                  child_ready, child_running, child_completed, child_failed,
                  child_abandoned, unsatisfied_completion_gates,
-                 evaluator_version, source_snapshot
+                 entry_pending, entry_satisfied, entry_failed, entry_waived,
+                 completion_pending, completion_satisfied, completion_failed,
+                 completion_waived, evidence_count, evaluator_version,
+                 source_snapshot
              ) VALUES (
                  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
-                 ?13, 1, ?14
+                 ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22,
+                 2, ?23
              ) ON CONFLICT(session_id, plan_id, node_id) DO UPDATE SET
                  effective_status=excluded.effective_status,
                  contains_ignored=excluded.contains_ignored,
@@ -82,6 +86,15 @@ pub(crate) fn write_rollup_row(
                  child_failed=excluded.child_failed,
                  child_abandoned=excluded.child_abandoned,
                  unsatisfied_completion_gates=excluded.unsatisfied_completion_gates,
+                 entry_pending=excluded.entry_pending,
+                 entry_satisfied=excluded.entry_satisfied,
+                 entry_failed=excluded.entry_failed,
+                 entry_waived=excluded.entry_waived,
+                 completion_pending=excluded.completion_pending,
+                 completion_satisfied=excluded.completion_satisfied,
+                 completion_failed=excluded.completion_failed,
+                 completion_waived=excluded.completion_waived,
+                 evidence_count=excluded.evidence_count,
                  evaluator_version=excluded.evaluator_version,
                  source_snapshot=excluded.source_snapshot",
             params![
@@ -98,6 +111,15 @@ pub(crate) fn write_rollup_row(
                 i64::from(rollup.child_counts.failed),
                 i64::from(rollup.child_counts.abandoned),
                 i64::from(rollup.unsatisfied_completion_gates),
+                i64::from(rollup.entry_gates.pending),
+                i64::from(rollup.entry_gates.satisfied),
+                i64::from(rollup.entry_gates.failed),
+                i64::from(rollup.entry_gates.waived),
+                i64::from(rollup.completion_gates.pending),
+                i64::from(rollup.completion_gates.satisfied),
+                i64::from(rollup.completion_gates.failed),
+                i64::from(rollup.completion_gates.waived),
+                i64::from(rollup.evidence_count),
                 snapshot.as_bytes().as_slice(),
             ],
         )
@@ -130,7 +152,7 @@ pub(crate) fn write_rollup_metadata(
         .execute(
             "INSERT INTO plan_node_rollup_meta (
                  session_id, plan_id, source_snapshot, evaluator_version, node_count
-             ) VALUES (?1, ?2, ?3, 1, ?4)
+             ) VALUES (?1, ?2, ?3, 2, ?4)
              ON CONFLICT(session_id, plan_id) DO UPDATE SET
                  source_snapshot=excluded.source_snapshot,
                  evaluator_version=excluded.evaluator_version,

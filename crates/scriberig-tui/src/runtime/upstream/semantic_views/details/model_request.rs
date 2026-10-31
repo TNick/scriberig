@@ -75,7 +75,7 @@ pub(super) fn append_model_request(
     }
 }
 
-/// Appends the legacy bounded fields when a response has no paged fragments.
+/// Appends every safe legacy field when a response has no paged fragments.
 ///
 /// - `output`: Markdown content receiving request detail.
 /// - `detail`: Provider-neutral request projection.
@@ -83,19 +83,22 @@ fn append_legacy_detail(
     output: &mut String,
     detail: &scriberig_protocol::ModelRequestDetailResponse,
 ) {
-    for message in detail.messages.iter().take(64) {
-        super::super::common::append_value(
+    for message in &detail.messages {
+        super::super::common::append_complete_value(
             output,
             &format!("{}: {}", message.role, message.content),
         );
     }
-    for tool in detail.tools.iter().take(64) {
-        super::super::common::append_value(
+    for tool in &detail.tools {
+        super::super::common::append_complete_value(
             output,
             &format!("Tool: {} · {}", tool.name, tool.description),
         );
         if let Some(parameters) = &tool.parameters {
-            super::super::common::append_value(output, &format!("Tool parameters: {parameters}"));
+            super::super::common::append_complete_value(
+                output,
+                &format!("Tool parameters: {parameters}"),
+            );
         }
     }
 }
@@ -160,4 +163,102 @@ fn append_request_fragment(
     };
     super::super::common::append_value(output, &label);
     super::super::common::append_complete_value(output, &fragment.text);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::append_model_request;
+    use scriberig_protocol::{ModelRequestDetailFragment, ModelRequestDetailResponse};
+
+    /// Preserves complete safe request fragments longer than ordinary labels.
+    #[test]
+    fn expanded_prompt_keeps_the_complete_safe_effective_request() {
+        let request_text = format!("{}tail-of-effective-request", "x".repeat(1200));
+        let detail = ModelRequestDetailResponse {
+            invocation: "ent_invocation".to_owned(),
+            model: "provider/model".to_owned(),
+            provider_id: Some("provider".to_owned()),
+            provider_profile: None,
+            thinking_level: None,
+            profile: None,
+            active_components: Vec::new(),
+            context_fingerprint: None,
+            request_fingerprint: None,
+            catalog_revision: None,
+            upstream_runtime_revision: None,
+            provider_response_id: None,
+            model_execution_configuration: None,
+            messages: Vec::new(),
+            tools: Vec::new(),
+            applied_settings: None,
+            applied_settings_fingerprint: None,
+            truncated: false,
+            content_complete: true,
+            fragments: vec![ModelRequestDetailFragment {
+                kind: "message".to_owned(),
+                index: 0,
+                parent_index: None,
+                field: "content".to_owned(),
+                field_offset: 0,
+                role: Some("user".to_owned()),
+                text: request_text,
+            }],
+            offset: Some(0),
+            total_chars: Some(1225),
+            next_offset: None,
+        };
+        let mut output = String::new();
+
+        append_model_request(&mut output, &detail);
+
+        assert!(output.contains("tail-of-effective-request"));
+        assert!(!output.contains("Effective request detail is truncated."));
+    }
+
+    /// Preserves long and trailing legacy request messages without local caps.
+    #[test]
+    fn legacy_expanded_prompt_keeps_all_safe_messages() {
+        let mut messages = (0..64)
+            .map(|index| scriberig_protocol::ModelRequestMessageDetail {
+                role: "user".to_owned(),
+                content: format!("message {index}"),
+            })
+            .collect::<Vec<_>>();
+        messages.push(scriberig_protocol::ModelRequestMessageDetail {
+            role: "assistant".to_owned(),
+            content: format!("{}legacy-tail", "x".repeat(1200)),
+        });
+        let detail = ModelRequestDetailResponse {
+            invocation: "ent_invocation".to_owned(),
+            model: "provider/model".to_owned(),
+            provider_id: None,
+            provider_profile: None,
+            thinking_level: None,
+            profile: None,
+            active_components: Vec::new(),
+            context_fingerprint: None,
+            request_fingerprint: None,
+            catalog_revision: None,
+            upstream_runtime_revision: None,
+            provider_response_id: None,
+            model_execution_configuration: None,
+            messages,
+            tools: Vec::new(),
+            applied_settings: None,
+            applied_settings_fingerprint: None,
+            truncated: false,
+            content_complete: true,
+            fragments: Vec::new(),
+            offset: None,
+            total_chars: None,
+            next_offset: None,
+        };
+        let mut output = String::new();
+
+        append_model_request(&mut output, &detail);
+
+        assert!(output.contains("message 63"));
+        assert!(output.contains("legacy-tail"));
+        assert!(!output.contains("Effective request detail is truncated."));
+    }
 }

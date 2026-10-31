@@ -114,3 +114,26 @@ fn model_snapshot_requires_upstream_provider_identity() {
 
     assert!(serde_json::from_value::<PublicModelDescriptor>(value).is_err());
 }
+
+/// Verifies auth outcomes serialize safely and older readiness rows still decode.
+#[test]
+fn provider_authentication_status_round_trips_without_credential_data() {
+    let row = ProviderReadiness {
+        provider_id: "provider-a".to_owned(),
+        model_id: "model-a".to_owned(),
+        credential: ProviderCredentialReadiness::Available,
+        authentication: Some(ProviderAuthenticationStatus::Rejected),
+    };
+    let serialized = serde_json::to_value(&row).expect("serialize provider readiness");
+    assert_eq!(serialized["authentication"], "rejected");
+    assert_eq!(serialized.as_object().expect("readiness object").len(), 4);
+
+    let legacy = serde_json::json!({
+        "provider_id": "provider-a",
+        "model_id": "model-a",
+        "credential": "available"
+    });
+    let decoded: ProviderReadiness =
+        serde_json::from_value(legacy).expect("decode legacy readiness row");
+    assert_eq!(decoded.authentication, None);
+}

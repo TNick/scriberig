@@ -1,0 +1,9 @@
+{
+  "worksheet": "budget-inputs",
+  "row": 3,
+  "column": 2,
+  "value": {
+    "kind": "formula",
+    "expression": "=A1*2"
+  }
+}

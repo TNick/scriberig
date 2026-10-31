@@ -4,8 +4,12 @@ use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 
 use crate::native_scenario::NativeScenario;
 use crate::self_hosting_provider::{CancellationPhase, ValidationMode};
+#[path = "provider_config/binding.rs"]
+pub(super) mod binding;
 #[path = "provider_config/catalog.rs"]
 pub(super) mod catalog;
+#[path = "provider_config/extension_operations.rs"]
+pub(super) mod extension_operations;
 #[path = "provider_config/extensions.rs"]
 pub(super) mod extensions;
 

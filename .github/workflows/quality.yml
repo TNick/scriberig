@@ -1,86 +1,61 @@
+# Run all project quality checks in one prebuilt toolchain container.
 name: quality
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
-  conventions:
-    runs-on: ubuntu-latest
+  product-tests:
+    timeout-minutes: 120
+    runs-on: debian-13
+    container:
+      image: 10.225.224.10/ci/debian:13
+      options: --privileged
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - run: python3 tools/lint_repo.py
-
-  rust:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - run: cargo fmt --all -- --check
-      - run: cargo check --workspace --all-targets
-      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - run: cargo test --workspace
-
-  web:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
-      - name: Normalize legacy pnpm registry URLs
-        shell: bash
+      - name: Test product application
         run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const lockfile = 'web/pnpm-lock.yaml';
-          let content = fs.readFileSync(lockfile, 'utf8');
-          content = content.replace(
-            /http:\/\/127\.0\.0\.1:4873\/([^,}\s]+)/g,
-            (_, suffix) => `https://registry.npmjs.org/${decodeURIComponent(suffix)}`,
-          );
-          fs.writeFileSync(lockfile, content);
-          NODE
-      - run: pnpm --dir web install --no-frozen-lockfile
-      - run: pnpm --dir web format:check
-      - run: pnpm --dir web typecheck
-      - run: pnpm --dir web test
+          set -euxo pipefail
+          echo "Starting product tests in the prebuilt CI container"
+          timeout --foreground 5m apt-get -o Acquire::Retries=1 \
+            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          timeout --foreground 5m apt-get install --yes bubblewrap
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rustc --version
+          cargo --version
+          if [ -z "${FORGEJO_SERVER_URL:-}" ]; then
+            bwrap --unshare-all --cap-drop ALL --clearenv --dev /dev --tmpfs /tmp \
+              --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
+              --ro-bind /lib64 /lib64 --chdir /tmp -- /usr/bin/true
+            cargo test --locked -p scriberig
+          else
+            echo "Forgejo detected; excluding the sandbox-dependent provider_package_worker target."
+            cargo test --locked -p scriberig --no-default-features \
+              --features isolated-plugin-worker
+          fi
 
-  product-golden:
-    needs: [conventions, rust, web]
-    runs-on: ubuntu-latest
+  quality:
+    timeout-minutes: 120
+    runs-on: debian-13
+    container:
+      image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
-      - name: Normalize legacy pnpm registry URLs
-        shell: bash
+      - name: Run quality checks in CI image
         run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const lockfile = 'web/pnpm-lock.yaml';
-          let content = fs.readFileSync(lockfile, 'utf8');
-          content = content.replace(
-            /http:\/\/127\.0\.0\.1:4873\/([^,}\s]+)/g,
-            (_, suffix) => `https://registry.npmjs.org/${decodeURIComponent(suffix)}`,
-          );
-          fs.writeFileSync(lockfile, content);
-          NODE
-      - run: pnpm --dir web install --no-frozen-lockfile
-      - run: pnpm --dir web exec playwright install --with-deps chrome
-      - run: python3 tools/product_golden.py
+          set -euxo pipefail
+          echo "Starting repository quality checks in the prebuilt CI container"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          python3 tools/lint_repo.py
+          cargo fmt --all -- --check
+          cargo check --workspace --all-targets
+          cargo clippy --workspace --all-targets --all-features -- -D warnings
+          cargo test --workspace --exclude scriberig
+          pnpm --dir web install --frozen-lockfile
+          pnpm --dir web format:check
+          pnpm --dir web typecheck
+          pnpm --dir web test
+          python3 tools/product_golden.py

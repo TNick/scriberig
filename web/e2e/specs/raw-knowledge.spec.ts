@@ -1,9 +1,10 @@
 /** @file Covers lazy knowledge browsing and semantic selection behavior. */
 
 import { expect, expectHealthyBrowser, test } from "../fixtures/app";
+import { importGoldenProject } from "../fixtures/project";
 import { AppShell } from "../pages/app-shell";
 
-test("loads children only after expanding the root knowledge node", async ({
+test("reveals project symbols only after expanding the root knowledge node", async ({
   page,
   diagnostics,
 }) => {
@@ -13,13 +14,15 @@ test("loads children only after expanding the root knowledge node", async ({
   });
   const shell = new AppShell(page);
   await shell.open();
+  await importGoldenProject(page, "raw-knowledge-lazy-load");
+  await shell.navigate("raw");
 
   expect(listRequests).toEqual([]);
   await page.getByRole("button", { name: "Expand" }).click();
   await expect(page.getByRole("button", { name: "Collapse" })).toBeVisible();
-  await expect(page.getByRole("tree").getByRole("listitem")).toHaveCount(3);
-  expect(listRequests).toHaveLength(1);
-  expect(listRequests[0]).toContain('"relation":"children"');
+  await expect(page.getByRole("tree").getByRole("listitem")).toHaveCount(6);
+  await expect(page.getByRole("tree")).toContainText("add · rust.method");
+  expect(listRequests).toEqual([]);
   expectHealthyBrowser(diagnostics);
 });
 
@@ -29,14 +32,20 @@ test("preserves the selected semantic identity across supported views", async ({
 }) => {
   const shell = new AppShell(page);
   await shell.open();
+  await importGoldenProject(page, "raw-knowledge-selection");
+  await shell.navigate("raw");
   await page.getByRole("button", { name: "Expand" }).click();
-  const child = page.getByRole("tree").getByRole("listitem").nth(1);
-  await child.getByRole("button").first().click();
+  await page
+    .getByRole("tree")
+    .getByRole("button", { name: /add · rust\.method/ })
+    .click();
+  const selectedIdentity = await page.getByText(/^Entity ent_/).textContent();
 
   await shell.navigate("semantic");
-  await expect(page.getByText("scriberig.demo.entity")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Object inspector" })).toContainText("rust.method");
+  await expect(page.getByText(/^Entity ent_/).first()).toHaveText(selectedIdentity ?? "");
   await shell.navigate("raw");
   await shell.navigate("semantic");
-  await expect(page.getByText("scriberig.demo.entity")).toBeVisible();
+  await expect(page.getByText(/^Entity ent_/).first()).toHaveText(selectedIdentity ?? "");
   expectHealthyBrowser(diagnostics);
 });

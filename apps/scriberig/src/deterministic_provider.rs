@@ -203,10 +203,7 @@ fn semantic_discovery_response(
             serde_json::json!({"project":scope.0,"snapshot":scope.1,"query":"lib.rs","limit":10}),
         ));
     }
-    if messages
-        .iter()
-        .any(|message| message.contains("child_summary="))
-    {
+    if messages.iter().any(|message| is_child_summary(message)) {
         return Ok(final_response(
             model,
             "I inspected the source structure and delegated a bounded architecture map at the same project snapshot.",
@@ -238,6 +235,37 @@ fn semantic_discovery_response(
         "semantic_find",
         serde_json::json!({"project":scope.0,"snapshot":scope.1,"query":"lib.rs","limit":10}),
     ))
+}
+
+/// Recognizes a completed child branch from current or legacy result text.
+///
+/// - `message`: Provider-visible tool result content.
+///
+/// # Returns
+/// `true` when the result carries a completed child summary.
+fn is_child_summary(message: &str) -> bool {
+    if message.contains("child_summary=") {
+        return true;
+    }
+    let mut candidate = message.trim().to_owned();
+    for _ in 0..2 {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&candidate) {
+            if let Some(inner) = value.as_str() {
+                inner.trim().clone_into(&mut candidate);
+                continue;
+            }
+            return value.get("branch_result").is_some()
+                && value
+                    .get("summary")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some();
+        }
+        let Some(object_start) = candidate.find('{') else {
+            return false;
+        };
+        candidate = candidate[object_start..].trim().to_owned();
+    }
+    false
 }
 
 /// Reads exact project and snapshot handles from the upstream system prompt.
@@ -284,4 +312,19 @@ fn semantic_entity(message: &str) -> Result<String, String> {
         .find(|value| value.get("kind").and_then(serde_json::Value::as_str) == Some("source"))
         .and_then(|value| value.get("entity")?.as_str().map(str::to_owned))
         .ok_or_else(|| "semantic entity is missing".to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_child_summary;
+
+    /// Recognizes the structured child result emitted by the native broker.
+    #[test]
+    fn recognizes_structured_child_summary() {
+        let result = r#"{"branch_result":"branch-result-1","summary":"child complete"}"#;
+        let quoted = serde_json::to_string(result).expect("serialize quoted result");
+
+        assert!(is_child_summary(result));
+        assert!(is_child_summary(&quoted));
+    }
 }

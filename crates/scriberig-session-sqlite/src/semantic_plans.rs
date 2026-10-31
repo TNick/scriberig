@@ -10,6 +10,8 @@ mod node_details;
 mod node_index;
 #[path = "semantic_plans/plan_write_set.rs"]
 mod plan_write_set;
+#[path = "semantic_plans/projection.rs"]
+mod projection;
 #[path = "semantic_plans/reads.rs"]
 mod reads;
 #[path = "semantic_plans/rollup_index.rs"]
@@ -57,6 +59,38 @@ impl SqliteSessionStore {
             .map(|plan| self.load_semantic_plan(session.id, plan))
             .collect::<Result<Vec<_>, _>>()?;
         session.plans = plans;
+        Ok(())
+    }
+
+    /// Replaces aggregate plan payloads with compact registered plan projections.
+    ///
+    /// # Parameters
+    /// - `session`: Session projection whose plans should be loaded.
+    /// - `recover_legacy_claims`: Whether newly imported legacy claims are stale.
+    ///
+    /// # Returns
+    /// Unit after compact plans are assigned to the session.
+    ///
+    /// # Errors
+    /// Returns a diagnostic when migration or compact semantic decoding fails.
+    pub(crate) fn hydrate_semantic_plan_projections(
+        &self,
+        session: &mut Session,
+        recover_legacy_claims: bool,
+    ) -> Result<(), String> {
+        let legacy_plans = std::mem::take(&mut session.plans);
+        for (ordinal, legacy_plan) in legacy_plans.iter().enumerate() {
+            self.migrate_plan_history(session.id, legacy_plan, recover_legacy_claims)?;
+            self.register_plan(session.id, legacy_plan.id, ordinal)?;
+        }
+        let plan_ids = self.registered_plans(session.id)?;
+        session.plans = plan_ids
+            .into_iter()
+            .map(|plan| {
+                self.load_plan_projection(session.id, plan, None)?
+                    .ok_or_else(|| format!("semantic plan {plan} disappeared"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(())
     }
 
@@ -215,7 +249,7 @@ impl SqliteSessionStore {
     /// Returns a persistence diagnostic when a universal root promotion fails.
     /// # Returns
     /// Unit after all legacy revisions are imported.
-    fn migrate_plan_history(
+    pub(crate) fn migrate_plan_history(
         &self,
         session: EntityId,
         plan: &Plan,

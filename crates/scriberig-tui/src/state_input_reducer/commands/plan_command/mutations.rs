@@ -1,110 +1,93 @@
-//! Builds revision-checked plan action requests from focused slash commands.
+//! Builds shared plan mutation requests from focused plan commands.
 
 use crate::{effect::Effect, state::TuiState};
 
 use super::invalid_plan_command;
 
-/// Adds ordinary next-step work beneath the selected plan.
+/// Adds next-step or decomposed child work beneath the selected plan node.
 ///
-/// - `state`: Current session and plan selection.
-/// - `work`: Work title and purpose separated by a colon.
+/// - `state`: Current durable session and stable plan selection.
+/// - `work`: Node title and purpose in `title: purpose` form.
+/// - `child`: Whether the node is a required child of the selected node.
 ///
-/// A shared next-step effect or local validation message.
+/// A shared plan mutation effect or a local validation message.
 /// # Returns
-/// Effects for the requested plan action.
-pub(super) fn add_next_step(state: &mut TuiState, work: &str) -> Vec<Effect> {
-    let Some((title, purpose)) = parse_work(work) else {
-        return invalid_plan_command(state, "Use /plan next <title>: <purpose>.");
+/// Effects for the requested mutation.
+pub(super) fn mutate_selected_node(state: &mut TuiState, work: &str, child: bool) -> Vec<Effect> {
+    let Some((title, purpose)) = work.split_once(':') else {
+        return invalid_plan_command(state, "Use /plan next|child <title>: <purpose>.");
     };
-    let Some((session, plan)) = selected_plan(state) else {
-        return invalid_plan_command(state, "Select a durable plan before adding a next step.");
+    let title = title.trim();
+    let purpose = purpose.trim();
+    if title.is_empty() || purpose.is_empty() {
+        return invalid_plan_command(state, "Plan node title and purpose must not be empty.");
+    }
+    let Some(session) = state.session_snapshot.as_ref() else {
+        return invalid_plan_command(state, "Load a session before changing a plan.");
     };
-    vec![Effect::AddPlanNextStep(
-        scriberig_app::PlanNextStepRequest {
-            session: session.id,
-            plan: plan.id,
-            expected_revision: plan.revision,
-            title,
-            purpose,
-            expected_result: Some(scriberig_session::ExpectedResult {
-                kind: "summary".to_owned(),
-                requires_handle: false,
-            }),
-            semantic_scope: Vec::new(),
-            assignment: None,
-        },
-    )]
-}
-
-/// Adds required children beneath the selected plan node.
-///
-/// - `state`: Current session and stable node selection.
-/// - `work`: Child title and purpose separated by a colon.
-///
-/// A shared decomposition effect or local validation message.
-/// # Returns
-/// Effects for the requested plan action.
-pub(super) fn decompose_selected_node(state: &mut TuiState, work: &str) -> Vec<Effect> {
-    let Some((title, purpose)) = parse_work(work) else {
-        return invalid_plan_command(state, "Use /plan child <title>: <purpose>.");
+    let Some(selection) = state.plan_cursor else {
+        return invalid_plan_command(state, "Select a plan node before adding work.");
     };
-    let Some((session, plan)) = selected_plan(state) else {
-        return invalid_plan_command(state, "Select a durable plan before adding a child.");
+    let Some(plan) = session.plans.iter().find(|plan| plan.id == selection.plan) else {
+        return invalid_plan_command(state, "The selected plan is no longer available.");
     };
-    let Some(parent) = state.plan_cursor.and_then(|selection| selection.node) else {
-        return invalid_plan_command(state, "Select a plan node before adding a child.");
-    };
-    vec![Effect::DecomposePlanNode(
-        scriberig_app::PlanDecomposeRequest {
-            session: session.id,
-            plan: plan.id,
+    let node = plan_node_draft(title, purpose);
+    let mutation = if child {
+        let Some(parent) = selection.node else {
+            return invalid_plan_command(state, "Select a plan node before adding a child.");
+        };
+        scriberig_app::PlanMutation::Decompose {
             parent,
-            expected_revision: plan.revision,
-            children: vec![scriberig_app::PlanChildDraft {
-                title,
-                purpose,
-                expected_result: Some(scriberig_session::ExpectedResult {
-                    kind: "summary".to_owned(),
-                    requires_handle: false,
-                }),
-                semantic_scope: Vec::new(),
-                assignment: None,
-            }],
+            children: vec![node],
             required: true,
-        },
-    )]
+        }
+    } else {
+        scriberig_app::PlanMutation::AddNextStep(node)
+    };
+    vec![Effect::PlanMutation(plan_mutation_request(
+        session.id,
+        plan.id,
+        plan.revision,
+        mutation,
+    ))]
 }
 
-/// Retries the selected failed node through shared application semantics.
+/// Retries the selected failed plan node through shared application semantics.
 ///
-/// - `state`: Current session and stable plan/node selection.
+/// - `state`: Current durable session and stable plan selection.
 ///
-/// A retry effect or local validation message.
+/// A shared retry effect or a local validation message.
 /// # Returns
-/// Effects for the requested plan action.
+/// Effects for the requested retry.
 pub(super) fn retry_selected_node(state: &mut TuiState) -> Vec<Effect> {
-    let Some((session, plan)) = selected_plan(state) else {
-        return invalid_plan_command(state, "Select a durable plan before retrying work.");
+    let Some(session) = state.session_snapshot.as_ref() else {
+        return invalid_plan_command(state, "Load a session before retrying plan work.");
     };
-    let Some(node) = state.plan_cursor.and_then(|selection| selection.node) else {
+    let Some(selection) = state.plan_cursor else {
         return invalid_plan_command(state, "Select a failed plan node before retrying it.");
     };
-    vec![Effect::RetryPlanNode(scriberig_app::PlanRetryRequest {
-        session: session.id,
-        plan: plan.id,
-        node,
-        expected_revision: plan.revision,
-    })]
+    let Some(node) = selection.node else {
+        return invalid_plan_command(state, "Select a failed plan node before retrying it.");
+    };
+    let Some(plan) = session.plans.iter().find(|plan| plan.id == selection.plan) else {
+        return invalid_plan_command(state, "The selected plan is no longer available.");
+    };
+    vec![Effect::PlanMutation(plan_mutation_request(
+        session.id,
+        plan.id,
+        plan.revision,
+        scriberig_app::PlanMutation::RetryFailedNode { node },
+    ))]
 }
 
-/// Waives a gate with an explicit reason and shared actor provenance.
+/// Waives a durable gate with an explicit reason through the shared mutation operation.
 ///
-/// - `state`: Current session and stable plan selection.
-/// - `waiver`: Gate identity followed by a user-authored reason.
+/// - `state`: Current durable session and plan selection.
+/// - `waiver`: Gate identity followed by the user-authored reason.
 ///
-/// A typed semantic mutation effect or local validation message.
+/// A shared waiver effect or a local validation message.
 /// # Returns
-/// Effects for the requested plan action.
+/// Effects for the requested waiver.
 pub(super) fn waive_gate(state: &mut TuiState, waiver: &str) -> Vec<Effect> {
     let Some((gate, reason)) = waiver.split_once(char::is_whitespace) else {
         return invalid_plan_command(state, "Use /plan waive <gate-id> <reason>.");
@@ -116,53 +99,69 @@ pub(super) fn waive_gate(state: &mut TuiState, waiver: &str) -> Vec<Effect> {
     if reason.is_empty() {
         return invalid_plan_command(state, "A gate waiver requires an explicit reason.");
     }
-    let Some((session, plan)) = selected_plan(state) else {
-        return invalid_plan_command(state, "Select a durable plan before waiving a gate.");
+    let Some(session) = state.session_snapshot.as_ref() else {
+        return invalid_plan_command(state, "Load a session before waiving a gate.");
     };
-    vec![Effect::MutatePlanSemantics(
-        scriberig_app::PlanSemanticMutationRequest {
-            session: session.id,
-            plan: plan.id,
-            expected_revision: plan.revision,
-            mutation: scriberig_app::PlanSemanticMutation::WaiveGate {
-                gate,
-                reason: reason.to_owned(),
-            },
+    let Some(selection) = state.plan_cursor else {
+        return invalid_plan_command(state, "Select a plan before waiving a gate.");
+    };
+    let Some(plan) = session.plans.iter().find(|plan| plan.id == selection.plan) else {
+        return invalid_plan_command(state, "The selected plan is no longer available.");
+    };
+    vec![Effect::PlanMutation(plan_mutation_request(
+        session.id,
+        plan.id,
+        plan.revision,
+        scriberig_app::PlanMutation::WaiveGate {
+            gate,
+            reason: reason.to_owned(),
         },
-    )]
+    ))]
 }
 
-/// Parses a non-empty title and purpose from one work command.
+/// Creates a bounded plan-node draft from explicit user text.
 ///
-/// - `work`: User-authored text in `title: purpose` form.
+/// - `title`: Human-readable node title.
+/// - `purpose`: Focused execution instruction.
 ///
-/// Bounded title and non-empty purpose, or `None` for malformed input.
+/// The unassigned node draft for the shared plan operation.
 /// # Returns
-/// The normalized work fields.
-fn parse_work(work: &str) -> Option<(String, String)> {
-    let (title, purpose) = work.split_once(':')?;
-    let title = title.trim();
-    let purpose = purpose.trim();
-    if title.is_empty() || purpose.is_empty() {
-        return None;
+/// The structured node proposal.
+fn plan_node_draft(title: &str, purpose: &str) -> scriberig_app::PlanNodeDraft {
+    scriberig_app::PlanNodeDraft {
+        key: "tui-plan-action".to_owned(),
+        parent_index: None,
+        title: title.chars().take(80).collect(),
+        purpose: purpose.to_owned(),
+        expected_result: Some(scriberig_session::ExpectedResult {
+            kind: "summary".to_owned(),
+            requires_handle: false,
+        }),
+        semantic_scope: Vec::new(),
+        assignment: None,
     }
-    Some((title.chars().take(80).collect(), purpose.to_owned()))
 }
 
-/// Resolves the selected plan against the exact current session projection.
+/// Constructs an optimistic typed plan mutation request.
 ///
-/// - `state`: Presentation state holding session and plan identity selection.
+/// - `session`: Durable owning session.
+/// - `plan`: Stable plan identity.
+/// - `expected_revision`: Exact plan revision observed by the TUI.
+/// - `mutation`: Typed mutation routed through the application service.
 ///
-/// Exact session and plan, when both remain available.
+/// The shared application request for atomic validation and persistence.
 /// # Returns
-/// The selected durable entities.
-fn selected_plan(
-    state: &TuiState,
-) -> Option<(&scriberig_session::Session, &scriberig_session::Plan)> {
-    let session = state.session_snapshot.as_ref()?;
-    let selected = state.plan_cursor.map(|selection| selection.plan);
-    let plan = selected
-        .and_then(|id| session.plans.iter().find(|plan| plan.id == id))
-        .or_else(|| session.plans.last())?;
-    Some((session, plan))
+/// The mutation request.
+fn plan_mutation_request(
+    session: scriberig_core::EntityId,
+    plan: scriberig_core::EntityId,
+    expected_revision: u64,
+    mutation: scriberig_app::PlanMutation,
+) -> scriberig_app::PlanMutationRequest {
+    scriberig_app::PlanMutationRequest {
+        session,
+        plan,
+        expected_revision,
+        mutation,
+    }
 }

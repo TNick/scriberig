@@ -1,8 +1,22 @@
 //! Formats `ScribeRig` semantic and projection read models.
 
-use super::common::{MAX_ROWS, append_load_notice, append_value, optional_id, render_load_state};
+use super::common::{
+    MAX_ROWS, SemanticRole, append_load_notice, append_status, append_value, optional_id,
+    render_load_state,
+};
 use crate::inspector::LoadState;
 use crate::state::TuiState;
+
+#[path = "model_views/artifacts.rs"]
+mod artifacts;
+#[path = "model_views/document.rs"]
+mod document;
+#[path = "model_views/geo.rs"]
+mod geo;
+#[path = "model_views/qgis.rs"]
+mod qgis;
+#[path = "model_views/spreadsheet.rs"]
+mod spreadsheet;
 
 /// Renders the selected exact semantic entity summary.
 ///
@@ -11,6 +25,47 @@ use crate::state::TuiState;
 /// # Returns
 /// Overview content or the inspector request state.
 pub(super) fn overview(state: &TuiState) -> String {
+    if !matches!(state.cad_drawing, LoadState::NotRequested) {
+        return crate::view::cad::render(
+            &state.cad_drawing,
+            &state.cad_entities,
+            &state.cad_layer_edit,
+            state.cad_offset,
+        );
+    }
+    if !matches!(state.geo_geometry_edit, LoadState::NotRequested) {
+        return geo::render_geometry_edit(&state.geo_geometry_edit);
+    }
+    if !matches!(state.geo_edit, LoadState::NotRequested) {
+        return geo::render_edit(&state.geo_edit);
+    }
+    if !matches!(state.geo_query_result, LoadState::NotRequested) {
+        return geo::render_query(&state.geo_query_result);
+    }
+    if !matches!(state.geo_features, LoadState::NotRequested) {
+        return geo::render_features(
+            &state.geo_features,
+            state.selection.map(|value| value.entity),
+        );
+    }
+    if !matches!(state.geo_catalog, LoadState::NotRequested) {
+        return geo::render_catalog(&state.geo_catalog);
+    }
+    if !matches!(state.qgis_project, LoadState::NotRequested) {
+        return qgis::render(&state.qgis_project);
+    }
+    if !matches!(state.document_tree, LoadState::NotRequested) {
+        return document::render(&state.document_tree, state.selection, state.document_offset);
+    }
+    if !matches!(state.artifact_page, LoadState::NotRequested) {
+        return artifacts::render(&state.artifact_page, &state.artifact_members);
+    }
+    if !matches!(state.spreadsheet_page, LoadState::NotRequested) {
+        return spreadsheet::render(&state.spreadsheet_page);
+    }
+    if !matches!(state.spreadsheet_cell, LoadState::NotRequested) {
+        return spreadsheet::render_cell(&state.spreadsheet_cell);
+    }
     render_load_state("Overview", &state.inspector, |model, output| {
         append_value(output, &format!("Entity: {}", model.entity));
         if let Some(revision) = model.revision {
@@ -112,6 +167,12 @@ pub(super) fn history(state: &TuiState) -> String {
                     row.result
                 ),
             );
+            if let Some(operation) = &row.semantic_operation {
+                append_value(output, &format!("  Operation: {operation}"));
+            }
+            if let Some(candidate) = &row.source_change_id {
+                append_value(output, &format!("  Candidate: {candidate}"));
+            }
             for (entity, revision) in row.entities.iter().take(32) {
                 append_value(
                     output,
@@ -218,6 +279,9 @@ pub(super) fn changes(state: &TuiState) -> String {
         _ => state.review_proposal.as_ref(),
     };
     let mut output = String::from("# Candidate review\n\n");
+    if let Some((category, message)) = &state.operation_error {
+        append_status(&mut output, category, message, SemanticRole::Error);
+    }
     let Some(model) = model else {
         return append_load_notice(output, "Review", &state.review);
     };
@@ -296,103 +360,5 @@ pub(super) fn changes(state: &TuiState) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{changes, projection};
-    use crate::inspector::LoadState;
-    use crate::state::TuiState;
-    use crate::view::changes::{ChangeReviewModel, ReviewValidation};
-    use scriberig_core::{EntityId, RevisionId, SnapshotId};
-
-    /// Keeps exact candidate identity and evidence visible in review Markdown.
-    #[test]
-    fn changes_projection_shows_snapshots_validation_and_revision_evidence() {
-        let base = SnapshotId::new([1; 32]);
-        let result = SnapshotId::new([2; 32]);
-        let entity = EntityId::from_bytes([3; 16]);
-        let before = RevisionId::new([4; 32]);
-        let after = RevisionId::new([5; 32]);
-        let review = ChangeReviewModel {
-            base_snapshot: base,
-            candidate_snapshot: Some(result),
-            change: "candidate-7".to_owned(),
-            branch: None,
-            affected_entities: vec![entity],
-            deltas: vec![
-                sr_change::EntityDelta::new(entity, Some(before), Some(after))
-                    .expect("revision delta"),
-            ],
-            details: vec!["materialized semantic projection".to_owned()],
-            conflicts: Vec::new(),
-            validation: ReviewValidation::Passed,
-            validation_profile: Some("strict-policy".to_owned()),
-            requires_confirmation: true,
-        };
-        let state = TuiState {
-            review: LoadState::Ready(review),
-            ..TuiState::default()
-        };
-
-        let output = changes(&state);
-
-        assert!(output.contains(&format!("Base snapshot: {base}")));
-        assert!(output.contains(&format!("Result snapshot: {result}")));
-        assert!(output.contains("Validation profile: strict-policy"));
-        assert!(output.contains(&format!("entity {entity}")));
-        assert!(output.contains(&before.to_string()));
-        assert!(output.contains(&after.to_string()));
-        assert!(output.contains("materialized semantic projection"));
-    }
-
-    /// Explains why review cannot be confirmed without a result snapshot.
-    #[test]
-    fn changes_projection_blocks_confirmation_without_result_identity() {
-        let state = TuiState {
-            review: LoadState::Ready(ChangeReviewModel {
-                base_snapshot: SnapshotId::new([6; 32]),
-                candidate_snapshot: None,
-                change: "candidate-no-result".to_owned(),
-                branch: None,
-                affected_entities: Vec::new(),
-                deltas: Vec::new(),
-                details: Vec::new(),
-                conflicts: Vec::new(),
-                validation: ReviewValidation::Passed,
-                validation_profile: None,
-                requires_confirmation: true,
-            }),
-            ..TuiState::default()
-        };
-
-        assert!(changes(&state).contains("Confirmation is unavailable"));
-    }
-
-    /// Retains exact projection identity without inventing synchronization state.
-    #[test]
-    fn projection_shows_exact_metadata_and_safe_content() {
-        let entity = EntityId::from_bytes([7; 16]);
-        let snapshot = SnapshotId::new([8; 32]);
-        let state = TuiState {
-            projection: LoadState::Ready(crate::view::projection::ProjectionModel {
-                projection: Some("projection-1".to_owned()),
-                source_entity: entity,
-                source_path: Some("src/main.rs".to_owned()),
-                source_revision: None,
-                style: "markdown".to_owned(),
-                renderer: "renderer-v1".to_owned(),
-                content: "safe content".to_owned(),
-                synchronization: None,
-                base_snapshot: snapshot,
-            }),
-            ..TuiState::default()
-        };
-
-        let output = projection(&state);
-
-        assert!(output.contains("projection-1"));
-        assert!(output.contains(&entity.to_string()));
-        assert!(output.contains("src/main.rs"));
-        assert!(output.contains(&snapshot.to_string()));
-        assert!(output.contains("safe content"));
-        assert!(!output.contains("synchronized"));
-    }
-}
+#[path = "model_views/tests.rs"]
+mod tests;

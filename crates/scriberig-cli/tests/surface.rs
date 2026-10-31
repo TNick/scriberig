@@ -14,6 +14,22 @@ fn stable_commands_parse() {
         ("maintenance", vec!["srig", "maintenance"]),
         ("doctor", vec!["srig", "doctor"]),
         (
+            "recover-profile",
+            vec![
+                "srig",
+                "recover-profile",
+                "ent_01010101010101010101010101010101",
+                "--revision",
+                "4",
+                "--profile",
+                "profile.json",
+                "--provider",
+                "provider-a",
+                "--model",
+                "model-a",
+            ],
+        ),
+        (
             "inspect",
             vec!["srig", "inspect", "ent_01010101010101010101010101010101"],
         ),
@@ -69,6 +85,7 @@ fn standard_help_and_version_are_available() {
         "agent",
         "maintenance",
         "doctor",
+        "recover-profile",
         "capabilities",
         "operation",
         "events",
@@ -102,4 +119,32 @@ fn malformed_arguments_are_rejected() {
 fn doctor_format_parses() {
     assert!(Cli::try_parse_from(["srig", "doctor", "--format", "json"]).is_ok());
     assert!(Cli::try_parse_from(["srig", "doctor", "--format", "invalid"]).is_err());
+}
+
+/// Verifies profile recovery accepts inspection or a complete explicit mapping request.
+#[test]
+fn recover_profile_requires_explicit_mapping_inputs() {
+    assert!(
+        Cli::try_parse_from([
+            "srig",
+            "recover-profile",
+            "ent_01010101010101010101010101010101",
+            "--profile",
+            "profile.json",
+            "--provider",
+            "provider-a",
+            "--model",
+            "model-a",
+        ])
+        .is_err()
+    );
+    assert!(
+        Cli::try_parse_from([
+            "srig",
+            "recover-profile",
+            "ent_01010101010101010101010101010101",
+            "--inspect",
+        ])
+        .is_ok()
+    );
 }

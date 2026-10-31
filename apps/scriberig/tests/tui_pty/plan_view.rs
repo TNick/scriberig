@@ -8,6 +8,7 @@ use scriberig_session::SessionStore;
 fn tui_pty_shows_a_session_plan_in_the_conversation_tree() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_with_arithmetic_model();
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     let session_id = scriberig_core::EntityId::new();
     let root_id = scriberig_core::EntityId::new();
     let mut root = scriberig_session::Branch::new(root_id, "Planned conversation")
@@ -31,11 +32,11 @@ fn tui_pty_shows_a_session_plan_in_the_conversation_tree() {
         branch: None,
         result: None,
         superseded_by: None,
-        abandon_reason: None,
-        last_failure: None,
         assignment: None,
         claim: None,
         claim_generation: 0,
+        abandon_reason: None,
+        last_failure: None,
     })
     .expect("add durable plan node");
     plan.transition(scriberig_session::PlanStatus::Planned)
@@ -57,36 +58,54 @@ fn tui_pty_shows_a_session_plan_in_the_conversation_tree() {
         .expect("seed planned conversation");
     drop(store);
 
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
-    tui.send_slow(format!("/switch {session_id}").as_bytes());
-    tui.send(b"\r");
+    tui.send_slow(format!("/switch {session_id}\r").as_bytes());
     assert!(
-        tui.read_until("Plan · Plan: Historical acceptance plan · Planned"),
+        tui.read_until("Historical acceptance plan"),
         "{}",
         tui.diagnostic()
     );
     tui.send(b"\x10");
     assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
-    tui.send_slow(b"plans");
-    tui.send(b"\r");
+    tui.send_slow(b"plans\r");
+    // Only the Plans tree paints this exact header label; the conversation view
+    // labels the same durable plan `Plan: Historical acceptance plan`, and its
+    // details block already showed the goal before the view switched.
+    assert!(
+        tui.read_until("Plan · Historical acceptance plan · Planned"),
+        "{}",
+        tui.diagnostic()
+    );
     assert!(
         tui.read_until("Goal: Historical acceptance plan"),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\x10");
-    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
-    tui.send_slow(b"conversation");
-    tui.send(b"\r");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"\x10");
-    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
-    tui.send_slow(b"plans");
-    tui.send(b"\r");
+
+    // The conversation view above projects this plan's single root node under its
+    // anchored branch, which leaves the shared plan header row childless there. The
+    // Plans view reuses that retained tree, so the header must reveal its own node
+    // row instead of inheriting the childless shape from the other view.
+    let plans_frame = tui.screen();
+    let header_line = plans_frame
+        .lines()
+        .position(|line| line.contains("Plan · Historical acceptance plan · Planned"))
+        .unwrap_or_else(|| panic!("the Plans view renders no plan header row:\n{plans_frame}"));
+    let node_line = plans_frame
+        .lines()
+        .position(|line| line.contains("Stable selected work item"))
+        .unwrap_or_else(|| {
+            panic!(
+                "the Plans view renders no node row for the plan's structural root node:\n{plans_frame}"
+            )
+        });
     assert!(
-        tui.read_until("Goal: Historical acceptance plan"),
-        "{}",
-        tui.diagnostic()
+        node_line > header_line,
+        "the node row belongs beneath its plan header row:\n{plans_frame}"
+    );
+    let node_row = plans_frame.lines().nth(node_line).expect("node row text");
+    assert!(
+        node_row.contains("root node"),
+        "the node row must report its own structural parent category:\n{node_row}"
     );
     assert!(tui.shutdown());
 }

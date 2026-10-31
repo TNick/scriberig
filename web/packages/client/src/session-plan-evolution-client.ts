@@ -12,14 +12,14 @@ import type {
   SessionPlanSemanticMutation,
 } from "@scriberig/protocol";
 import { normalizeSessionPlan } from "./session-plan-views";
-import { PlanNodeDetailsClient } from "./plan-node-details-client";
+import { LegacyExecutionRecoveryClient } from "./legacy-execution-recovery-client";
 
 /** Client operations that evolve plans through shared application routes.
  *
  * Public members: next-step, decomposition, semantic mutation, and retry calls.
  * Private members: None.
  */
-export class SessionPlanEvolutionClient extends PlanNodeDetailsClient {
+export class SessionPlanEvolutionClient extends LegacyExecutionRecoveryClient {
   /** Creates a durable plan through the shared application route.
    * @param request Exact session anchor and structured plan proposal.
    * @param signal Optional request cancellation signal.

@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use rpi_ai::{AppliedRequestSettingsCallback, Model, Provider, RequestSecret};
+use rpi_model_runtime::ProviderLifecycleEvents;
 use scriberig_core::EntityId;
 
 use crate::context::CompiledContext;
@@ -24,6 +25,10 @@ use crate::upstream_tool::SemanticAgentTool;
 /// - `context`: `ScribeRig`-compiled context for this branch.
 /// - `tools`: Unique semantic adapters built from this branch's capability-
 ///   filtered tool catalog.
+/// - `activity`: Shared `ScribeRig` activity sequence ordering this branch's
+///   captured model requests and settled tool calls.
+/// - `provider_lifecycle`: Optional upstream lifecycle sink bound to the catalog
+///   revision used to resolve this provider.
 ///
 /// # Private members
 /// None.
@@ -46,10 +51,32 @@ pub struct UpstreamBranchInvocation {
     pub thinking_level: rpi_ai::ThinkingLevel,
     /// `ScribeRig`-compiled context for this branch.
     pub context: CompiledContext,
-    /// Branch-approved `ScribeRig` semantic tools only. The concrete type makes
-    /// upstream plugin adapters unrepresentable here until an isolated host
-    /// can mediate and constrain their process capabilities.
+    /// Branch-approved semantic adapters. Built-in domain adapters and
+    /// explicitly admitted isolated-worker tools share this wrapper so both
+    /// pass through the same upstream agent loop and branch authorization.
     pub tools: Vec<Arc<SemanticAgentTool>>,
+    /// Shared `ScribeRig` ordering identity for this branch's execution
+    /// activities. Request capture and tool settlement draw from one sequence
+    /// so durable activity order reflects real execution order.
+    pub activity: Arc<crate::orchestration::ActivitySequence>,
+    /// Optional upstream event sink and provider catalog revision.
+    pub provider_lifecycle: Option<ProviderLifecycleContext>,
+}
+
+/// Ties provider authentication observations to the exact catalog generation.
+///
+/// # Public members
+/// - `events`: Upstream source for secret-free provider lifecycle events.
+/// - `catalog_revision`: Exact catalog revision used to resolve this provider.
+///
+/// # Private members
+/// None.
+#[derive(Clone)]
+pub struct ProviderLifecycleContext {
+    /// Upstream source for secret-free provider lifecycle events.
+    pub events: ProviderLifecycleEvents,
+    /// Exact catalog revision used to resolve this provider.
+    pub catalog_revision: u64,
 }
 
 /// Compact output from one upstream invocation on a `ScribeRig` branch.
@@ -132,3 +159,23 @@ impl std::fmt::Display for UpstreamBranchError {
 }
 
 impl std::error::Error for UpstreamBranchError {}
+
+impl From<UpstreamBranchError> for crate::AgentError {
+    /// Projects one branch invocation failure onto the public runtime category.
+    ///
+    /// Authentication and cancellation stay distinct from an ordinary provider
+    /// failure so callers never have to classify provider transport text.
+    ///
+    /// # Parameters
+    /// - `error`: Branch invocation failure to project.
+    ///
+    /// # Returns
+    /// The public `ScribeRig` agent-runtime failure.
+    fn from(error: UpstreamBranchError) -> Self {
+        match error {
+            UpstreamBranchError::Authentication(message) => Self::Authentication(message),
+            UpstreamBranchError::Cancelled => Self::Cancelled,
+            error => Self::Provider(error.to_string()),
+        }
+    }
+}

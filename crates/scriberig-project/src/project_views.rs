@@ -33,6 +33,8 @@ pub struct ProjectSourceProjection {
     pub name: Option<String>,
     /// Semantic kind.
     pub kind: String,
+    /// Domain adapter projection kind used to resolve presentation style.
+    pub projection_kind: String,
     /// Project-relative source path.
     pub path: String,
     /// Source bytes rendered by the projection.
@@ -86,7 +88,20 @@ impl ProjectService {
             .map(|entities| {
                 entities
                     .into_iter()
-                    .filter(|entity| entity.name.is_some() || entity.kind == "source")
+                    .filter(|entity| {
+                        entity.name.is_some()
+                            || entity.kind == "source"
+                            || matches!(
+                                entity.kind.as_str(),
+                                "document.root"
+                                    | "spreadsheet.worksheet"
+                                    | "cad.drawing"
+                                    | "geo.dataset"
+                                    | "geo.layer"
+                                    | "qgis.project"
+                                    | "qgis.layer_reference"
+                            )
+                    })
                     .map(|entity| ProjectSymbol {
                         entity: entity.entity,
                         snapshot: workspace.snapshot,
@@ -198,7 +213,17 @@ impl ProjectService {
         let source_entity = if entity_record.kind == "source" {
             entity
         } else {
-            super::support::source_entity(project, &entity_record.relative_path)
+            self.store
+                .project_file_descriptors(project)
+                .map_err(crate::errors::storage_error)?
+                .into_iter()
+                .find(|file| file.relative_path == entity_record.relative_path)
+                .map(|file| file.entity)
+                .ok_or_else(|| ProjectError {
+                    code: "source_not_found",
+                    message: "source file identity is unavailable".to_owned(),
+                    diagnostics: Vec::new(),
+                })?
         };
         let revision_id = self
             .store
@@ -226,12 +251,18 @@ impl ProjectService {
             });
         }
         let source_digest = *blake3::hash(revision.payload()).as_bytes();
+        let projection_kind = crate::support::adapter_for(
+            std::path::Path::new(&entity_record.relative_path),
+            revision.payload(),
+        )
+        .to_owned();
         Ok(ProjectSourceProjection {
             project,
             snapshot: workspace.snapshot,
             entity,
             name: entity_record.name,
             kind: entity_record.kind.clone(),
+            projection_kind,
             path: entity_record.relative_path,
             text: revision.payload().to_vec(),
             source_digest,

@@ -67,3 +67,62 @@ pub(super) fn bounded_text(text: &str, limit: usize) -> String {
     }
     text[..end].to_owned()
 }
+
+/// Bounds a validation summary while preserving its terminal diagnostic.
+///
+/// Long compiler output keeps a short identifying prefix and its final error
+/// lines so the provider and durable branch evidence can explain failure.
+///
+/// # Parameters
+/// - `text`: Safe validation summary and captured diagnostic.
+/// - `limit`: Maximum number of Unicode scalar values to retain.
+///
+/// # Returns
+/// The complete summary when it fits, or a bounded prefix and suffix.
+pub(super) fn bounded_diagnostic_text(text: &str, limit: usize) -> String {
+    if text.chars().count() <= limit {
+        return text.to_owned();
+    }
+
+    let marker = "\n... earlier diagnostic omitted ...\n";
+    let marker_length = marker.chars().count().min(limit);
+    if limit <= marker_length {
+        return bounded_text(text, limit);
+    }
+    let retained_length = limit - marker_length;
+    let prefix_length = retained_length.div_ceil(2).min(256);
+    let suffix_length = retained_length - prefix_length;
+    let prefix = text.chars().take(prefix_length).collect::<String>();
+    let suffix = text
+        .chars()
+        .rev()
+        .take(suffix_length)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect::<String>();
+    let marker = marker.chars().take(marker_length).collect::<String>();
+
+    format!("{prefix}{marker}{suffix}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::bounded_diagnostic_text;
+
+    /// Verifies bounded validation evidence retains the final compiler error.
+    #[test]
+    fn validation_summary_bound_preserves_terminal_error() {
+        let summary = format!(
+            "candidate validation failed: {}error[E0425]",
+            "x".repeat(400)
+        );
+
+        let bounded = bounded_diagnostic_text(&summary, 128);
+
+        assert!(bounded.starts_with("candidate validation failed:"));
+        assert!(bounded.contains("earlier diagnostic omitted"));
+        assert!(bounded.ends_with("error[E0425]"));
+        assert_eq!(bounded.chars().count(), 128);
+    }
+}

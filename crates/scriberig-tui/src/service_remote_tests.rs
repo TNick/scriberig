@@ -1,7 +1,8 @@
 //! Verifies remote TUI protocol mapping and adapter behavior.
 
 use super::super::service_remote_mapping::{
-    map_remote_operation, remote_error, session_from_response,
+    map_remote_operation, protocol_agent_selection, remote_error, remote_protocol_message,
+    session_from_response,
 };
 use super::RemoteAdapter;
 use crate::service::TuiService;
@@ -16,12 +17,22 @@ use scriberig_protocol::{
     SessionBranchStatus, SessionReadResponse, SessionReference, SessionTurn, SnapshotReference,
 };
 
-#[path = "service_remote_plan_tests.rs"]
-mod plan_tests;
+#[path = "service_remote_agent_selection_tests.rs"]
+mod agent_selection_tests;
+#[path = "service_remote_cad_tests.rs"]
+mod cad_tests;
+#[path = "service_remote_document_tests.rs"]
+mod document_tests;
+#[path = "service_remote_geo_tests.rs"]
+mod geo_tests;
+#[path = "service_remote_plan_mutation_tests.rs"]
+mod plan_mutation_tests;
 #[path = "service_remote_reconnect_tests.rs"]
 mod reconnect_tests;
 #[path = "service_remote_session_event_tests.rs"]
 mod session_event_tests;
+#[path = "service_remote_spreadsheet_tests.rs"]
+mod spreadsheet_tests;
 
 /// Returns one deterministic inspect response without network access.
 #[derive(Clone)]
@@ -80,6 +91,44 @@ fn remote_inspection_preserves_semantic_handles() {
     assert_eq!(result.snapshot, Some(snapshot));
 }
 
+/// Preserves effective style fidelity and provenance through the remote TUI adapter.
+#[test]
+fn remote_effective_style_resolution_preserves_evidence() {
+    let response: scriberig_protocol::ProjectionStyleResolveResponse = serde_json::from_str(
+        include_str!("../../../tests/fixtures/projection-style-rust.json"),
+    )
+    .expect("shared Rust style fixture");
+    assert_eq!(response.value, b"indent=tabs,indent-width=2");
+    assert_eq!(
+        response.fidelity.fidelity,
+        scriberig_protocol::ProjectionStyleFidelity::LosslessEditable
+    );
+    let adapter = RemoteAdapter::new(Client::new(FixtureTransport {
+        response: ResponseEnvelope {
+            version: ProtocolVersion::default(),
+            correlation_id: "style-resolution".to_owned(),
+            response: Response::ProjectionStyleResolve(response.clone()),
+        },
+    }));
+    let request = scriberig_protocol::ProjectionStyleResolveRequest {
+        projection_kind: "rust".to_owned(),
+        project_id: "project-a".to_owned(),
+        workspace_id: "project-a".to_owned(),
+        purpose: scriberig_protocol::ProjectionStylePurpose::InteractiveView,
+        view_id: Some("project-source:entity-a".to_owned()),
+        explicit_personal: None,
+    };
+    assert_eq!(
+        adapter
+            .resolve_projection_style(&ApplicationContext::empty(), &request)
+            .expect("remote style resolution"),
+        response
+    );
+}
+
+#[path = "service_remote_tests_session.rs"]
+mod session_mapping_tests;
+
 /// Verifies transport and semantic remote failures retain distinct categories.
 #[test]
 fn remote_errors_remain_categorized() {
@@ -111,6 +160,27 @@ fn remote_errors_remain_categorized() {
         },
     )));
     assert_eq!(semantic.category(), "not_found");
+}
+
+/// Retains server materialization receipts in the remote TUI failure diagnostic.
+#[test]
+fn remote_apply_error_message_includes_partial_path_recovery_state() {
+    let message = remote_protocol_message(
+        "candidate apply failed",
+        Some(&serde_json::json!({
+            "candidate": "candidate-1",
+            "materialization": "unknown",
+            "diagnostic": "recovery is required",
+            "paths": [
+                {"path": "a.docx", "state": "applied"},
+                {"path": "b.docx", "state": "failed", "diagnostic": "permission denied"}
+            ]
+        })),
+    );
+    assert!(message.contains("materialization state: unknown"));
+    assert!(message.contains("recovery is required"));
+    assert!(message.contains("a.docx: applied"));
+    assert!(message.contains("b.docx: failed (permission denied)"));
 }
 
 /// Verifies remote agent submission returns the shared operation identity.

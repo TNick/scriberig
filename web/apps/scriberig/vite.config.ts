@@ -1,12 +1,15 @@
 /** @file Configures the reference Scriberig browser application build. */
 
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
-// Proxy browser API calls to the local Rust development server.
-export default defineConfig({
-  server: {
-    proxy: {
-      "/api": "http://127.0.0.1:7337",
+/** Configures API proxying for the active local service port. */
+export default defineConfig(({ mode }) => {
+  const { SCRIBE_API_PORT = "7337" } = loadEnv(mode, ".", "");
+  return {
+    server: {
+      proxy: {
+        "/api": `http://127.0.0.1:${SCRIBE_API_PORT}`,
+      },
     },
-  },
+  };
 });

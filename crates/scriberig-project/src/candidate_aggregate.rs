@@ -1,6 +1,6 @@
 //! Builds durable aggregate project source candidates.
 
-use scriberig_core::{ProjectId, SnapshotId};
+use scriberig_core::{EntityId, ProjectId, SnapshotId};
 
 use super::candidate_support::candidate_id;
 use super::{
@@ -109,11 +109,64 @@ fn resolve_effect(
         path: change.path,
         kind,
         old,
+        observed: None,
         new,
     })
 }
 
 impl ProjectService {
+    /// Creates a DOCX merge candidate bound to both canonical and live bytes.
+    ///
+    /// # Parameters
+    /// - `project`: Project owning the DOCX source.
+    /// - `base_snapshot`: Exact canonical snapshot used for reconciliation.
+    /// - `path`: Project-relative DOCX path.
+    /// - `observed`: Exact external package currently on disk.
+    /// - `merged`: Reconciled package to materialize.
+    /// - `document`: Semantic document root targeted by reconciliation.
+    ///
+    /// # Returns
+    /// Durable candidate retaining the canonical base and external live precondition.
+    ///
+    /// # Errors
+    /// Returns stale-base, source, path, size, or persistence errors.
+    pub(crate) fn propose_external_docx_reconciliation(
+        &self,
+        project: ProjectId,
+        base_snapshot: SnapshotId,
+        path: String,
+        observed: Vec<u8>,
+        merged: Vec<u8>,
+        document: EntityId,
+    ) -> Result<ProjectCandidate, ProjectError> {
+        let operation = format!(
+            "document.reconcile_external:{}",
+            blake3::hash(&observed).to_hex()
+        );
+        let mut candidate = self.propose_project_change_with_operation(
+            project,
+            base_snapshot,
+            vec![ProjectSourceChange {
+                path,
+                kind: ProjectSourceChangeKind::Update,
+                content: Some(merged),
+            }],
+            Some(&operation),
+            Some(document),
+        )?;
+        let Some(effect) = candidate.effects.first_mut() else {
+            return Err(candidate_error(
+                "invalid_effect_count",
+                "DOCX merge candidate has no materialization effect",
+            ));
+        };
+        effect.observed = Some(observed);
+        self.store
+            .put_project_candidate(&candidate.record())
+            .map_err(crate::errors::storage_error)?;
+        Ok(candidate)
+    }
+
     /// Creates one durable exact-base candidate containing ordered path effects.
     ///
     /// - `project`: Project receiving the candidate.
@@ -133,6 +186,91 @@ impl ProjectService {
         project: ProjectId,
         base_snapshot: SnapshotId,
         changes: Vec<ProjectSourceChange>,
+    ) -> Result<ProjectCandidate, ProjectError> {
+        self.propose_project_change_with_operation(project, base_snapshot, changes, None, None)
+    }
+
+    /// Proposes one project change with durable semantic operation provenance.
+    ///
+    /// # Parameters
+    /// - `project`: Project receiving the candidate.
+    /// - `base_snapshot`: Exact active snapshot required by the request.
+    /// - `changes`: Ordered create, update, or delete requests.
+    /// - `operation`: Stable semantic operation name recorded in candidate history.
+    ///
+    /// # Returns
+    /// Durable candidate with operation provenance stored atomically.
+    ///
+    /// # Errors
+    /// Returns stale-base, effect, path, size, or persistence errors.
+    pub(crate) fn propose_semantic_project_change(
+        &self,
+        project: ProjectId,
+        base_snapshot: SnapshotId,
+        changes: Vec<ProjectSourceChange>,
+        operation: &str,
+    ) -> Result<ProjectCandidate, ProjectError> {
+        self.propose_project_change_with_operation(
+            project,
+            base_snapshot,
+            changes,
+            Some(operation),
+            None,
+        )
+    }
+
+    /// Proposes one change with durable operation and exact semantic target identity.
+    ///
+    /// # Parameters
+    /// - `project`: Project receiving the candidate.
+    /// - `base_snapshot`: Exact active snapshot required by the request.
+    /// - `changes`: Ordered source effects created by the semantic operation.
+    /// - `operation`: Stable semantic operation name recorded in history.
+    /// - `target`: Exact semantic entity selected by the caller.
+    ///
+    /// # Returns
+    /// Durable candidate retaining both operation and target provenance.
+    ///
+    /// # Errors
+    /// Returns stale-base, effect, path, size, or persistence errors.
+    pub(crate) fn propose_semantic_project_change_target(
+        &self,
+        project: ProjectId,
+        base_snapshot: SnapshotId,
+        changes: Vec<ProjectSourceChange>,
+        operation: &str,
+        target: EntityId,
+    ) -> Result<ProjectCandidate, ProjectError> {
+        self.propose_project_change_with_operation(
+            project,
+            base_snapshot,
+            changes,
+            Some(operation),
+            Some(target),
+        )
+    }
+
+    /// Builds and persists one aggregate project candidate.
+    ///
+    /// # Parameters
+    /// - `project`: Project receiving the candidate.
+    /// - `base_snapshot`: Exact active snapshot required by the request.
+    /// - `changes`: Ordered create, update, or delete requests.
+    /// - `semantic_operation`: Optional stable operation label for history.
+    /// - `semantic_target`: Optional exact domain entity selected for the operation.
+    ///
+    /// # Returns
+    /// One candidate whose effects are persisted together without changing disk.
+    ///
+    /// # Errors
+    /// Returns stale-base, effect, path, size, or persistence errors.
+    fn propose_project_change_with_operation(
+        &self,
+        project: ProjectId,
+        base_snapshot: SnapshotId,
+        changes: Vec<ProjectSourceChange>,
+        semantic_operation: Option<&str>,
+        semantic_target: Option<EntityId>,
     ) -> Result<ProjectCandidate, ProjectError> {
         if changes.is_empty() || changes.len() > 512 {
             return Err(candidate_error(
@@ -177,6 +315,14 @@ impl ProjectService {
                 hasher.update(new);
             }
         }
+        if let Some(operation) = semantic_operation {
+            hasher.update(b"semantic-operation\0");
+            hasher.update(operation.as_bytes());
+        }
+        if let Some(target) = semantic_target {
+            hasher.update(b"semantic-target\0");
+            hasher.update(target.as_bytes());
+        }
         let digest = hasher.finalize().to_hex().to_string();
         let id = candidate_id(project, base_snapshot, workspace.root_entity, &digest);
         let first = effects.first().ok_or_else(|| {
@@ -187,12 +333,16 @@ impl ProjectService {
             project,
             base_snapshot,
             entity: workspace.root_entity,
+            semantic_operation: semantic_operation.map(str::to_owned),
+            semantic_target,
+            semantic_changes: Vec::new(),
             path: first.path.clone(),
             old: first.old.clone().unwrap_or_default(),
             new: first.new.clone().unwrap_or_default(),
             effects,
             validation: CandidateValidation::Pending,
             validation_profile: None,
+            validation_digest: None,
         };
         self.store
             .put_project_candidate(&candidate.record())

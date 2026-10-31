@@ -5,61 +5,33 @@ import {
   AgentModelControls,
   AgentPresentationControls,
   AgentOperationPanel,
+  SessionPlanPanel,
   BranchActivityView,
   PlanPanel,
   SessionBranchTree,
 } from "@scriberig/agent-ui";
+import { ProjectCandidateReview } from "@scriberig/components";
+import { ProjectCandidateController } from "@scriberig/model";
 import {
   useAgentExecutionSelection,
   useOperation,
   useSelection,
   useScriberig,
 } from "@scriberig/react";
+import { agentSelectionFromSemanticSelection } from "@scriberig/editor-core";
 import type { BranchDescriptor, Operation } from "@scriberig/model";
-import type { AgentSelection, BranchId, OperationId, SessionId } from "@scriberig/protocol";
+import type {
+  BranchId,
+  EntityId,
+  OperationId,
+  SessionId,
+  SessionPlan,
+  SessionPlanMutation,
+} from "@scriberig/protocol";
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactElement } from "react";
 import { capabilityAvailable, type AppRuntime, type ProjectCandidate } from "../runtime";
-
-const SESSION_STORAGE_KEY = "scriberig.agent.session";
 const OPERATION_STORAGE_KEY = "scriberig.agent.operation";
-
-/** Creates one browser-owned session identity for the view lifetime.
- * @returns A transport-safe session identifier.
- */
-function createSessionId(): SessionId {
-  try {
-    const stored = globalThis.sessionStorage?.getItem(SESSION_STORAGE_KEY);
-    if (stored) return stored as SessionId;
-  } catch {
-    // Browser storage may be unavailable; the generated identity remains valid.
-  }
-  const generated = globalThis.crypto?.randomUUID?.();
-  const sessionId = (generated ?? `session-${Date.now().toString(36)}`) as SessionId;
-  try {
-    globalThis.sessionStorage?.setItem(SESSION_STORAGE_KEY, sessionId);
-  } catch {
-    // Browser storage may be unavailable; retain the in-memory identity.
-  }
-  return sessionId;
-}
-
-/** Converts the shared semantic selection into the agent request shape.
- * @param selection Current semantic selection.
- * @returns Provider-neutral agent selection, when one exists.
- */
-function toAgentSelection(
-  selection: ReturnType<typeof useSelection>["selection"],
-): AgentSelection | undefined {
-  if (selection === undefined) return undefined;
-  return {
-    entityId: selection.entityId,
-    snapshotId: selection.snapshotId,
-    ...(selection.revisionId === undefined ? {} : { revisionId: selection.revisionId }),
-    ...(selection.projection?.location === undefined
-      ? {}
-      : { location: selection.projection.location }),
-  };
-}
+import { getOrCreateSessionId } from "../session-id";
 
 /** Renders structured semantic scope and branch-aware agent controls.
  * @param props View properties.
@@ -81,12 +53,21 @@ export function SessionAgentView({
     model.getAgentState.bind(model),
     model.getAgentState.bind(model),
   );
-  const [sessionId] = useState(createSessionId);
+  const [sessionId] = useState(getOrCreateSessionId);
   const [activeOperationId, setActiveOperationId] = useState<OperationId>();
   const [activeBranchId, setActiveBranchId] = useState<BranchId>();
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState("Ready");
+  const [reviewCandidateId, setReviewCandidateId] = useState<string>();
+  const [planMutationPending, setPlanMutationPending] = useState(false);
   const { modelLibrary, presentation } = agentState;
+  const candidateController = useMemo(
+    () =>
+      reviewCandidateId === undefined
+        ? undefined
+        : new ProjectCandidateController(client, reviewCandidateId),
+    [client, reviewCandidateId],
+  );
   const executionSelection = useAgentExecutionSelection(sessionId);
   const { operation } = useOperation(activeOperationId);
   const visibleBranches = useMemo(() => {
@@ -95,7 +76,11 @@ export function SessionAgentView({
   }, [agentState.branches, branches]);
   const stream = activeOperationId ? agentState.transientStreams[activeOperationId] : undefined;
   const activeActivity = activeBranchId ? agentState.activity[activeBranchId] : undefined;
-  const currentSelection = toAgentSelection(selection);
+  const currentSelection = agentSelectionFromSemanticSelection(
+    selection,
+    runtime.activeWorkspace?.project.id,
+    runtime.activeWorkspace?.rootEntity as EntityId | undefined,
+  );
   const canStartAgent = capabilityAvailable(capabilities, "agent_start");
   const canCancelOperation = capabilityAvailable(capabilities, "operation_cancel");
   useEffect(() => {
@@ -277,6 +262,25 @@ export function SessionAgentView({
     }
   };
 
+  const mutatePlan = async (plan: SessionPlan, mutation: SessionPlanMutation): Promise<void> => {
+    setPlanMutationPending(true);
+    setStatus("Updating plan");
+    try {
+      const updated = await client.mutatePlan({
+        session: { id: sessionId },
+        plan: plan.id,
+        expectedRevision: plan.revision,
+        mutation,
+      });
+      model.setAgentPlan(updated);
+      setStatus("Plan updated");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Plan update failed");
+    } finally {
+      setPlanMutationPending(false);
+    }
+  };
+
   const panelOperation: Operation | undefined = operation;
   return (
     <section aria-label="Session and Agent">
@@ -293,6 +297,13 @@ export function SessionAgentView({
         branches={visibleBranches}
         onSelect={(branch) => setActiveBranchId(branch.branchId)}
         onNavigate={navigateResult}
+        onReviewCandidate={setReviewCandidateId}
+      />
+      <SessionPlanPanel
+        plans={agentState.plans}
+        branches={visibleBranches}
+        busy={planMutationPending}
+        onMutation={mutatePlan}
       />
       <PlanPanel
         sessionId={sessionId}
@@ -319,12 +330,30 @@ export function SessionAgentView({
           transientItems={agentState.transientActivities[activeActivity.branchId] ?? []}
           presentation={presentation}
           onNavigate={navigateResult}
+          onReviewCandidate={setReviewCandidateId}
           onLoadModelRequest={(session, branch, invocation) =>
             client.getModelRequestDetail(session as SessionId, branch as BranchId, invocation)
           }
           onLoadToolResult={(session, branch, result) =>
             client.getToolResultDetail(session as SessionId, branch as BranchId, result)
           }
+        />
+      ) : null}
+      {candidateController ? (
+        <ProjectCandidateReview
+          key={reviewCandidateId}
+          controller={candidateController}
+          onApplied={(result) => {
+            const snapshotId = result.successor as never;
+            model.apply({ kind: "snapshotAdvanced", snapshotId });
+            if (selection !== undefined) {
+              const updatedSelection = { ...selection, snapshotId };
+              delete updatedSelection.revisionId;
+              delete updatedSelection.anchor;
+              setSelection(updatedSelection);
+            }
+            setReviewCandidateId(undefined);
+          }}
         />
       ) : null}
       <AgentComposer

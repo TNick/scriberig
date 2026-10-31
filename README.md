@@ -135,10 +135,26 @@ srig tui --db scriberig.sqlite --project PATH --import
 The native agent reads an optional upstream `rpi-model-runtime` `ModelsConfig`
 from `SCRIBE_AGENT_MODEL_CATALOG`. Model metadata and thinking support come
 from the upstream catalog; ScribeRig does not accept a separate model list or
-thinking-level schema. The current native host rejects credentials and request
-headers embedded in this JSON until its protected provider-auth path is wired.
-If the variable is unset, `SCRIBE_AGENT_MODEL` supplies the single fallback
-model.
+thinking-level schema. Credentials and request headers embedded in that JSON
+are rejected. A host may bind indirect secret references to exact provider and
+model IDs with `SCRIBE_AGENT_CONNECTION_CREDENTIALS`; the selected model's
+upstream endpoint is used as the authorization destination, and the normal
+secret policy must grant that reference for the current project and interactive
+provider use. The setting contains references only, never secret values:
+
+```json
+[
+  {
+    "provider_id": "openai",
+    "model_id": "reasoner-v2",
+    "credential": {"source": "environment", "name": "OPENAI_API_KEY"}
+  }
+]
+```
+
+When no per-connection reference is configured, the native host uses the
+process-level credential configuration. If the model catalog variable is
+unset, `SCRIBE_AGENT_MODEL` supplies the single fallback model.
 
 ```json
 {
@@ -199,6 +215,9 @@ supported product surfaces. Logs and the local database stay in
 `playground/dev-app-runtime/`.
 
 ## Product workflow status
+
+Current spreadsheet, document, CAD, and geospatial artifact capabilities and
+their fidelity limits are summarized in [Rich Artifact Support](RICH_ARTIFACT_SUPPORT.md).
 
 The repository contains a deterministic Rust project golden fixture and
 real-process browser, native TUI, and cross-surface acceptance suites. These

@@ -6,11 +6,43 @@ use scriberig_app::{
     CapabilityId, CapabilityScope, OperationKind,
 };
 use scriberig_protocol::{
-    EntityReference, InspectEntityResponse, ProtocolError, ProtocolErrorCode, RevisionReference,
-    SessionReadResponse, SnapshotReference,
+    ArtifactEditCapability, EntityReference, InspectEntityResponse, ProtocolError,
+    ProtocolErrorCode, RevisionReference, SessionReadResponse, SnapshotReference,
 };
 
 use crate::server::server_helpers::error_details;
+
+/// Maps project artifact fidelity into the stable public wire capability.
+///
+/// - `capability`: Project-level capability attached to the exact source artifact.
+///
+/// The equivalent protocol capability for clients and product surfaces.
+///
+/// # Returns
+/// The corresponding stable protocol capability.
+pub fn map_artifact_edit_capability(
+    capability: scriberig_project::ArtifactCapability,
+) -> ArtifactEditCapability {
+    match capability {
+        scriberig_project::ArtifactCapability::Unsupported => ArtifactEditCapability::Unsupported,
+        scriberig_project::ArtifactCapability::InspectOnly => ArtifactEditCapability::InspectOnly,
+        scriberig_project::ArtifactCapability::ReadOnlyDerived => {
+            ArtifactEditCapability::ReadOnlyDerived
+        }
+        scriberig_project::ArtifactCapability::LosslessEditable => {
+            ArtifactEditCapability::LosslessEditable
+        }
+        scriberig_project::ArtifactCapability::LossAwareEditable => {
+            ArtifactEditCapability::LossAwareEditable
+        }
+        scriberig_project::ArtifactCapability::EditableWithOpaquePreservation => {
+            ArtifactEditCapability::EditableWithOpaquePreservation
+        }
+        scriberig_project::ArtifactCapability::RestrictedExternalProviderEdit => {
+            ArtifactEditCapability::RestrictedExternalProviderEdit
+        }
+    }
+}
 
 /// Restricts a session response to one branch and its descendants.
 ///

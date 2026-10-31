@@ -1,12 +1,13 @@
 /** @file Verifies durable agent state and transient stream reduction. */
 
 import { describe, expect, it } from "vitest";
-import type { AgentEvent, BranchDescriptor } from "@scriberig/protocol";
+import type { AgentEvent, BranchDescriptor, SessionPlan } from "@scriberig/protocol";
 import {
   createAgentWorkspaceState,
   reduceAgentEvent,
   markAgentWorkspaceStale,
   storeAgentSession,
+  storeAgentPlan,
   storeAgentPresentation,
   storeSharedAgentPresentation,
   storeAgentModelLibrary,
@@ -274,16 +275,9 @@ describe("agent workspace", () => {
           goal: "Build feature",
           status: "Running",
           rootBranch: "branch-1" as never,
-          rootNodes: [],
-          statusCounts: {
-            planned: 0,
-            ready: 0,
-            running: 0,
-            completed: 0,
-            failed: 0,
-            abandoned: 0,
-          },
           nodes: [],
+          rootNodes: [],
+          statusCounts: { planned: 0, ready: 0, running: 0, completed: 0, failed: 0, abandoned: 0 },
           dependencies: [{ prerequisite: "node-a", dependent: "node-b", fulfilledBy: "result-a" }],
           gates: [],
           evidence: [],

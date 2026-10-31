@@ -1,7 +1,7 @@
 //! Covers semantic rebase and replay behavior.
 
 use scriberig_core::{EntityId, ObjectType, RevisionId, SnapshotId};
-use scriberig_store::Snapshot;
+use scriberig_store::{Snapshot, SnapshotRelation, SnapshotRelationChange};
 use sr_change::{
     ConflictKind, DomainReplayOutcome, DomainReplayStrategy, EntityDelta, Migration, Operation,
     Provenance, RebaseInput, ReplayContext, ReplayState, SourceKind, rebase,
@@ -117,6 +117,9 @@ fn rebase_replays_relation_operation() {
     let from = EntityId::from_bytes([1; 16]);
     let to = EntityId::from_bytes([2; 16]);
     let base = Snapshot::empty();
+    let original = base.apply_relation_changes([SnapshotRelationChange::Add(
+        SnapshotRelation::new(from, ObjectType::new("links").expect("relation type"), to),
+    )]);
     let operation = Operation::AddRelation {
         from,
         relation: "links".to_owned(),
@@ -124,7 +127,7 @@ fn rebase_replays_relation_operation() {
     };
     let migration = Migration::new(
         base.id(),
-        base.id(),
+        original.id(),
         Vec::new(),
         vec![operation],
         provenance(),
@@ -133,7 +136,7 @@ fn rebase_replays_relation_operation() {
     let result = rebase(
         RebaseInput {
             original_base: &base,
-            original_result: &base,
+            original_result: &original,
             new_base: &ReplayState::from_snapshot(base.clone()),
             migrations: &[migration],
         },
@@ -147,6 +150,8 @@ fn rebase_replays_relation_operation() {
             .relations
             .contains(&(from, "links".to_owned(), to))
     );
+    assert_eq!(result.new_result, Some(original.id()));
+    assert_eq!(result.state.snapshot.id(), original.id());
 }
 
 /// Verifies domain operations use a strategy before generic replay.

@@ -5,6 +5,8 @@ use super::{
     OperationKind, RenderRequest,
 };
 use scriberig_app::DomainOperationRequest;
+use scriberig_protocol::ProjectionAnchor as WireAnchor;
+use scriberig_query::ProjectionAnchor as QueryAnchor;
 
 /// Decodes a protocol command into an application command.
 /// - `super`: Parent-module imports used by this helper.
@@ -99,6 +101,10 @@ fn decode_domain_operation(payload: &serde_json::Value) -> Result<DomainOperatio
         .map(|value| value.parse::<scriberig_core::RootName>())
         .transpose()
         .map_err(|error| error.to_string())?;
+    let projection_anchor = command
+        .projection_anchor
+        .map(decode_projection_anchor)
+        .transpose()?;
     let arguments = command
         .arguments
         .into_iter()
@@ -124,13 +130,108 @@ fn decode_domain_operation(payload: &serde_json::Value) -> Result<DomainOperatio
             snapshot,
             revision,
             relation_path: Vec::new(),
-            projection_anchor: None,
+            projection_anchor,
         },
         context: scriberig_app::BranchContext {
             base_snapshot: snapshot,
             branch,
         },
         arguments,
+    })
+}
+
+/// Validates and maps a bounded wire anchor to the query-layer selection.
+///
+/// # Parameters
+/// - `anchor`: Transport descriptor accompanying semantic entity identity.
+///
+/// # Returns
+/// Query-layer anchor metadata.
+///
+/// # Errors
+/// Returns a diagnostic when descriptor bounds or worksheet identity are invalid.
+fn decode_projection_anchor(
+    anchor: scriberig_protocol::ProjectionAnchor,
+) -> Result<scriberig_query::ProjectionAnchor, String> {
+    anchor.validate().map_err(str::to_owned)?;
+    Ok(match anchor {
+        WireAnchor::TextRange { start, end } => QueryAnchor::TextRange { start, end },
+        WireAnchor::PageRegion {
+            page,
+            x,
+            y,
+            width,
+            height,
+        } => QueryAnchor::PageRegion {
+            page,
+            x,
+            y,
+            width,
+            height,
+        },
+        WireAnchor::SpreadsheetCell {
+            worksheet_id,
+            row,
+            column,
+        } => QueryAnchor::SpreadsheetCell {
+            worksheet: worksheet_id
+                .parse()
+                .map_err(|_| "invalid worksheet anchor identity")?,
+            row,
+            column,
+        },
+        WireAnchor::SpreadsheetRange {
+            worksheet_id,
+            first_row,
+            first_column,
+            last_row,
+            last_column,
+        } => QueryAnchor::SpreadsheetRange {
+            worksheet: worksheet_id
+                .parse()
+                .map_err(|_| "invalid worksheet anchor identity")?,
+            first_row,
+            first_column,
+            last_row,
+            last_column,
+        },
+        WireAnchor::GeometryBounds {
+            crs,
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+        } => QueryAnchor::GeometryBounds {
+            crs,
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+        },
+        WireAnchor::CadBounds {
+            drawing_id,
+            space,
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+        } => QueryAnchor::CadBounds {
+            drawing_id,
+            space,
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+        },
+        WireAnchor::Opaque {
+            adapter,
+            anchor_kind,
+            value,
+        } => QueryAnchor::Opaque {
+            adapter,
+            kind: anchor_kind,
+            value,
+        },
     })
 }
 
@@ -149,6 +250,12 @@ mod tests {
             "snapshot": {"id": snapshot.to_string()},
             "revision": null,
             "branch": "root_working",
+            "projection_anchor": {
+                "kind": "spreadsheetCell",
+                "worksheetId": scriberig_core::EntityId::new().to_string(),
+                "row": 4,
+                "column": 2
+            },
             "arguments": {"name": "greet", "exported": true, "arity": 1}
         });
         let (kind, request) =
@@ -162,6 +269,14 @@ mod tests {
         assert_eq!(request.context.base_snapshot, snapshot);
         assert_eq!(request.context.branch.unwrap().as_str(), "working");
         assert_eq!(request.arguments.len(), 3);
+        assert!(matches!(
+            request.subject.projection_anchor,
+            Some(scriberig_query::ProjectionAnchor::SpreadsheetCell {
+                row: 4,
+                column: 2,
+                ..
+            })
+        ));
     }
 
     /// Rejects non-scalar domain arguments before application dispatch.

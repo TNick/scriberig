@@ -12,8 +12,46 @@ mod connection_restored;
 /// # Returns
 /// The operation result.
 pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
+    if !matches!(action, Action::CursorMoved(_))
+        || !matches!(
+            state.primary_view,
+            crate::selection::PrimaryView::Conversation | crate::selection::PrimaryView::Session
+        )
+    {
+        state.render_revision = state.render_revision.wrapping_add(1);
+    }
     if super::tail_actions::handles_tail_action(&action) {
         return reduce_tail(state, action).unwrap_or_default();
+    }
+    if let Some(effects) = super::artifacts::reduce(state, &action) {
+        return effects;
+    }
+    if let Some(effects) = super::cad::reduce(state, &action) {
+        return effects;
+    }
+    if let Some(effects) = super::document::reduce(state, &action) {
+        return effects;
+    }
+    if let Some(effects) = super::geo::reduce(state, &action) {
+        return effects;
+    }
+    if let Some(effects) = super::geo_query::reduce(state, &action) {
+        return effects;
+    }
+    if let Some(effects) = super::qgis::reduce(state, &action) {
+        return effects;
+    }
+    if let Some(effects) = super::projection_style::reduce(state, &action) {
+        return effects;
+    }
+    if let Some(effects) = super::spreadsheet::reduce(state, &action) {
+        return effects;
+    }
+    if let Some(effects) = super::spreadsheet_edit::reduce(state, &action) {
+        return effects;
+    }
+    if let Action::ViewSelected(view) = &action {
+        return super::view::select(state, *view);
     }
     match action {
         Action::Noop => Vec::new(),
@@ -98,10 +136,11 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             reduce(
                 state,
                 Action::ProjectionRequested {
-                    request: scriberig_app::RenderRequest {
-                        snapshot: scriberig_app::SnapshotSelector::Exact(snapshot),
-                        view: format!("project-source:{}", selection.entity),
-                    },
+                    request: super::project_source_request::project_source_request(
+                        snapshot,
+                        selection.entity,
+                        state.project.as_deref(),
+                    ),
                 },
             )
         }
@@ -117,6 +156,9 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             if switch_view {
                 state.primary_view = crate::selection::PrimaryView::Overview;
             }
+            state.artifact_page = LoadState::NotRequested;
+            state.spreadsheet_cell = LoadState::NotRequested;
+            state.spreadsheet_worksheet = None;
             state.selection = Some(EntitySelection {
                 entity,
                 revision: None,
@@ -181,41 +223,6 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                     message,
                     stale: false,
                 };
-            }
-            vec![Effect::None]
-        }
-        Action::ViewSelected(view) => {
-            state.primary_view = view;
-            state.semantic_row_cursor = None;
-            if view == crate::selection::PrimaryView::Session {
-                state.cursor = match (&state.session, state.session_cursor) {
-                    (LoadState::Ready(model), Some(identity)) => {
-                        model.index_of(identity).unwrap_or(0)
-                    }
-                    _ => 0,
-                };
-            } else {
-                state.cursor = 0;
-                state.semantic_row_cursor = None;
-            }
-            crate::runtime::reconcile_semantic_row_cursor(state);
-            if view == crate::selection::PrimaryView::Plan {
-                crate::runtime::reconcile_plan_cursor(state);
-            }
-            if view == crate::selection::PrimaryView::Operations {
-                return vec![Effect::ListOperations];
-            }
-            if view == crate::selection::PrimaryView::Session {
-                if let Some(selection) = state.selection {
-                    return reduce(
-                        state,
-                        Action::SessionRequested {
-                            session: selection.entity,
-                            branch: None,
-                        },
-                    );
-                }
-                "Select a session entity to load it.".clone_into(&mut state.shell_message);
             }
             vec![Effect::None]
         }
@@ -326,6 +333,11 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             let request_id = state.next_request_id;
             state.next_request_id += 1;
             state.review = LoadState::Loading { request_id };
+            state.review_request = Some(scriberig_app::ApplyRequest {
+                base_snapshot: commit.base_snapshot,
+                branch: commit.branch.clone(),
+                change: commit.change.clone(),
+            });
             vec![Effect::Commit {
                 request_id,
                 request: scriberig_app::CommitRequest {
@@ -381,14 +393,8 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             }]
         }
         Action::ReviewRequested { request } => {
-            let request_id = state.next_request_id;
-            state.next_request_id += 1;
             state.primary_view = crate::selection::PrimaryView::Changes;
-            state.review = LoadState::Loading { request_id };
-            vec![Effect::Apply {
-                request_id,
-                request,
-            }]
+            crate::state::state_actions::request_candidate_review(state, request)
         }
         Action::ConnectionRestored => connection_restored::reduce(state),
         _ => state_reducer_tail::reduce_tail(state, action).unwrap_or_default(),

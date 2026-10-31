@@ -6,6 +6,72 @@ use scriberig_store_sqlite::SqliteStore;
 
 use crate::SqliteSessionStore;
 
+/// Removes derived rollup tables whose schema predates the normalized cache.
+///
+/// Cached rollups can be reconstructed from canonical semantic records, so an
+/// incompatible cache is discarded while session and semantic data stay intact.
+///
+/// # Parameters
+/// - `connection`: Open SQLite connection to inspect and migrate.
+///
+/// # Returns
+/// Unit when the cache schema is absent, compatible, or safely rebuilt.
+///
+/// # Errors
+/// Returns an error when SQLite cannot inspect or update the cache schema.
+fn migrate_rollup_cache_schema(connection: &rusqlite::Connection) -> rusqlite::Result<()> {
+    let mut statement = connection.prepare("PRAGMA table_info(plan_node_rollup_index)")?;
+    let columns = statement
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<rusqlite::Result<std::collections::BTreeSet<_>>>()?;
+    drop(statement);
+    if columns.is_empty() {
+        return Ok(());
+    }
+    let required = [
+        "session_id",
+        "plan_id",
+        "node_id",
+        "effective_status",
+        "contains_ignored",
+        "contains_abandoned",
+        "child_planned",
+        "child_ready",
+        "child_running",
+        "child_completed",
+        "child_failed",
+        "child_abandoned",
+        "unsatisfied_completion_gates",
+        "evaluator_version",
+        "source_snapshot",
+    ];
+    if required.iter().any(|column| !columns.contains(*column)) {
+        connection.execute_batch(
+            "DROP TABLE plan_node_rollup_index;
+             DROP TABLE IF EXISTS plan_node_rollup_meta;",
+        )?;
+        return Ok(());
+    }
+    for (column, definition) in [
+        ("entry_pending", "INTEGER NOT NULL DEFAULT 0"),
+        ("entry_satisfied", "INTEGER NOT NULL DEFAULT 0"),
+        ("entry_failed", "INTEGER NOT NULL DEFAULT 0"),
+        ("entry_waived", "INTEGER NOT NULL DEFAULT 0"),
+        ("completion_pending", "INTEGER NOT NULL DEFAULT 0"),
+        ("completion_satisfied", "INTEGER NOT NULL DEFAULT 0"),
+        ("completion_failed", "INTEGER NOT NULL DEFAULT 0"),
+        ("completion_waived", "INTEGER NOT NULL DEFAULT 0"),
+        ("evidence_count", "INTEGER NOT NULL DEFAULT 0"),
+    ] {
+        if !columns.contains(column) {
+            connection.execute_batch(&format!(
+                "ALTER TABLE plan_node_rollup_index ADD COLUMN {column} {definition}"
+            ))?;
+        }
+    }
+    Ok(())
+}
+
 impl SqliteSessionStore {
     /// Opens or creates a session repository at `path`.
     ///
@@ -54,6 +120,7 @@ impl SqliteSessionStore {
         let connection_guard = connection
             .lock()
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        migrate_rollup_cache_schema(&connection_guard)?;
         connection_guard.execute_batch(
             "CREATE TABLE IF NOT EXISTS session_records (
                  session_id BLOB PRIMARY KEY,
@@ -111,6 +178,15 @@ impl SqliteSessionStore {
                  child_failed INTEGER NOT NULL,
                  child_abandoned INTEGER NOT NULL,
                  unsatisfied_completion_gates INTEGER NOT NULL,
+                 entry_pending INTEGER NOT NULL DEFAULT 0,
+                 entry_satisfied INTEGER NOT NULL DEFAULT 0,
+                 entry_failed INTEGER NOT NULL DEFAULT 0,
+                 entry_waived INTEGER NOT NULL DEFAULT 0,
+                 completion_pending INTEGER NOT NULL DEFAULT 0,
+                 completion_satisfied INTEGER NOT NULL DEFAULT 0,
+                 completion_failed INTEGER NOT NULL DEFAULT 0,
+                 completion_waived INTEGER NOT NULL DEFAULT 0,
+                 evidence_count INTEGER NOT NULL DEFAULT 0,
                  evaluator_version INTEGER NOT NULL,
                  source_snapshot BLOB NOT NULL,
                  PRIMARY KEY (session_id, plan_id, node_id)

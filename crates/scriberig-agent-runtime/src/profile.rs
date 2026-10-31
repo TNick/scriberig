@@ -8,7 +8,10 @@ mod execution;
 pub use execution::{resolve_profile_execution_selection, resolve_profile_plan_node_execution};
 
 /// Stable identity for the bootstrap profile.
-const PROFILE_IDENTITY: &str = "scriberig.agent-profile.default";
+///
+/// # Returns
+/// The stable semantic identity used by bootstrap and persisted profile lookup.
+pub const DEFAULT_AGENT_PROFILE_IDENTITY: &str = "scriberig.agent-profile.default";
 /// Stable identity for the always-active core invariant component.
 const CORE_COMPONENT_IDENTITY: &str = "scriberig.context-component.core-invariants";
 /// Stable identity for non-root branch handoff guidance.
@@ -59,7 +62,7 @@ pub fn bootstrap_default_agent_profile() -> AgentProfileDescriptor {
     ];
     let mut profile = AgentProfileDescriptor {
         reference: AgentProfileRevisionRef {
-            identity: PROFILE_IDENTITY.to_owned(),
+            identity: DEFAULT_AGENT_PROFILE_IDENTITY.to_owned(),
             revision: String::new(),
         },
         name: "Default ScribeRig agent profile".to_owned(),

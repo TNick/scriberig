@@ -95,7 +95,11 @@ impl SqliteStore {
                     scriberig_core::RevisionId::new(revision_bytes),
                 );
             }
-            let snapshot = Snapshot::from_entries(entries);
+            let snapshot = crate::snapshot_relations::attach_relations(
+                &connection,
+                id,
+                Snapshot::from_entries(entries),
+            )?;
             return if snapshot.id() == id {
                 Ok(snapshot)
             } else {
@@ -106,7 +110,11 @@ impl SqliteStore {
         };
         let mut entries = BTreeMap::new();
         snapshot_integrity::load_node(&connection, &root, &mut entries).map_err(sql_snapshot)?;
-        let snapshot = Snapshot::from_entries(entries);
+        let snapshot = crate::snapshot_relations::attach_relations(
+            &connection,
+            id,
+            Snapshot::from_entries(entries),
+        )?;
         if snapshot.id() != id {
             return Err(SnapshotError::Backend(
                 "snapshot identity mismatch".to_owned(),

@@ -5,12 +5,13 @@ pub mod dispatch;
 pub mod http;
 pub mod operation;
 pub mod server;
+mod server_projection_style;
 pub mod subscription;
 pub mod transport;
 
 pub use development::{DevelopmentFixture, ensure_fixture};
 pub use dispatch::Dispatcher;
-pub use http::{InProcessProjectTransport, ProviderReadinessHandler};
+pub use http::{AgentExecutionHandler, InProcessProjectTransport, ProviderReadinessHandler};
 pub use server::ApplicationService;
 pub use subscription::SubscriptionSpec;
 pub use transport::InProcessTransport;
@@ -125,27 +126,31 @@ pub fn serve_with_origin_and_plan_lifecycle(
         allowed_origin,
         project_roots,
         plan_lifecycle_handler,
-        ServerModelCatalog {
-            model_catalog: rpi_model_runtime::ModelCatalog::new(),
+        ServerProviderCatalog {
+            provider_extension_runtime: scriberig_app::ProviderExtensionRuntime::new(),
             provider_readiness_handler: None,
+            cad_provider_registry: scriberig_app::CadProviderRegistry::new(),
         },
     )
 }
 
-/// Carries the upstream model authority for shared application composition.
+/// Carries host-composed provider authorities for shared server composition.
 ///
 /// # Public members
-/// - `model_catalog`: Shared upstream live model authority.
+/// - `provider_extension_runtime`: Shared model catalog and extension generation.
 /// - `provider_readiness_handler`: Optional live host-authorized credential
 ///   readiness projection.
+/// - `cad_provider_registry`: Optional native CAD providers selected by the host.
 ///
 /// # Private members
 /// None.
-pub struct ServerModelCatalog {
-    /// Shared upstream model catalog used to resolve live selections.
-    pub model_catalog: rpi_model_runtime::ModelCatalog,
+pub struct ServerProviderCatalog {
+    /// Shared catalog and extension publication generation.
+    pub provider_extension_runtime: scriberig_app::ProviderExtensionRuntime,
     /// Projects current safe credential readiness on model-library reads.
     pub provider_readiness_handler: Option<Arc<ProviderReadinessHandler>>,
+    /// Supplies optional host-initialized providers for external CAD formats.
+    pub cad_provider_registry: scriberig_app::CadProviderRegistry,
 }
 
 /// Serves the API with a host-composed upstream model catalog.
@@ -156,9 +161,7 @@ pub struct ServerModelCatalog {
 /// - `allowed_origin`: Exact browser origin allowed for CORS responses.
 /// - `project_roots`: Filesystem roots allowed for project onboarding.
 /// - `plan_lifecycle_handler`: Optional runtime that executes lifecycle requests.
-/// - `model_catalog`: Upstream selection authority.
-/// - `provider_readiness_handler`: Optional live host-authorized readiness
-///   projection for model-library responses.
+/// - `provider_catalog`: Host-selected model and optional CAD provider authorities.
 ///
 /// Unit after the listener stops accepting connections.
 ///
@@ -175,7 +178,96 @@ pub fn serve_with_model_catalog_and_plan_lifecycle(
     allowed_origin: Option<&str>,
     project_roots: &[std::path::PathBuf],
     plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler>>,
-    model_catalog: ServerModelCatalog,
+    provider_catalog: ServerProviderCatalog,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    serve_with_projection_style(
+        host,
+        port,
+        database_path,
+        allowed_origin,
+        project_roots,
+        plan_lifecycle_handler,
+        provider_catalog,
+        scriberig_app::ProjectionStyleConfiguration::default(),
+    )
+}
+
+/// Serves a local API with an explicit projection style configuration.
+///
+/// - `host`: Listener host.
+/// - `port`: Listener port.
+/// - `database_path`: SQLite database path.
+/// - `allowed_origin`: Exact CORS origin, when allowed.
+/// - `project_roots`: Host-authorized project roots for file operations.
+/// - `plan_lifecycle_handler`: Optional host-authorized plan lifecycle handler.
+/// - `provider_catalog`: Host-authorized model and optional CAD provider authorities.
+/// - `projection_style`: Domain style adapters and settings the surfaces share.
+///
+/// # Returns
+/// Unit after the listener stops accepting connections.
+///
+/// # Errors
+/// Returns an error for invalid origin configuration, database failure, or
+/// listener initialization failure.
+#[allow(clippy::too_many_arguments)] // Keeps one serve entry point beside the existing variants.
+pub fn serve_with_projection_style(
+    host: &str,
+    port: u16,
+    database_path: &Path,
+    allowed_origin: Option<&str>,
+    project_roots: &[std::path::PathBuf],
+    plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler>>,
+    provider_catalog: ServerProviderCatalog,
+    projection_style: scriberig_app::ProjectionStyleConfiguration,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    serve_with_agent_execution(
+        host,
+        port,
+        database_path,
+        allowed_origin,
+        project_roots,
+        None,
+        plan_lifecycle_handler,
+        provider_catalog,
+        projection_style,
+    )
+}
+
+/// Serves the API with trusted agent and plan execution runtimes.
+///
+/// - `host`: Listener host.
+/// - `port`: Listener port.
+/// - `database_path`: SQLite database path.
+/// - `allowed_origin`: Exact CORS origin, when allowed.
+/// - `project_roots`: Host-authorized project roots.
+/// - `agent_execution_handler`: Optional host runtime for accepted agent work.
+/// - `plan_lifecycle_handler`: Optional host runtime for plan execution.
+/// - `provider_catalog`: Host-authorized model and optional CAD provider authorities.
+/// - `projection_style`: Shared domain projection configuration.
+///
+/// Unit after the listener stops accepting connections.
+///
+/// Returns an error when configuration, storage, or listener setup fails.
+///
+/// # Returns
+/// Success after the server listener exits cleanly.
+///
+/// # Errors
+/// Returns an error when configuration, storage, or listener setup fails.
+///
+/// # Panics
+/// Panics only if the compile-time-valid `agent-profiles` root name becomes invalid.
+#[allow(clippy::too_many_arguments)]
+pub fn serve_with_agent_execution(
+    host: &str,
+    port: u16,
+    database_path: &Path,
+    allowed_origin: Option<&str>,
+    project_roots: &[std::path::PathBuf],
+    agent_execution_handler: Option<Arc<AgentExecutionHandler<LocalApplicationService>>>,
+    plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler>>,
+    provider_catalog: ServerProviderCatalog,
+    projection_style: scriberig_app::ProjectionStyleConfiguration,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     if allowed_origin.is_some_and(|origin| origin.is_empty() || origin == "*") {
         return Err("allowed origin must be a non-empty exact origin".into());
@@ -189,8 +281,15 @@ pub fn serve_with_model_catalog_and_plan_lifecycle(
         database_path,
     )?);
     let service = scriberig_app::ApplicationService::new(backend)
+        .with_cad_provider_registry(provider_catalog.cad_provider_registry)
+        .with_project_service(scriberig_project::ProjectService::new(Arc::clone(&store)))
         .with_session_store(session_store)
-        .with_model_catalog(model_catalog.model_catalog);
+        .with_agent_profile_provider(Arc::new(scriberig_app::AgentProfileService::new(
+            Arc::clone(&store),
+            scriberig_core::RootName::new("agent-profiles").expect("fixed profile root is valid"),
+        )))
+        .with_provider_extension_runtime(provider_catalog.provider_extension_runtime)
+        .with_projection_style_configuration(projection_style);
     let state = http::HttpState {
         service,
         principal: scriberig_app::Principal::new("local-user"),
@@ -198,8 +297,9 @@ pub fn serve_with_model_catalog_and_plan_lifecycle(
         allowed_origin: allowed_origin.map(ToOwned::to_owned),
         project_store: Some(Arc::clone(&store)),
         allowed_project_roots: canonical_project_roots(project_roots)?,
+        agent_execution_handler,
         plan_lifecycle_handler,
-        provider_readiness_handler: model_catalog.provider_readiness_handler,
+        provider_readiness_handler: provider_catalog.provider_readiness_handler,
     };
     let listener = TcpListener::bind((host, port))?;
     println!("Scriberig API listening on http://{host}:{port}");

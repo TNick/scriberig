@@ -1,117 +1,24 @@
 //! Defines immutable persistent radix snapshots and deterministic diffs.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[path = "snapshot_build.rs"]
 mod snapshot_build;
 #[path = "snapshot_diff.rs"]
 mod snapshot_diff;
+#[path = "snapshot_node.rs"]
+mod snapshot_node;
+#[path = "snapshot_relation_state.rs"]
+mod snapshot_relation_state;
+#[path = "snapshot_types.rs"]
+mod snapshot_types;
+use self::snapshot_node::Node;
+pub use self::snapshot_types::{
+    SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError,
+};
+use crate::snapshot_relation::{SnapshotRelation, SnapshotRelationChange};
+use scriberig_core::{EncodingVersion, EntityId, RevisionId, SnapshotId};
 use std::sync::Arc;
-
-use scriberig_core::{EncodingError, EncodingVersion, EntityId, RevisionId, SnapshotId};
-
-/// Describes one storage-level snapshot update.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SnapshotChange {
-    /// Associates an entity with a revision.
-    Set(EntityId, RevisionId),
-    /// Removes an entity association.
-    Remove(EntityId),
-}
-
-/// Identifies the source change that produced one immutable snapshot.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnapshotChangeProvenance {
-    /// Stable identity of the accepted source change.
-    pub change_id: String,
-}
-
-/// Describes one semantic difference between two immutable snapshots.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SnapshotDiff {
-    /// An entity is present only in the target snapshot.
-    Added {
-        /// Entity introduced by the target snapshot.
-        entity: EntityId,
-        /// Revision assigned by the target snapshot.
-        revision: RevisionId,
-    },
-    /// An entity is present only in the source snapshot.
-    Removed {
-        /// Entity removed by the target snapshot.
-        entity: EntityId,
-        /// Revision assigned by the source snapshot.
-        revision: RevisionId,
-    },
-    /// An entity resolves to a different revision in the target snapshot.
-    Changed {
-        /// Entity whose resolution changed.
-        entity: EntityId,
-        /// Revision assigned by the source snapshot.
-        from: RevisionId,
-        /// Revision assigned by the target snapshot.
-        to: RevisionId,
-    },
-}
-
-/// Reports an invalid snapshot operation.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SnapshotError {
-    /// The requested canonical encoding version is not supported.
-    InvalidEncoding(EncodingError),
-    /// The requested snapshot is not known by the backend.
-    UnknownSnapshot(SnapshotId),
-    /// A backend-specific durable storage failure.
-    Backend(String),
-}
-
-/// Private persistent radix node shared by related snapshots.
-#[derive(Clone, Debug, Eq, PartialEq)]
-enum Node {
-    Empty,
-    Leaf(EntityId, RevisionId),
-    Branch(Vec<Option<Arc<Node>>>),
-}
-
-impl Node {
-    /// Internal snapshot operation.
-    ///
-    /// The requested snapshot result.
-    /// # Returns
-    /// The operation result.
-    fn empty_branch() -> Vec<Option<Arc<Node>>> {
-        vec![None; 16]
-    }
-
-    /// Internal snapshot operation.
-    /// - `version`: Operation input.
-    ///
-    /// The requested snapshot result.
-    /// # Returns
-    /// The operation result.
-    fn hash(&self, version: EncodingVersion) -> [u8; 32] {
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(&version.value().to_be_bytes());
-        match self {
-            Self::Empty => bytes.extend_from_slice(b"scriberig.trie.empty.v1"),
-            Self::Leaf(entity, revision) => {
-                bytes.extend_from_slice(b"scriberig.trie.leaf.v1");
-                bytes.extend_from_slice(entity.as_bytes());
-                bytes.extend_from_slice(revision.as_bytes());
-            }
-            Self::Branch(children) => {
-                bytes.extend_from_slice(b"scriberig.trie.branch.v1");
-                for child in children {
-                    let hash = child
-                        .as_ref()
-                        .map_or_else(|| Self::Empty.hash(version), |node| node.hash(version));
-                    bytes.extend_from_slice(&hash);
-                }
-            }
-        }
-        *blake3::hash(&bytes).as_bytes()
-    }
-}
 
 /// Internal snapshot operation.
 /// - `entity`: Operation input.
@@ -230,6 +137,7 @@ pub struct Snapshot {
     root: Arc<Node>,
     id: SnapshotId,
     len: usize,
+    relations: BTreeSet<SnapshotRelation>,
 }
 
 impl Snapshot {
@@ -240,7 +148,12 @@ impl Snapshot {
     /// # Returns
     /// The operation result.
     pub fn empty() -> Self {
-        Self::from_root(EncodingVersion::V1, Arc::new(Node::Empty), 0)
+        Self::from_root(
+            EncodingVersion::V1,
+            Arc::new(Node::Empty),
+            0,
+            BTreeSet::new(),
+        )
     }
     /// - `version`: Operation input.
     ///
@@ -254,7 +167,12 @@ impl Snapshot {
     /// Returns an error when the operation fails.
     pub fn empty_with_version(version: EncodingVersion) -> Result<Self, SnapshotError> {
         EncodingVersion::try_new(version.value()).map_err(SnapshotError::InvalidEncoding)?;
-        Ok(Self::from_root(version, Arc::new(Node::Empty), 0))
+        Ok(Self::from_root(
+            version,
+            Arc::new(Node::Empty),
+            0,
+            BTreeSet::new(),
+        ))
     }
     /// - `entries`: Operation input.
     ///
@@ -279,27 +197,49 @@ impl Snapshot {
     /// The operation result.
     fn from_sorted_entries(version: EncodingVersion, entries: &[(EntityId, RevisionId)]) -> Self {
         let len = entries.len();
-        Self::from_root(version, snapshot_build::build(entries, 0), len)
+        Self::from_root(
+            version,
+            snapshot_build::build(entries, 0),
+            len,
+            BTreeSet::new(),
+        )
     }
     /// Internal snapshot operation.
     /// - `version`: Operation input.
     /// - `root`: Operation input.
     /// - `len`: Operation input.
+    /// - `relations`: Canonical typed relations carried by the snapshot.
     ///
     /// The requested snapshot result.
     /// # Returns
     /// The operation result.
-    fn from_root(version: EncodingVersion, root: Arc<Node>, len: usize) -> Self {
+    fn from_root(
+        version: EncodingVersion,
+        root: Arc<Node>,
+        len: usize,
+        relations: BTreeSet<SnapshotRelation>,
+    ) -> Self {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(b"scriberig.snapshot.root.v1");
         bytes.extend_from_slice(&version.value().to_be_bytes());
         bytes.extend_from_slice(&root.hash(version));
+        if !relations.is_empty() {
+            bytes.extend_from_slice(b"scriberig.snapshot.relations.v1");
+            for relation in &relations {
+                bytes.extend_from_slice(relation.from.as_bytes());
+                let relation_type = relation.relation_type.as_str().as_bytes();
+                bytes.extend_from_slice(&(relation_type.len() as u64).to_be_bytes());
+                bytes.extend_from_slice(relation_type);
+                bytes.extend_from_slice(relation.to.as_bytes());
+            }
+        }
         let id = SnapshotId::from_bytes(*blake3::hash(&bytes).as_bytes());
         Self {
             version,
             root,
             id,
             len,
+            relations,
         }
     }
     ///
@@ -345,7 +285,12 @@ impl Snapshot {
             return self.clone();
         }
         let len = self.len + usize::from(self.resolve(entity).is_none());
-        Self::from_root(self.version, insert(&self.root, entity, revision, 0), len)
+        Self::from_root(
+            self.version,
+            insert(&self.root, entity, revision, 0),
+            len,
+            self.relations.clone(),
+        )
     }
     /// - `entity`: Operation input.
     ///
@@ -358,7 +303,18 @@ impl Snapshot {
         if self.resolve(entity).is_none() {
             return self.clone();
         }
-        Self::from_root(self.version, remove(&self.root, entity, 0), self.len - 1)
+        let relations = self
+            .relations
+            .iter()
+            .filter(|r| r.from != entity && r.to != entity)
+            .cloned()
+            .collect();
+        Self::from_root(
+            self.version,
+            remove(&self.root, entity, 0),
+            self.len - 1,
+            relations,
+        )
     }
     ///
     /// The requested snapshot result.
@@ -370,6 +326,7 @@ impl Snapshot {
         collect(&self.root, &mut values);
         values.into_iter()
     }
+
     /// - `changes`: Operation input.
     ///
     /// The requested snapshot result.
@@ -378,18 +335,56 @@ impl Snapshot {
     /// # Returns
     /// The operation result.
     pub fn apply(&self, changes: impl IntoIterator<Item = SnapshotChange>) -> Self {
+        self.apply_changes_with_relations(changes, std::iter::empty())
+    }
+
+    /// Applies entity and relation changes to one immutable snapshot atomically.
+    ///
+    /// - `entity_changes`: Entity-to-revision additions and removals.
+    /// - `relation_changes`: Typed relation additions and removals.
+    ///
+    /// # Returns
+    /// A persistent successor containing both change sets.
+    #[must_use]
+    pub fn apply_changes_with_relations(
+        &self,
+        entity_changes: impl IntoIterator<Item = SnapshotChange>,
+        relation_changes: impl IntoIterator<Item = SnapshotRelationChange>,
+    ) -> Self {
         let mut entries = self.iter().collect::<BTreeMap<_, _>>();
-        for change in changes {
+        let mut relations = self.relations.clone();
+        let mut removed_entities = BTreeSet::new();
+        for change in entity_changes {
             match change {
                 SnapshotChange::Set(entity, revision) => {
                     entries.insert(entity, revision);
                 }
                 SnapshotChange::Remove(entity) => {
                     entries.remove(&entity);
+                    removed_entities.insert(entity);
                 }
             }
         }
+        for change in relation_changes {
+            match change {
+                SnapshotRelationChange::Add(relation) => {
+                    relations.insert(relation);
+                }
+                SnapshotRelationChange::Remove(relation) => {
+                    relations.remove(&relation);
+                }
+            }
+        }
+        removed_entities.retain(|entity| !entries.contains_key(entity));
+        relations.retain(|relation| {
+            !removed_entities.contains(&relation.from) && !removed_entities.contains(&relation.to)
+        });
         let entries = entries.into_iter().collect::<Vec<_>>();
-        Self::from_sorted_entries(self.version, &entries)
+        Self::from_root(
+            self.version,
+            snapshot_build::build(&entries, 0),
+            entries.len(),
+            relations,
+        )
     }
 }

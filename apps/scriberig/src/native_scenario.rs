@@ -22,6 +22,16 @@ pub(super) enum NativeScenario {
     /// Upstream-owned faux script used by deterministic runtime tests.
     #[cfg(test)]
     Faux(FauxScript),
+    /// Continuation-capable fixture provider used by root continuation tests.
+    #[cfg(test)]
+    Continuation(
+        std::sync::Arc<
+            crate::native_tui_agent::continuation_scenario::ContinuationScenarioProvider,
+        >,
+    ),
+    /// Scripted upstream provider supplied by a focused execution test.
+    #[cfg(test)]
+    Provider(std::sync::Arc<dyn rpi_ai::Provider>),
 }
 
 impl NativeScenario {
@@ -51,20 +61,18 @@ impl NativeScenario {
             return FauxProvider::with_models(script, vec![model]);
         }
 
-        let scenario = Arc::new(self);
-        let scenario_model = model.clone();
+        #[cfg(test)]
+        if let Self::Continuation(provider) = self {
+            return provider as std::sync::Arc<dyn Provider>;
+        }
+
+        #[cfg(test)]
+        if let Self::Provider(provider) = self {
+            return provider;
+        }
+
         let script = FauxScript::new();
-        // Each scenario step is context-driven, so keep a bounded pool of
-        // factories available for the full tool loop instead of consuming a
-        // single one-shot response.
-        let steps = (0..64)
-            .map(|_| {
-                let scenario = Arc::clone(&scenario);
-                let scenario_model = scenario_model.clone();
-                FauxStep::factory(move |context| scenario.respond(context, &scenario_model))
-            })
-            .collect();
-        script.set_responses(steps);
+        script.set_responses(vec![scenario_response_step(Arc::new(self), model.clone())]);
         FauxProvider::with_models(script, vec![model])
     }
 
@@ -98,7 +106,69 @@ impl NativeScenario {
                 model,
                 "faux script was exhausted".to_owned(),
             )),
+            #[cfg(test)]
+            Self::Continuation(_) => Ok(crate::scenario_helpers::error_response(
+                model,
+                "continuation scenario provider is used directly".to_owned(),
+            )),
+            #[cfg(test)]
+            Self::Provider(_) => Ok(crate::scenario_helpers::error_response(
+                model,
+                "scripted provider is used directly".to_owned(),
+            )),
         };
         result.unwrap_or_else(|message| crate::scenario_helpers::error_response(model, message))
+    }
+}
+
+/// Creates a persistent context-driven faux response for every scenario request.
+///
+/// The upstream repeating factory remains queued while several provider calls
+/// are active, avoiding a queue-empty race between concurrent requests.
+///
+/// # Parameters
+/// - `scenario`: Scenario used to produce the next assistant message.
+/// - `model`: Exact model descriptor attached to the response.
+///
+/// # Returns
+/// An upstream repeating factory step.
+fn scenario_response_step(scenario: Arc<NativeScenario>, model: Model) -> FauxStep {
+    FauxStep::repeating_factory(move |context| {
+        let latest_tool = context
+            .messages
+            .iter()
+            .rev()
+            .find_map(|message| match message {
+                rpi_ai::types::Message::ToolResult(result) => {
+                    Some((result.tool_name.as_str(), result.is_error))
+                }
+                _ => None,
+            });
+        tracing::debug!(
+            target: "scriberig::deterministic_provider",
+            message_count = context.messages.len(),
+            latest_tool = latest_tool.map_or("none", |(name, _)| name),
+            latest_tool_error = latest_tool.is_some_and(|(_, is_error)| is_error),
+            "deterministic provider received a request"
+        );
+        scenario.respond(context, &model)
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NativeScenario, scenario_response_step};
+    use rpi_ai::Model;
+    use rpi_ai::providers::faux::{FauxProvider, FauxScript, FauxStep};
+    use std::sync::Arc;
+
+    /// Selects the upstream repeating factory for a deterministic scenario.
+    #[test]
+    fn scenario_response_factory_remains_available_without_queue_replenishment() {
+        let model: Model = FauxProvider::new(FauxScript::new()).default_model().clone();
+        let step = scenario_response_step(Arc::new(NativeScenario::Echo), model);
+        let FauxStep::RepeatingFactory(_) = step else {
+            panic!("scenario response must be an upstream repeating factory");
+        };
     }
 }

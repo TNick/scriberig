@@ -5,6 +5,15 @@
 pub(crate) mod tui_pty_support;
 
 pub(crate) use tui_pty_support::test_lock;
+#[path = "tui_pty_self_hosting_discovery_support/onboarding_assertions.rs"]
+mod onboarding_assertions;
+#[allow(
+    unused_imports,
+    reason = "The shared module is included by multiple self-hosting test targets."
+)]
+pub(crate) use onboarding_assertions::{
+    assert_project_and_checkout_unchanged, wait_for_cancellation,
+};
 
 use std::fs;
 use std::thread;
@@ -62,11 +71,11 @@ pub(crate) fn onboard_project(implementation: bool) -> OnboardingEvidence {
     } else {
         TuiPty::start_self_hosting_discovery_cancellation()
     };
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     let database = tui.fixture_path().join("scriberig.sqlite");
     tui.send(b"Onboard the current project.\r");
     let session = visible_session(&tui);
-    wait_for_onboarding(&database, session);
+    wait_for_onboarding(&tui, &database, session);
     assert!(
         tui.read_until_next("Enter send"),
         "TUI did not return to its conversation composer: {}",
@@ -103,11 +112,12 @@ pub(crate) fn onboard_project(implementation: bool) -> OnboardingEvidence {
 
 /// Waits until onboarding is durable and the project has been imported.
 ///
+/// - `tui`: Active TUI process used to capture failure diagnostics.
 /// - `database`: Product database owned by the PTY fixture.
 /// - `session`: Exact session identity to inspect.
-pub(crate) fn wait_for_onboarding(database: &std::path::Path, session: EntityId) {
-    let store = SqliteSessionStore::open(database).expect("session store");
+pub(crate) fn wait_for_onboarding(tui: &TuiPty, database: &std::path::Path, session: EntityId) {
     let deadline = Instant::now() + Duration::from_secs(120);
+    let store = open_session_store_until(database, deadline);
     loop {
         let saved = match store.load(session) {
             Ok(saved) => saved,
@@ -119,7 +129,7 @@ pub(crate) fn wait_for_onboarding(database: &std::path::Path, session: EntityId)
                 thread::sleep(Duration::from_millis(50));
                 continue;
             }
-            Err(error) => panic!("load session: {error}"),
+            Err(error) => panic!("load session: {error}; {}", tui.diagnostic()),
         };
         let Some(saved) = saved else {
             assert!(
@@ -143,16 +153,58 @@ pub(crate) fn wait_for_onboarding(database: &std::path::Path, session: EntityId)
         if root_completed && import_completed {
             return;
         }
+        if let Some(failure) = tui_pty_support::onboarding_wait::onboarding_root_failure(&saved) {
+            panic!("{failure}; {}", tui.diagnostic());
+        }
         let branches = saved
             .branches
             .iter()
-            .map(|branch| (branch.title.as_str(), branch.status))
+            .map(|branch| {
+                format!(
+                    "{}:{:?}:outcome={:?}:tools={:?}",
+                    branch.title,
+                    branch.status,
+                    branch.outcome,
+                    branch
+                        .tool_invocations
+                        .iter()
+                        .map(|invocation| invocation.name.as_str())
+                        .collect::<Vec<_>>()
+                )
+            })
             .collect::<Vec<_>>();
         assert!(
             Instant::now() < deadline,
-            "onboarding did not complete: {branches:?}"
+            "onboarding did not complete: {branches:?}; {}",
+            tui.diagnostic()
         );
         thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// Opens the onboarding session store while its owner finishes initializing SQLite.
+///
+/// - `database`: Product database owned by the PTY fixture.
+/// - `deadline`: Maximum time to wait for transient writer contention to clear.
+///
+/// # Returns
+/// The initialized session store.
+///
+/// # Panics
+/// Panics when opening fails for another reason or the database stays locked.
+fn open_session_store_until(database: &std::path::Path, deadline: Instant) -> SqliteSessionStore {
+    loop {
+        match SqliteSessionStore::open(database) {
+            Ok(store) => return store,
+            Err(error) if error.to_string().contains("database is locked") => {
+                assert!(
+                    Instant::now() < deadline,
+                    "onboarding session store stayed locked"
+                );
+                thread::sleep(Duration::from_millis(50));
+            }
+            Err(error) => panic!("open onboarding session store: {error}"),
+        }
     }
 }
 
@@ -162,8 +214,21 @@ pub(crate) fn wait_for_onboarding(database: &std::path::Path, session: EntityId)
 /// - `session`: Durable agent session identity.
 /// - `database`: Durable product database.
 pub(crate) fn submit_discovery(tui: &mut TuiPty, session: EntityId, database: &std::path::Path) {
-    tui.send(b"Add support for ingesting PHP source files.\r");
-    wait_for_branch(database, session, "determine minimal extension points");
+    let baseline = root_invocation_count(database, session);
+    tui.send_slow(format!("/switch {session}\r").as_bytes());
+    assert!(
+        tui.read_until_next("Onboard the current project."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send_slow(b"Add support for ingesting PHP source files.\r");
+    wait_for_branch(
+        tui,
+        database,
+        session,
+        baseline,
+        "determine minimal extension points",
+    );
     assert_provider_gate_waiting(tui);
 }
 
@@ -177,8 +242,15 @@ pub(crate) fn submit_implementation(
     session: EntityId,
     database: &std::path::Path,
 ) {
-    tui.send(b"Add support for ingesting PHP source files.\r");
-    wait_for_branch(database, session, "implement PHP ingestion");
+    let baseline = root_invocation_count(database, session);
+    tui.send_slow(format!("/switch {session}\r").as_bytes());
+    assert!(
+        tui.read_until_next("Onboard the current project."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send_slow(b"Add support for ingesting PHP source files.\r");
+    wait_for_branch(tui, database, session, baseline, "implement PHP ingestion");
     assert_provider_gate_waiting(tui);
 }
 
@@ -204,7 +276,7 @@ pub(crate) fn assert_provider_gate_waiting(tui: &TuiPty) {
 /// - `tui`: Active TUI process.
 pub(crate) fn cancel_active_agent(tui: &mut TuiPty) {
     tui.send_slow(b"/operations\r");
-    assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Operation:"), "{}", tui.diagnostic());
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
         "{}",
@@ -221,10 +293,18 @@ pub(crate) fn cancel_active_agent(tui: &mut TuiPty) {
 
 /// Waits for one delayed child branch to start before requesting cancellation.
 ///
+/// - `tui`: Active TUI process used to capture failure diagnostics.
 /// - `database`: Durable product database.
 /// - `session`: Agent session identity.
+/// - `baseline_invocations`: Root invocation count before this submitted turn.
 /// - `purpose`: Unique substring of the child purpose.
-pub(crate) fn wait_for_branch(database: &std::path::Path, session: EntityId, purpose: &str) {
+pub(crate) fn wait_for_branch(
+    tui: &TuiPty,
+    database: &std::path::Path,
+    session: EntityId,
+    baseline_invocations: usize,
+    purpose: &str,
+) {
     let store = SqliteSessionStore::open(database).expect("session store");
     let deadline = Instant::now() + Duration::from_secs(120);
     loop {
@@ -239,6 +319,28 @@ pub(crate) fn wait_for_branch(database: &std::path::Path, session: EntityId, pur
                 .is_some_and(|branch_purpose| branch_purpose.contains(purpose))
         }) {
             return;
+        }
+        let root_advanced = saved.branches.iter().any(|branch| {
+            branch.title == "agent root" && branch.model_invocations.len() > baseline_invocations
+        });
+        if root_advanced
+            && let Some(failure) = tui_pty_support::onboarding_wait::onboarding_root_failure(&saved)
+        {
+            panic!(
+                "{failure}; waiting for child {purpose:?}; {}",
+                tui.diagnostic()
+            );
+        }
+        if let Some(failure) = saved.branches.iter().find_map(|branch| {
+            (branch.title == "agent continuation" && branch.status == BranchStatus::Abandoned)
+                .then(|| branch.result.as_ref()?.summary.as_deref())
+                .flatten()
+                .filter(|summary| summary.contains("upstream agent:"))
+        }) {
+            panic!(
+                "continuation failed before child {purpose:?}: {failure}; {}",
+                tui.diagnostic()
+            );
         }
         let branches = saved
             .branches
@@ -263,87 +365,27 @@ pub(crate) fn wait_for_branch(database: &std::path::Path, session: EntityId, pur
     }
 }
 
-/// Verifies cancellation leaves canonical project state and copied source bytes unchanged.
+/// Reads the current root model-invocation count before a new TUI turn.
 ///
-/// - `evidence`: Onboarded project identities and exact source bytes.
-pub(crate) fn assert_project_and_checkout_unchanged(evidence: &OnboardingEvidence) {
-    assert_eq!(
-        ProjectService::new(std::sync::Arc::new(
-            SqliteStore::open(&evidence.database).expect("reopen project store"),
-        ))
-        .workspace(evidence.project)
-        .expect("project remains active")
-        .snapshot,
-        evidence.base
-    );
-    assert_eq!(
-        fs::read(evidence.checkout.join("Cargo.toml")).expect("manifest"),
-        evidence.manifest
-    );
-    assert_eq!(
-        fs::read(
-            evidence
-                .checkout
-                .join("crates/scriberig-project/src/scan.rs")
-        )
-        .expect("scanner"),
-        evidence.scanner
-    );
-    assert!(
-        !evidence
-            .checkout
-            .join("crates/domains/scriberig-domain-php")
-            .exists()
-    );
-}
-
-/// Waits for the session store to persist an agent cancellation result.
-///
+/// # Parameters
 /// - `database`: Durable product database.
-/// - `session`: Agent session identity.
+/// - `session`: Existing session to continue.
 ///
-/// Session with a durable cancelled branch result.
 /// # Returns
-/// The operation result.
-pub(crate) fn wait_for_cancellation(
-    database: &std::path::Path,
-    session: EntityId,
-) -> scriberig_session::Session {
+/// Number of model invocations already recorded for the root branch.
+fn root_invocation_count(database: &std::path::Path, session: EntityId) -> usize {
     let store = SqliteSessionStore::open(database).expect("session store");
-    let deadline = Instant::now() + Duration::from_secs(20);
-    loop {
-        let saved = store
-            .load(session)
-            .expect("load session")
-            .expect("durable session");
-        if saved.branches.iter().any(|branch| {
-            branch
-                .result
-                .as_ref()
-                .is_some_and(|result| result.result_kind.as_deref() == Some("agent-cancelled"))
-        }) {
-            return saved;
-        }
-        let branches = saved
-            .branches
-            .iter()
-            .map(|branch| {
-                (
-                    branch.title.as_str(),
-                    branch.status,
-                    branch
-                        .result
-                        .as_ref()
-                        .and_then(|result| result.result_kind.as_deref()),
-                )
-            })
-            .collect::<Vec<_>>();
-        assert!(
-            Instant::now() < deadline,
-            "cancelled result was not persisted: {branches:?}"
-        );
-        thread::sleep(Duration::from_millis(50));
-    }
+    store
+        .load(session)
+        .expect("load session")
+        .and_then(|saved| {
+            saved
+                .branches
+                .iter()
+                .find(|branch| branch.title == "agent root")
+                .map(|branch| branch.model_invocations.len())
+        })
+        .expect("durable root branch")
 }
 
 /// Parses the durable session identity displayed by the agent composer.

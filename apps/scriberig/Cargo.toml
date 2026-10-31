@@ -9,8 +9,14 @@ repository.workspace = true
 publish = false
 
 [features]
-default = []
+default = ["isolated-plugin-worker", "provider-package-worker-tests"]
 isolated-plugin-worker = ["scriberig-agent-runtime/isolated-plugin-worker"]
+provider-package-worker-tests = ["isolated-plugin-worker"]
+
+[[test]]
+name = "provider_package_worker"
+path = "tests/provider_package_worker.rs"
+required-features = ["provider-package-worker-tests"]
 
 [[bin]]
 name = "srig"
@@ -33,8 +39,15 @@ scriberig-session = { path = "../../crates/scriberig-session" }
 scriberig-tui = { path = "../../crates/scriberig-tui" }
 scriberig-client = { path = "../../crates/scriberig-client" }
 scriberig-core = { path = "../../crates/scriberig-core" }
+scriberig-domain-ecma = { path = "../../crates/domains/scriberig-domain-ecma" }
+scriberig-domain-rust = { path = "../../crates/domains/scriberig-domain-rust" }
+scriberig-domain-spreadsheet = { path = "../../crates/domains/scriberig-domain-spreadsheet" }
+scriberig-domain-geo = { path = "../../crates/domains/scriberig-domain-geo" }
+scriberig-style-sqlite = { path = "../../crates/scriberig-style-sqlite" }
+sr-projection = { path = "../../crates/sr-projection" }
 rpi-ai = { workspace = true }
 rpi-agent = { workspace = true }
+rpi-extensions = { workspace = true }
 rpi-model-runtime = { workspace = true }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 async-trait = "0.1"
@@ -44,8 +57,17 @@ scriberig-query = { path = "../../crates/scriberig-query" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ctrlc = "3.4"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1"
 
 [dev-dependencies]
+scriberig-domain-cad = { path = "../../crates/domains/scriberig-domain-cad" }
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+scriberig-test-provider-plugin = { path = "../../tests/fixtures/provider-worker-plugin" }
+scriberig-store-memory = { path = "../../crates/scriberig-store-memory" }
+sr-change = { path = "../../crates/sr-change" }
+rxls = { version = "=0.1.4", default-features = false, features = ["xlsx"] }
+rusqlite = { version = "0.40.2", features = ["bundled", "serialize"] }
 tempfile = "3"
 portable-pty = "0.9"
 vt100 = "0.15.2"

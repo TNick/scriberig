@@ -82,7 +82,7 @@ impl PlanNodeRollupIndex {
         }
         Ok(Self {
             source_snapshot,
-            evaluator_version: 1,
+            evaluator_version: 2,
             rollups,
             parents,
             children,
@@ -118,7 +118,7 @@ impl PlanNodeRollupIndex {
         }
         Ok(Self {
             source_snapshot,
-            evaluator_version: 1,
+            evaluator_version: 2,
             rollups,
             parents,
             children,

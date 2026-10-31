@@ -5,13 +5,18 @@
 #[macro_use]
 #[path = "service_application_handle_method.rs"]
 mod handle_method;
-
-#[path = "service_application_plan_mutation_methods.rs"]
+#[path = "service_application_constructor.rs"]
+mod constructor;
+#[path = "service_application_recovery.rs"]
+mod recovery;
+#[path = "service_application_runtime.rs"]
+mod runtime;
 #[macro_use]
-mod plan_mutation_methods;
+#[path = "service_application_query_methods.rs"]
+mod service_application_query_methods;
 
 use super::*;
-use scriberig_app::{AgentConsoleBackend, SessionBackend};
+use scriberig_app::{AgentConsoleBackend, RuntimeCapability, SessionBackend};
 
 /// Adapts an application query service to TUI operations.
 pub struct ApplicationAdapter<S> {
@@ -19,31 +24,9 @@ pub struct ApplicationAdapter<S> {
     capabilities: Vec<RuntimeCapability>,
 }
 
-impl<S> ApplicationAdapter<S> {
-    /// Creates a TUI adapter around a public application service.
-    ///
-    /// - `service`: Public query service.
-    /// - `capabilities`: Runtime capabilities exposed by the service.
-    ///
-    /// A configured TUI adapter.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn new(service: S, capabilities: Vec<RuntimeCapability>) -> Self {
-        Self {
-            service,
-            capabilities,
-        }
-    }
-
-    /// Borrows the wrapped application service.
-    #[must_use]
-    pub const fn service(&self) -> &S {
-        &self.service
-    }
-}
-
 impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for ApplicationAdapter<S> {
+    application_query_methods!();
+
     /// Continues an exact anchor through the shared session backend.
     ///
     /// - `context`: Caller authorization context.
@@ -147,24 +130,6 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
         )
     }
 
-    /// Returns the capabilities supplied by the composition root.
-    ///
-    /// - `_context`: Application context for capability access.
-    ///
-    /// The configured runtime capabilities.
-    ///
-    /// This adapter does not return a capability error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn runtime_capabilities(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
-        Ok(self.capabilities.clone())
-    }
-
     /// Reads a session through the public application boundary.
     ///
     /// - `context`: Caller authorization context.
@@ -248,6 +213,26 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
         scriberig_app::SessionBackend::plan_lifecycle(&self.service, context, request, action)
     }
 
+    /// Applies a typed semantic plan mutation through the shared application service.
+    ///
+    /// - `context`: Caller authorization context.
+    /// - `request`: Plan identity, observed revision, and mutation.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns application validation, conflict, authorization, or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn mutate_plan(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanMutationRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        scriberig_app::SessionBackend::mutate_plan(&self.service, context, request)
+    }
+
     /// Changes one plan node's model-library assignment through the app service.
     ///
     /// - `context`: Caller authorization context.
@@ -267,8 +252,6 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
     ) -> Result<scriberig_session::Plan, ApplicationError> {
         scriberig_app::SessionBackend::set_plan_node_assignment(&self.service, context, request)
     }
-
-    application_plan_mutation_methods!();
 
     /// Reads safe expanded detail through the application-owned session service.
     ///

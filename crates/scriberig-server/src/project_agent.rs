@@ -61,7 +61,7 @@ struct ProjectAgentTool {
     candidate_id: Arc<Mutex<Option<String>>>,
 }
 
-impl Tool for ProjectAgentTool {
+impl Tool<ApplicationContext> for ProjectAgentTool {
     /// Returns the stable provider tool identifier.
     ///
     /// The stable project tool name.
@@ -209,8 +209,7 @@ pub(super) fn agent<S: ApplicationService>(
         .snapshot
         .parse::<SnapshotId>()
         .map_err(|_| (400, json!({"message": "invalid snapshot"})))?;
-    let source = source_for(state, project)?;
-    let accepted = source.replace("left + right", "left.saturating_add(right)");
+    let accepted = "left.saturating_add(right)";
     let observed = Arc::new(Mutex::new(None));
     let candidate_id: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let branch = EntityId::new();
@@ -240,7 +239,7 @@ pub(super) fn agent<S: ApplicationService>(
         selection: Some(entity.to_string()),
     });
     let compiled_context = ContextCompiler::new(ContextPolicy::default()).compile(&context_inputs);
-    let (provider, model) = faux_provider(entity, snapshot, &accepted);
+    let (provider, model) = faux_provider(entity, snapshot, accepted);
     let tools = project_tools(Arc::clone(&tool), branch, context.clone())
         .map_err(|error| (500, json!({"message": error})))?;
     let invocation = UpstreamBranchInvocation {
@@ -254,6 +253,10 @@ pub(super) fn agent<S: ApplicationService>(
         thinking_level: rpi_ai::ThinkingLevel::Off,
         context: compiled_context,
         tools,
+        activity: std::sync::Arc::new(
+            scriberig_agent_runtime::orchestration::ActivitySequence::default(),
+        ),
+        provider_lifecycle: None,
     };
     let result = run_upstream_branch_invocation_blocking(invocation, input.prompt)
         .map_err(|failure| (500, json!({"message": failure.error.to_string()})))?;
@@ -322,31 +325,6 @@ fn candidate_response(
         "scope": {"entity": scope.entity.to_string(), "snapshot": scope.snapshot.to_string()},
         "output": output,
     }))
-}
-
-/// Reads the currently captured Rust source for a project.
-///
-/// - `state`: HTTP state owning project storage.
-/// - `project`: Project whose source is requested.
-///
-/// The captured Rust source text.
-///
-/// Returns an HTTP error tuple when storage or source lookup fails.
-fn source_for<S: ApplicationService>(
-    state: &HttpState<S>,
-    project: scriberig_core::ProjectId,
-) -> Result<String, (u16, Value)> {
-    let store = state
-        .project_store
-        .as_ref()
-        .ok_or_else(|| (503, json!({"message": "project store unavailable"})))?;
-    store
-        .project_files(project)
-        .map_err(|error| (500, json!({"message": error.to_string()})))?
-        .into_iter()
-        .find(|file| file.relative_path == "src/lib.rs")
-        .map(|file| String::from_utf8_lossy(&file.bytes).into_owned())
-        .ok_or_else(|| (404, json!({"message": "source unavailable"})))
 }
 
 /// Creates a provider-facing invalid-input error.

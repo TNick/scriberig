@@ -1,33 +1,41 @@
 //! Implements project filesystem scanning and domain-specific extraction.
 
-use scriberig_core::{EncodingVersion, EntityId, ObjectType, ProjectId};
+use std::collections::HashMap;
+
+use scriberig_core::{EntityId, ProjectId};
+use scriberig_domain_cad::CadExternalProvider;
 use scriberig_store::{Revision, SnapshotChange};
 use scriberig_store_sqlite::{ProjectEntityRecord, ProjectFileRecord};
 
 use crate::ProjectError;
-use crate::errors::{adapter_diagnostics_error, invalid_input};
+use crate::errors::adapter_diagnostics_error;
 
 #[path = "git.rs"]
 mod git;
 pub(crate) use git::{git_candidate_paths, git_tracked_paths};
 #[path = "scan.rs"]
 mod scan;
-pub(crate) use scan::{adapter_for, scan_directory};
+pub(crate) use scan::{adapter_for, logical_grouping_key, scan_directory};
 #[path = "adapters.rs"]
-mod adapters;
+pub(crate) mod adapters;
 #[path = "support_identity.rs"]
 mod support_identity;
 use adapters::{
-    import_binary, import_c_family, import_data, import_ecma, import_html, import_python,
-    import_text,
+    import_binary, import_c_family, import_data, import_docx, import_dxf, import_ecma,
+    import_geopackage, import_html, import_python, import_qgis, import_shapefile, import_text,
+    import_xlsx,
 };
-pub(crate) use support_identity::{project_root, source_entity};
+pub(crate) use support_identity::project_root;
 /// Imports one file and appends its revisions and snapshot changes.
 ///
+/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Persisted scan file to import.
+/// - `manifest`: Exact persisted scan used to resolve project-relative references.
 /// - `revisions`: Destination immutable revisions.
 /// - `changes`: Destination snapshot changes.
+/// - `previous_cad_entities`: Prior DXF semantic entities with detached IDs by source path.
+/// - `dwg_provider`: Optional host-injected DWG semantic reader.
 /// - `crate`: Internal visibility marker.
 ///
 /// Entity ownership records created for the file.
@@ -40,10 +48,13 @@ pub(crate) use support_identity::{project_root, source_entity};
 pub(crate) fn import_file(
     project: ProjectId,
     file: &ProjectFileRecord,
+    manifest: &[ProjectFileRecord],
     revisions: &mut Vec<Revision>,
     changes: &mut Vec<SnapshotChange>,
+    previous_cad_entities: &HashMap<String, crate::import_service::PreviousCadDrawing>,
+    dwg_provider: Option<&dyn CadExternalProvider>,
 ) -> Result<Vec<ProjectEntityRecord>, ProjectError> {
-    let source = source_entity(project, &file.relative_path);
+    let source = file.entity;
     let mut ownership = vec![entity_record(project, file, source, "source", None)];
     let source_revision = revision("project.source", file.bytes.clone())?;
     changes.push(SnapshotChange::Set(source, source_revision.id()));
@@ -62,6 +73,62 @@ pub(crate) fn import_file(
         "python" => {
             import_python(project, file, source, revisions, changes, &mut ownership)?;
         }
+        "xlsx" => {
+            import_xlsx(project, file, source, revisions, changes, &mut ownership)?;
+        }
+        "dxf" => import_dxf(
+            project,
+            file,
+            source,
+            revisions,
+            changes,
+            &mut ownership,
+            previous_cad_entities
+                .get(&file.relative_path)
+                .map_or(&[], |previous| previous.entities.as_slice()),
+        )?,
+        "dwg" => {
+            if let Some(provider) = dwg_provider {
+                adapters::import_dwg(
+                    project,
+                    file,
+                    source,
+                    provider,
+                    previous_cad_entities.get(&file.relative_path),
+                    revisions,
+                    changes,
+                    &mut ownership,
+                )?;
+            }
+        }
+        "docx" => {
+            import_docx(project, file, source, revisions, changes, &mut ownership)?;
+        }
+        "qgis" => {
+            import_qgis(
+                project,
+                file,
+                manifest,
+                source,
+                revisions,
+                changes,
+                &mut ownership,
+            )?;
+        }
+        "geopackage" => {
+            import_geopackage(project, file, source, revisions, changes, &mut ownership)?;
+        }
+        "shapefile" => {
+            import_shapefile(
+                project,
+                file,
+                manifest,
+                source,
+                revisions,
+                changes,
+                &mut ownership,
+            )?;
+        }
         "json" | "jsonc" | "yaml" | "toml" => {
             import_data(project, file, source, revisions, changes, &mut ownership)?;
         }
@@ -78,6 +145,7 @@ pub(crate) fn import_file(
 
 /// Extracts semantic Markdown block entities.
 ///
+/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Markdown source file.
 /// - `source`: Source artifact entity.
@@ -123,6 +191,7 @@ fn import_markdown(
 }
 /// Extracts semantic Rust item entities.
 ///
+/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Rust source file.
 /// - `source`: Source artifact entity.
@@ -183,6 +252,7 @@ fn import_rust(
 }
 /// Extracts semantic PDF page entities.
 ///
+/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: PDF source file.
 /// - `source`: Source artifact entity.
@@ -236,173 +306,8 @@ fn import_pdf(
     Ok(())
 }
 
-/// Adds one deterministic child revision and ownership record.
-///
-/// - `project`: Owning project identity.
-/// - `file`: Source file.
-/// - `source`: Parent source entity.
-/// - `kind`: Child entity kind.
-/// - `index`: Child ordinal.
-/// - `payload`: Canonical child payload.
-/// - `revisions`: Destination revisions.
-/// - `changes`: Destination snapshot changes.
-/// - `ownership`: Destination ownership records.
-/// - `super`: Parent support module visibility marker.
-///
-/// Unit after the child is appended.
-///
-/// Returns a canonical revision error.
-#[allow(clippy::too_many_arguments)]
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-pub(super) fn add_child(
-    project: ProjectId,
-    file: &ProjectFileRecord,
-    source: EntityId,
-    kind: &str,
-    index: usize,
-    payload: Vec<u8>,
-    revisions: &mut Vec<Revision>,
-    changes: &mut Vec<SnapshotChange>,
-    ownership: &mut Vec<ProjectEntityRecord>,
-) -> Result<(), ProjectError> {
-    let entity = child_entity(source, kind, index);
-    let revision = revision(kind, payload)?;
-    changes.push(SnapshotChange::Set(entity, revision.id()));
-    revisions.push(revision);
-    ownership.push(entity_record(project, file, entity, kind, None));
-    Ok(())
-}
-
-/// Creates a typed immutable revision from a canonical payload.
-///
-/// - `kind`: Canonical object type.
-/// - `payload`: Canonical payload bytes.
-///
-/// The content-addressed revision.
-///
-/// Returns an invalid object type or revision error.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-fn revision(kind: &str, payload: Vec<u8>) -> Result<Revision, ProjectError> {
-    Revision::new(
-        EncodingVersion::V1,
-        ObjectType::new(kind).map_err(|error| invalid_input(error.to_string()))?,
-        payload,
-    )
-    .map_err(|error| invalid_input(format!("revision creation failed: {error:?}")))
-}
-
-/// Creates a project entity ownership record.
-///
-/// - `project`: Owning project identity.
-/// - `file`: Source file owning the entity.
-/// - `entity`: Entity identity.
-/// - `kind`: Entity kind.
-/// - `name`: Optional human-readable name.
-///
-/// An ownership record.
-/// # Returns
-/// The operation result.
-fn entity_record(
-    project: ProjectId,
-    file: &ProjectFileRecord,
-    entity: EntityId,
-    kind: &str,
-    name: Option<String>,
-) -> ProjectEntityRecord {
-    ProjectEntityRecord {
-        project_id: project,
-        relative_path: file.relative_path.clone(),
-        entity,
-        kind: kind.to_owned(),
-        name,
-    }
-}
-
-/// Adds one named Rust symbol to the current project snapshot.
-///
-/// - `project`: Owning project identity.
-/// - `file`: Source file record.
-/// - `source`: Source entity identity.
-/// - `kind`: Semantic kind label.
-/// - `name`: Human-readable symbol name.
-/// - `key`: Stable semantic key.
-/// - `revisions`: Output revisions.
-/// - `changes`: Output snapshot changes.
-/// - `ownership`: Output ownership records.
-///
-/// Unit after appending the symbol.
-///
-/// Returns an error when the revision cannot be created.
-#[allow(clippy::too_many_arguments)]
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-fn add_named_child(
-    project: ProjectId,
-    file: &ProjectFileRecord,
-    source: EntityId,
-    kind: &str,
-    name: &str,
-    key: &str,
-    revisions: &mut Vec<Revision>,
-    changes: &mut Vec<SnapshotChange>,
-    ownership: &mut Vec<ProjectEntityRecord>,
-) -> Result<(), ProjectError> {
-    let entity = named_entity(source, kind, key);
-    let revision = revision(kind, name.as_bytes().to_vec())?;
-    changes.push(SnapshotChange::Set(entity, revision.id()));
-    revisions.push(revision);
-    ownership.push(entity_record(
-        project,
-        file,
-        entity,
-        kind,
-        Some(name.to_owned()),
-    ));
-    Ok(())
-}
-
-/// Derives a stable named-symbol identity from source and semantic key.
-///
-/// - `source`: Source entity identity.
-/// - `kind`: Semantic kind label.
-/// - `key`: Stable semantic key.
-///
-/// Stable named-symbol entity identity.
-/// # Returns
-/// The operation result.
-fn named_entity(source: EntityId, kind: &str, key: &str) -> EntityId {
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(source.as_bytes());
-    hasher.update(kind.as_bytes());
-    hasher.update(key.as_bytes());
-    let mut identity = [0; 16];
-    identity.copy_from_slice(&hasher.finalize().as_bytes()[..16]);
-    EntityId::from_bytes(identity)
-}
-
-/// Derives a stable child entity under one source artifact.
-///
-/// - `source`: Parent source entity.
-/// - `kind`: Child entity kind.
-/// - `index`: Child ordinal.
-///
-/// Stable child entity identity.
-/// # Returns
-/// The operation result.
-fn child_entity(source: EntityId, kind: &str, index: usize) -> EntityId {
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(source.as_bytes());
-    hasher.update(kind.as_bytes());
-    hasher.update(&index.to_be_bytes());
-    let mut identity = [0; 16];
-    identity.copy_from_slice(&hasher.finalize().as_bytes()[..16]);
-    EntityId::from_bytes(identity)
-}
+#[path = "support/entities.rs"]
+mod entities;
+pub(crate) use entities::revision;
+use entities::{add_child, add_named_child, entity_record};
+pub(super) use entities::{add_entity_with_id, add_named_entity_with_id};

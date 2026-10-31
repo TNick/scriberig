@@ -3,31 +3,54 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use scriberig_agent_runtime::ChildExecutionScope;
 use scriberig_app::{
-    ApplicationBackendComposition, ApplicationContext, ApplicationService, Capability,
-    CapabilityAction, CapabilityConstraints, CapabilityContext, CapabilityScope,
-    GuardedQueryService, StoreInspectionBackend, StoreOperationProvider,
+    ApplicationContext, ApplicationService, Capability, CapabilityAction, CapabilityConstraints,
+    CapabilityContext, CapabilityScope, GuardedQueryService, StoreInspectionBackend,
 };
 use scriberig_store_sqlite::SqliteStore;
 
 mod agent_config;
 mod agent_context;
+mod agent_profile_composition;
+mod agent_profile_recovery_command;
 mod agent_tool;
 mod agent_tool_helpers;
+#[cfg(test)]
+#[path = "artifact_agent_tests.rs"]
+mod artifact_agent_tests;
 mod bootstrap_failure_provider;
+#[cfg(test)]
+#[path = "cad_agent_tests.rs"]
+mod cad_agent_tests;
 mod child_runtime;
 mod deterministic_provider;
 mod doctor_command;
+#[cfg(test)]
+#[path = "document_agent_tests.rs"]
+mod document_agent_tests;
+#[cfg(test)]
+#[path = "geo_agent_tests.rs"]
+mod geo_agent_tests;
+mod logging;
 mod main_agent_execution;
 mod native_scenario;
 mod native_tui_agent;
+mod projection_style_composition;
+#[cfg(test)]
+#[path = "qgis_agent_tests.rs"]
+mod qgis_agent_tests;
 mod remote_commands;
 mod scenario_helpers;
 mod secrets_command;
 mod self_hosting_provider;
+mod shared_agent_command;
+#[cfg(test)]
+#[path = "spreadsheet_agent_tests.rs"]
+mod spreadsheet_agent_tests;
 mod tui_command;
-use main_agent_execution::execute_model;
+#[cfg(test)]
+pub(crate) use shared_agent_command::run_composed_model;
+use shared_agent_command::run_shared_agent;
 
 /// Start the integrated `srig` executable and report runtime failures.
 ///
@@ -40,6 +63,7 @@ use main_agent_execution::execute_model;
 /// # Errors
 /// Returns an error when the operation fails.
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    logging::initialize();
     #[cfg(feature = "isolated-plugin-worker")]
     let arguments = std::env::args().collect::<Vec<_>>();
     #[cfg(feature = "isolated-plugin-worker")]
@@ -55,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let runner = Arc::new(native_tui_agent::NativeTuiAgentRunner::from_environment(
                 Arc::clone(&store),
             )?);
-            let model_catalog = runner.model_catalog();
+            let provider_extension_runtime = runner.provider_extension_runtime();
             let readiness_runner = Arc::clone(&runner);
             let provider_readiness_handler: Arc<scriberig_server::ProviderReadinessHandler> =
                 Arc::new(move || {
@@ -63,6 +87,34 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                         scriberig_server::LocalApplicationBackend,
                     >::provider_readiness(readiness_runner.as_ref())
                 });
+            let agent_execution_runner = Arc::clone(&runner);
+            let agent_execution_handler: Arc<
+                scriberig_server::AgentExecutionHandler<scriberig_server::LocalApplicationService>,
+            > = Arc::new(move |service, context, request, accepted_response| {
+                let mut runtime_context = context.clone();
+                runtime_context.principal = Some(scriberig_app::Principal::new("local-http-agent"));
+                runtime_context.capabilities.grants.push(Capability {
+                    scope: CapabilityScope::Project,
+                    actions: agent_actions(),
+                    constraints: CapabilityConstraints::unrestricted(),
+                });
+                let accepted = accepted_response.map_or_else(
+                    || service.begin_agent_execution(&runtime_context, request),
+                    |accepted| main_agent_execution::from_protocol_acceptance(request, accepted),
+                )?;
+                let _execution = scriberig_tui::AgentCommandRunner::<
+                    scriberig_server::LocalApplicationBackend,
+                >::execute_accepted(
+                    agent_execution_runner.as_ref(),
+                    service,
+                    &runtime_context,
+                    &accepted,
+                );
+                scriberig_server::ApplicationService::operation_status(
+                    service,
+                    &accepted.operation.to_string(),
+                )
+            });
             let plan_lifecycle_handler: Arc<scriberig_server::PlanLifecycleHandler> =
                 Arc::new(move |service, context, request, action| {
                     let mut runtime_context = context.clone();
@@ -81,17 +133,20 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                         action,
                     )
                 });
-            scriberig_server::serve_with_model_catalog_and_plan_lifecycle(
+            scriberig_server::serve_with_agent_execution(
                 &args.host,
                 args.port,
                 &args.db,
                 args.allow_origin.as_deref(),
                 &args.project_roots,
+                Some(agent_execution_handler),
                 Some(plan_lifecycle_handler),
-                scriberig_server::ServerModelCatalog {
-                    model_catalog,
+                scriberig_server::ServerProviderCatalog {
+                    provider_extension_runtime,
                     provider_readiness_handler: Some(provider_readiness_handler),
+                    cad_provider_registry: scriberig_app::CadProviderRegistry::new(),
                 },
+                projection_style_composition::domain_projection_style_configuration(&args.db)?,
             )?;
         }
         scriberig_cli::Command::Tui(args) => tui_command::run(&args)?,
@@ -167,147 +222,11 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 std::process::exit(1);
             }
         }
+        scriberig_cli::Command::RecoverProfile(args) => {
+            agent_profile_recovery_command::run(&args)?;
+        }
     }
     Ok(())
-}
-
-/// Executes a headless prompt through the shared application agent boundary.
-///
-/// - `args`: Parsed prompt, database, and output settings.
-///
-/// Unit after the terminal operation result is rendered.
-///
-/// Returns an error when the local store, session operation, or output fails.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-fn run_shared_agent(
-    args: &scriberig_cli::RunArgs,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let args = agent_config::resolve_run_config(args)?;
-    let store = Arc::new(SqliteStore::open(&args.db)?);
-    let backend = ApplicationBackendComposition::new(
-        StoreInspectionBackend::new(Arc::clone(&store)),
-        StoreOperationProvider::new(Arc::clone(&store)),
-    );
-    let session_store = Arc::new(scriberig_session_sqlite::SqliteSessionStore::open(
-        &args.db,
-    )?);
-    let service = ApplicationService::new(backend).with_session_store(session_store);
-    let session = fresh_session_id()?;
-    let context = ApplicationContext {
-        capabilities: scriberig_app::CapabilityContext::with_grants([Capability {
-            scope: CapabilityScope::Project,
-            actions: agent_actions(),
-            constraints: CapabilityConstraints::unrestricted(),
-        }]),
-        principal: Some(scriberig_app::Principal::new("local-agent")),
-        ..ApplicationContext::empty()
-    };
-    let request = scriberig_app::AgentCommandRequest {
-        session,
-        branch: None,
-        anchor: None,
-        prompt: args.prompt.clone(),
-        selection: None,
-    };
-    let handle = service.start_local_agent(&request)?;
-    let cancellation = service.operations().cancellation_flag(&handle.operation)?;
-    let cancellation_handler = Arc::clone(&cancellation);
-    ctrlc::set_handler(move || {
-        cancellation_handler.store(true, std::sync::atomic::Ordering::Release);
-    })?;
-    let scope = ChildExecutionScope {
-        session,
-        parent_branch: handle.root_branch,
-        depth: 0,
-        active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-        semantic_scope: None,
-    };
-    let runtime_result =
-        match run_composed_model(&args, &service, &store, &context, &scope, &cancellation) {
-            Ok(result) => result,
-            Err(error) => {
-                let main_agent_execution::ComposedAgentFailure {
-                    error,
-                    model_requests,
-                    tool_evidence,
-                } = error;
-                if matches!(error, scriberig_agent_runtime::AgentError::Cancelled) {
-                    let _ = service.operations().cancel(&handle.operation);
-                    let _ = service.fail_local_agent_with_evidence(
-                        &handle,
-                        error.to_string(),
-                        model_requests,
-                        tool_evidence,
-                    );
-                    eprintln!("agent operation cancelled: {}", handle.operation);
-                    std::process::exit(130);
-                }
-                let _ = service.fail_local_agent_with_evidence(
-                    &handle,
-                    error.to_string(),
-                    model_requests,
-                    tool_evidence,
-                );
-                return Err(Box::new(error));
-            }
-        };
-    service.complete_local_agent_with_evidence(
-        &handle,
-        runtime_result.output,
-        Vec::new(),
-        runtime_result.tool_evidence,
-        runtime_result.model_requests,
-    )?;
-    let operation = handle.operation;
-    let record = service.operations().get(&operation)?;
-    let result = record
-        .agent_result
-        .ok_or("agent operation completed without a result")?;
-    let format = args.format;
-    println!(
-        "{}",
-        scriberig_cli::output::render_agent_result(&result, &record.reference.to_string(), format,)
-    );
-    eprintln!(
-        "{}",
-        scriberig_cli::output::render_agent_diagnostics(&result, &record.reference.to_string())
-    );
-    Ok(())
-}
-
-/// Executes one branch using an upstream provider and semantic broker.
-///
-/// - `args`: Provider and prompt configuration.
-/// - `context`: Authorized application context for the runtime.
-///
-/// The completed provider-neutral runtime result.
-///
-/// Returns a provider, tool, budget, or cancellation failure.
-fn run_composed_model<B: scriberig_app::ApplicationBackend + Sync>(
-    args: &scriberig_cli::RunArgs,
-    service: &scriberig_app::ApplicationService<B>,
-    project_store: &Arc<SqliteStore>,
-    context: &ApplicationContext,
-    scope: &ChildExecutionScope,
-    cancellation: &std::sync::atomic::AtomicBool,
-) -> Result<scriberig_agent_runtime::AgentResult, main_agent_execution::ComposedAgentFailure> {
-    let output_callback =
-        (matches!(args.format, scriberig_cli::RunFormat::Human) && !args.no_stream).then(|| {
-            std::sync::Arc::new(|text: &str| eprintln!("agent output: {text}"))
-                as std::sync::Arc<dyn Fn(&str) + Send + Sync>
-        });
-    execute_model(
-        args,
-        service,
-        project_store,
-        context,
-        scope,
-        cancellation,
-        output_callback,
-    )
 }
 
 /// Allocates a fresh session identity for one local command invocation.
@@ -365,6 +284,15 @@ fn agent_actions() -> BTreeSet<CapabilityAction> {
         CapabilityAction::Query,
         CapabilityAction::Custom("agent.delegate".to_owned()),
         CapabilityAction::Custom("domain_operation".to_owned()),
+        CapabilityAction::Custom("cad.update_line_geometry".to_owned()),
+        CapabilityAction::Custom("cad.change_entity_layer".to_owned()),
+        CapabilityAction::Custom("spreadsheet.set_cell_value".to_owned()),
+        CapabilityAction::Custom("document.replace_paragraph".to_owned()),
+        CapabilityAction::Custom("document.update_table_cell".to_owned()),
+        CapabilityAction::Custom("spreadsheet.read_range".to_owned()),
+        CapabilityAction::Custom("spreadsheet.rename_sheet".to_owned()),
+        CapabilityAction::Custom("qgis.rename_layer_reference".to_owned()),
+        CapabilityAction::Custom("artifact.inspect".to_owned()),
         CapabilityAction::Custom("runtime_capabilities".to_owned()),
         CapabilityAction::Custom("operation_status".to_owned()),
         CapabilityAction::Custom("operation_cancel".to_owned()),

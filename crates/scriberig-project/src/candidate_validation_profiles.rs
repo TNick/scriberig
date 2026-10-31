@@ -13,11 +13,22 @@ pub enum CandidateValidationProfile {
     ProjectIngestionE2e,
     /// Fetches only dependencies fixed by the exact candidate lockfile.
     CargoDependencyResolution,
+    /// Reopens staged XLSX candidates and checks retained-package edit capability.
+    XlsxPackage,
+    /// Reopens staged DOCX candidates and validates the main document package.
+    DocxPackage,
+    /// Reopens staged DXF candidates and requires a complete supported drawing.
+    DxfPackage,
+    /// Reopens staged `GeoPackages` and requires one schema-valid feature change.
+    GeoPackagePackage,
+    /// Reopens staged QGS/QGZ packages and requires exactly one layer rename.
+    QgisPackage,
 }
 
 impl CandidateValidationProfile {
     /// Resolves a registered policy identifier.
     ///
+    /// # Parameters
     /// - `identifier`: Stable profile identifier supplied by an application caller.
     ///
     /// A registered profile, or `None` when the identifier is unknown.
@@ -31,6 +42,11 @@ impl CandidateValidationProfile {
             "rust-workspace" => Some(Self::RustWorkspace),
             "project-ingestion-e2e" => Some(Self::ProjectIngestionE2e),
             "cargo-dependency-resolution" => Some(Self::CargoDependencyResolution),
+            "xlsx-package" => Some(Self::XlsxPackage),
+            "docx-package" => Some(Self::DocxPackage),
+            "dxf-package" => Some(Self::DxfPackage),
+            "geopackage-package" => Some(Self::GeoPackagePackage),
+            "qgis-package" => Some(Self::QgisPackage),
             _ => None,
         }
     }
@@ -46,6 +62,11 @@ impl CandidateValidationProfile {
             Self::RustWorkspace => "rust-workspace",
             Self::ProjectIngestionE2e => "project-ingestion-e2e",
             Self::CargoDependencyResolution => "cargo-dependency-resolution",
+            Self::XlsxPackage => "xlsx-package",
+            Self::DocxPackage => "docx-package",
+            Self::DxfPackage => "dxf-package",
+            Self::GeoPackagePackage => "geopackage-package",
+            Self::QgisPackage => "qgis-package",
         }
     }
 
@@ -74,6 +95,11 @@ impl CandidateValidationProfile {
                 "php_ingestion",
             ],
             Self::CargoDependencyResolution => &["fetch", "--locked"],
+            Self::XlsxPackage
+            | Self::DocxPackage
+            | Self::DxfPackage
+            | Self::GeoPackagePackage
+            | Self::QgisPackage => &[],
         }
     }
 
@@ -84,12 +110,42 @@ impl CandidateValidationProfile {
         matches!(self, Self::CargoDependencyResolution)
     }
 
+    /// Reports whether validation is the bounded retained-package XLSX check.
+    pub(super) const fn is_xlsx_package(self) -> bool {
+        matches!(self, Self::XlsxPackage)
+    }
+
+    /// Reports whether validation reopens staged DOCX packages.
+    pub(super) const fn is_docx_package(self) -> bool {
+        matches!(self, Self::DocxPackage)
+    }
+
+    /// Reports whether validation reopens staged DXF drawings.
+    pub(super) const fn is_dxf_package(self) -> bool {
+        matches!(self, Self::DxfPackage)
+    }
+
+    /// Reports whether validation enforces `GeoPackage` feature-edit semantics.
+    pub(super) const fn is_geopackage_package(self) -> bool {
+        matches!(self, Self::GeoPackagePackage)
+    }
+
+    /// Reports whether validation enforces a single safe QGIS layer rename.
+    pub(super) const fn is_qgis_package(self) -> bool {
+        matches!(self, Self::QgisPackage)
+    }
+
     /// Returns the maximum process duration for this profile.
     ///
     /// A bounded profile-specific execution deadline.
     pub(super) const fn timeout(self) -> std::time::Duration {
         match self {
             Self::CargoDependencyResolution => std::time::Duration::from_secs(300),
+            Self::XlsxPackage
+            | Self::DocxPackage
+            | Self::DxfPackage
+            | Self::GeoPackagePackage
+            | Self::QgisPackage => std::time::Duration::from_secs(30),
             Self::PhpDomainFocused
             | Self::ProjectImportFocused
             | Self::RustWorkspace
@@ -110,6 +166,11 @@ mod tests {
             CandidateValidationProfile::ProjectImportFocused,
             CandidateValidationProfile::RustWorkspace,
             CandidateValidationProfile::ProjectIngestionE2e,
+            CandidateValidationProfile::XlsxPackage,
+            CandidateValidationProfile::DocxPackage,
+            CandidateValidationProfile::DxfPackage,
+            CandidateValidationProfile::GeoPackagePackage,
+            CandidateValidationProfile::QgisPackage,
             CandidateValidationProfile::CargoDependencyResolution,
         ];
         for (index, profile) in profiles.iter().enumerate() {

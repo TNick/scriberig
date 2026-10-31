@@ -27,10 +27,10 @@ pub(super) fn plan_command(state: &mut TuiState, argument: &str) -> Vec<Effect> 
         return show_plan(state);
     }
     if let Some(work) = argument.strip_prefix("next ").map(str::trim) {
-        return mutations::add_next_step(state, work);
+        return mutations::mutate_selected_node(state, work, false);
     }
     if let Some(work) = argument.strip_prefix("child ").map(str::trim) {
-        return mutations::decompose_selected_node(state, work);
+        return mutations::mutate_selected_node(state, work, true);
     }
     if argument == "retry" {
         return mutations::retry_selected_node(state);

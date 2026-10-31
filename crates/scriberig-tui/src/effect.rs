@@ -45,6 +45,182 @@ pub enum Effect {
         /// Opaque continuation for the next page.
         continuation: Option<scriberig_query::ContinuationToken>,
     },
+    /// Read one bounded page of logical artifacts for an exact project.
+    InspectArtifactPage {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Stable project identity.
+        project: scriberig_core::ProjectId,
+        /// Zero-based artifact offset.
+        offset: usize,
+        /// Maximum number of summaries to return.
+        limit: usize,
+    },
+    /// Read a bounded page of members for one exact artifact.
+    InspectArtifactMembers {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Stable owning project identity.
+        project: scriberig_core::ProjectId,
+        /// Stable semantic artifact identity.
+        artifact: scriberig_core::EntityId,
+        /// Zero-based member offset.
+        offset: usize,
+        /// Maximum number of descriptors to return.
+        limit: usize,
+    },
+    /// Read one exact-snapshot CAD drawing and a bounded entity page.
+    InspectCadPage {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project and drawing identity.
+        drawing: scriberig_protocol::CadDrawingInspectRequest,
+        /// Exact drawing scope and entity page bounds.
+        entities: scriberig_protocol::CadEntitiesRequest,
+    },
+    /// Propose an exact-base CAD entity layer change through shared semantics.
+    ProposeCadLayerChange {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, snapshot, entity, and destination layer.
+        request: scriberig_protocol::CadLayerChangeRequest,
+    },
+    /// Read a bounded semantic worksheet page at an exact snapshot.
+    InspectSpreadsheetPage {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Stable owning project identity.
+        project: scriberig_core::ProjectId,
+        /// Exact immutable snapshot to inspect.
+        snapshot: scriberig_core::SnapshotId,
+        /// Stable semantic worksheet identity.
+        worksheet: scriberig_core::EntityId,
+        /// Optional inclusive worksheet coordinate bounds.
+        range: Option<scriberig_domain_spreadsheet::CellRange>,
+        /// Zero-based sparse-cell page offset.
+        offset: usize,
+        /// Maximum number of cells to return.
+        limit: usize,
+    },
+    /// Inspect one exact worksheet coordinate.
+    InspectSpreadsheetCell {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, snapshot, worksheet, and coordinate.
+        request: scriberig_app::SpreadsheetCellQuery,
+    },
+    /// Propose one spreadsheet value/formula change as a shared candidate.
+    ProposeSpreadsheetEdit {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, snapshot, worksheet, coordinate, and authored value.
+        request: scriberig_app::SpreadsheetCellEditQuery,
+    },
+    /// Read an exact-snapshot semantic document tree.
+    InspectDocument {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, snapshot, and document scope.
+        request: scriberig_app::DocumentTreeQuery,
+    },
+    /// Propose one document paragraph replacement through the shared API.
+    ProposeDocumentParagraphEdit {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, base snapshot, target paragraph, and replacement text.
+        request: scriberig_app::DocumentParagraphEditQuery,
+    },
+    /// Propose one document table-cell replacement through the shared API.
+    ProposeDocumentTableCellEdit {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, base snapshot, target cell, and replacement text.
+        request: scriberig_app::DocumentTableCellEditQuery,
+    },
+    /// Read a bounded exact-snapshot `GeoPackage` layer catalog.
+    InspectGeoCatalog {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Stable owning project identity.
+        project: scriberig_core::ProjectId,
+        /// Exact project-relative source path.
+        path: String,
+        /// Exact immutable semantic snapshot.
+        snapshot: scriberig_core::SnapshotId,
+        /// Zero-based layer offset.
+        offset: usize,
+    },
+    /// Read an exact-snapshot QGIS project and resolved layer references.
+    InspectQgisProject {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project and source path.
+        request: scriberig_app::QgisProjectQuery,
+    },
+    /// Propose an exact-snapshot QGIS layer-reference rename.
+    ProposeQgisLayerRename {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, snapshot, reference, and new display name.
+        request: scriberig_protocol::QgisLayerRenameRequest,
+    },
+    /// Propose an exact-snapshot QGIS project layer order.
+    ProposeQgisLayerOrder {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, snapshot, path, and complete layer order.
+        request: scriberig_protocol::QgisLayerOrderRequest,
+    },
+    /// Set or clear the caller's personal projection-style preference.
+    SetProjectionStylePreference {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// User-scoped setting write or clear request.
+        request: scriberig_protocol::ProjectionStyleSettingRequest,
+    },
+    /// Resolve the exact effective Rust source style for the selected view.
+    ResolveProjectionStyle {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Project, workspace, view, and purpose used by the shared resolver.
+        request: scriberig_protocol::ProjectionStyleResolveRequest,
+    },
+    /// Read a bounded exact-snapshot `GeoPackage` feature page.
+    InspectGeoFeatures {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Stable owning project identity.
+        project: scriberig_core::ProjectId,
+        /// Exact project-relative source path.
+        path: String,
+        /// Exact immutable semantic snapshot.
+        snapshot: scriberig_core::SnapshotId,
+        /// Stable semantic layer identity.
+        layer: scriberig_core::EntityId,
+        /// Zero-based feature offset.
+        offset: usize,
+    },
+    /// Execute a bounded typed geospatial query at an exact snapshot.
+    QueryGeoFeatures {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Typed exact-snapshot query request.
+        request: scriberig_app::GeoFeatureQuery,
+    },
+    /// Propose a typed exact-base feature attribute change through shared semantics.
+    ProposeGeoAttributeEdit {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, base, layer, feature, field, and replacement value.
+        edit: scriberig_project::GeoPackageFeatureAttributeEdit,
+    },
+    /// Propose a typed exact-base feature geometry change through shared semantics.
+    ProposeGeoGeometryEdit {
+        /// Monotonic request generation.
+        request_id: u64,
+        /// Exact project, path, snapshot, layer, feature, and geometry.
+        request: scriberig_protocol::GeoGeometryEditRequest,
+    },
     /// Request the current runtime capability descriptors.
     RequestCapabilities,
     /// Read exact semantic history.
@@ -140,6 +316,30 @@ pub enum Effect {
         /// Stable model-invocation identity.
         invocation: scriberig_core::EntityId,
     },
+    /// List preserved legacy execution choices for the active session.
+    LegacyRecoveryList {
+        /// Session whose sanitized recovery records are requested.
+        session: scriberig_core::EntityId,
+        /// Session-selection revision to use for an `/execution` record.
+        selection_revision: u64,
+        /// Current plan identities and revisions visible to the operator.
+        plan_revisions: Vec<(scriberig_core::EntityId, u64)>,
+    },
+    /// Map one preserved legacy execution choice to an active upstream model.
+    LegacyRecoveryMap {
+        /// Session containing the preserved choice.
+        session: scriberig_core::EntityId,
+        /// Exact path returned by the recovery listing.
+        path: String,
+        /// Selection or plan revision observed by the operator.
+        expected_revision: u64,
+        /// Active upstream provider identity supplied by the operator.
+        provider_id: String,
+        /// Provider-scoped model identity supplied by the operator.
+        model_id: String,
+        /// Optional advertised thinking level supplied by the operator.
+        thinking_level: Option<String>,
+    },
     /// Select a model profile for future invocations in one session.
     SetSessionModel(scriberig_app::SessionModelSelectionRequest),
     /// Select a thinking level for future invocations in one session.
@@ -180,16 +380,10 @@ pub enum Effect {
         /// Requested lifecycle transition.
         action: scriberig_app::PlanLifecycleAction,
     },
+    /// Applies one typed plan-domain mutation through shared application semantics.
+    PlanMutation(scriberig_app::PlanMutationRequest),
     /// Changes one plan node's credential-safe model-library assignment.
     SetPlanNodeAssignment(scriberig_app::PlanAssignmentRequest),
-    /// Retries one failed plan node at its observed plan revision.
-    RetryPlanNode(scriberig_app::PlanRetryRequest),
-    /// Adds ordinary work to a running plan at its observed revision.
-    AddPlanNextStep(scriberig_app::PlanNextStepRequest),
-    /// Adds required structural children to a selected plan node.
-    DecomposePlanNode(scriberig_app::PlanDecomposeRequest),
-    /// Applies one typed summary, evidence, gate, or waiver mutation.
-    MutatePlanSemantics(scriberig_app::PlanSemanticMutationRequest),
     /// Run the deterministic semantic project agent for the selected entity.
     ProjectAgent {
         /// Monotonic request identifier.

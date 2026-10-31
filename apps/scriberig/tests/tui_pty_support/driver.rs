@@ -10,6 +10,47 @@ use scriberig_session_sqlite::SqliteSessionStore;
 use super::TuiPty;
 
 impl TuiPty {
+    /// Loads one durable session while retrying transient SQLite contention.
+    ///
+    /// - `self`: Active PTY owning the fixture database.
+    /// - `session`: Exact session identity to load.
+    ///
+    /// # Returns
+    /// The persisted session value.
+    ///
+    /// # Panics
+    /// Panics when the session is absent, another database error occurs, or the
+    /// session remains unavailable for 120 seconds.
+    #[must_use]
+    pub fn load_session(&self, session: EntityId) -> scriberig_session::Session {
+        let database = self.fixture_path().join("scriberig.sqlite");
+        let deadline = Instant::now() + Duration::from_secs(120);
+        loop {
+            let store = match SqliteSessionStore::open(&database) {
+                Ok(store) => store,
+                Err(error) if error.to_string().contains("database is locked") => {
+                    assert!(
+                        Instant::now() < deadline,
+                        "PTY session database stayed locked"
+                    );
+                    std::thread::sleep(Duration::from_millis(50));
+                    continue;
+                }
+                Err(error) => panic!("open PTY session store: {error}"),
+            };
+            let loaded = store.load(session);
+            drop(store);
+            match loaded {
+                Ok(Some(saved)) => return saved,
+                Ok(None) => {}
+                Err(error) if error.contains("database is locked") => {}
+                Err(error) => panic!("read PTY session: {error}"),
+            }
+            assert!(Instant::now() < deadline, "PTY session was not readable");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+
     /// Reads the sole durable session identity created by this fresh fixture.
     ///
     /// The TUI deliberately keeps identifiers out of ordinary conversation
@@ -25,8 +66,20 @@ impl TuiPty {
     #[must_use]
     pub fn stored_session_id(&self) -> EntityId {
         let database = self.fixture_path().join("scriberig.sqlite");
-        let store = SqliteSessionStore::open(database).expect("open PTY session store");
         let deadline = Instant::now() + Duration::from_secs(20);
+        let store = loop {
+            match SqliteSessionStore::open(&database) {
+                Ok(store) => break store,
+                Err(error) if error.to_string().contains("database is locked") => {
+                    assert!(
+                        Instant::now() < deadline,
+                        "PTY session database stayed locked"
+                    );
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+                Err(error) => panic!("open PTY session store: {error}"),
+            }
+        };
         loop {
             let sessions = match store.list() {
                 Ok(sessions) => sessions,
@@ -108,29 +161,37 @@ impl TuiPty {
         false
     }
 
-    /// Reads terminal output until text appears, including overlay output.
+    /// Reads PTY frames until the child stops emitting output or a bound expires.
     ///
-    /// - `expected`: Text that must appear in raw terminal output.
-    /// - `timeout`: Maximum wait duration.
+    /// `read_until` stops at the first generated frame, so an interaction that
+    /// redraws several times can be observed before the terminal is current. This
+    /// wait bounds both the quiet window between frames and the whole interaction.
     ///
-    /// `true` when the text appears before the timeout.
+    /// - `quiet`: Inactivity gap that counts as a settled frame stream.
+    /// - `timeout`: Maximum total wait for the interaction to settle.
+    ///
+    /// `true` when the frame stream went quiet before `timeout` elapsed.
     /// # Returns
-    /// Whether the terminal emitted the requested text.
-    pub fn read_output_until_for(&mut self, expected: &str, timeout: Duration) -> bool {
-        if String::from_utf8_lossy(&self.transcript).contains(expected) {
-            return true;
-        }
+    /// Whether the terminal settled within the bound.
+    pub fn settle_for(&mut self, quiet: Duration, timeout: Duration) -> bool {
         let deadline = Instant::now() + timeout;
         while Instant::now() < deadline {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if !self.receive_frame(remaining) {
-                break;
-            }
-            if String::from_utf8_lossy(&self.transcript).contains(expected) {
+            if !self.receive_frame(quiet) {
                 return true;
             }
         }
         false
+    }
+
+    /// Settles one interaction with the default quiet window and bound.
+    ///
+    /// `self`: Active PTY whose frame stream is drained.
+    ///
+    /// `true` when the frame stream settled within the default bound.
+    /// # Returns
+    /// Whether the terminal settled.
+    pub fn settle(&mut self) -> bool {
+        self.settle_for(Duration::from_millis(250), Duration::from_secs(5))
     }
 
     /// Reads a fresh PTY frame until a visible string disappears.

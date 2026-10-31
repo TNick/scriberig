@@ -64,6 +64,7 @@ fn protocol_activity_matches_the_safe_cross_surface_fixture() {
     branch.model_invocations.push(ModelInvocation {
         id: model_id,
         branch: branch_id,
+        operation: None,
         ordinal: 0,
         agent_profile: None,
         context_fingerprint: None,

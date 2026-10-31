@@ -1,9 +1,16 @@
-//! Defines provider-neutral agent profile references and descriptors.
+//! Defines reusable semantic agent-profile values.
 
-use crate::context_component::ContextComponentDescriptor;
+use crate::ContextComponentDescriptor;
 
 /// Identifies one exact immutable agent-profile revision.
-#[derive(Clone, Debug, Eq, PartialEq)]
+///
+/// # Public members
+/// - `identity`: Stable profile identity.
+/// - `revision`: Exact immutable profile revision.
+///
+/// # Private members
+/// None.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct AgentProfileRevisionRef {
     /// Stable profile identity independent of its display name.
     pub identity: String,
@@ -16,11 +23,11 @@ pub struct AgentProfileRevisionRef {
 /// # Public members
 /// - `provider_id`: Stable upstream provider identity.
 /// - `model_id`: Stable provider-scoped model identity.
-/// - `thinking_level`: Optional canonical upstream thinking-level identifier.
+/// - `thinking_level`: Optional upstream thinking-level identity.
 ///
 /// # Private members
 /// None.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct AgentProfileExecutionPreference {
     /// Stable upstream provider identity.
     pub provider_id: String,
@@ -31,7 +38,16 @@ pub struct AgentProfileExecutionPreference {
 }
 
 /// Describes a reusable profile and its ordered component definitions.
-#[derive(Clone, Debug, Eq, PartialEq)]
+///
+/// # Public members
+/// - `reference`: Stable profile identity and exact revision.
+/// - `name`: Human-readable profile name.
+/// - `components`: Ordered component definitions pinned to exact revisions.
+/// - `preferred_execution`: Optional credential-free upstream preference.
+///
+/// # Private members
+/// None.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct AgentProfileDescriptor {
     /// Stable profile identity and exact immutable revision.
     pub reference: AgentProfileRevisionRef,

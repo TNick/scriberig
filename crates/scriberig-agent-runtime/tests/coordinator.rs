@@ -112,6 +112,17 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
         execution: &scriberig_app::ResolvedPlanExecution,
     ) -> Result<BranchResult, String> {
         let durable = (self.read_durable)();
+        let persisted_node = durable.plans[0]
+            .nodes
+            .iter()
+            .find(|candidate| candidate.id == node.id)
+            .expect("claimed node persisted before provider execution");
+        assert_eq!(persisted_node.status, PlanNodeStatus::Running);
+        assert_eq!(persisted_node.branch, Some(claim.branch));
+        assert_eq!(
+            persisted_node.claim.as_ref().map(|active| active.id),
+            Some(claim.id)
+        );
         let branch = durable
             .branches
             .iter()
@@ -152,6 +163,7 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
             branch.model_invocations.push(ModelInvocation {
                 id: private_model,
                 branch: claim.branch,
+                operation: None,
                 ordinal: 1,
                 agent_profile: None,
                 context_fingerprint: None,
@@ -284,5 +296,5 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
 
 #[path = "coordinator_parts/additional.rs"]
 mod coordinator_additional;
-#[path = "coordinator_parts/stale_rollup_cache.rs"]
-mod stale_rollup_cache;
+#[path = "coordinator_parts/failed_settlement.rs"]
+mod coordinator_failed_settlement;

@@ -7,6 +7,12 @@ use scriberig_protocol::{
     SessionExecutionSelection,
 };
 
+#[path = "server_agent_console/recovery.rs"]
+mod recovery;
+pub(super) use recovery::{
+    legacy_execution_records, map_legacy_execution_selection, map_legacy_plan_assignment,
+};
+
 /// Reads the upstream-derived model compatibility projection.
 ///
 /// - `self`: Shared application service.
@@ -293,6 +299,9 @@ fn project_model_request(
             .collect(),
         context_fingerprint: request.context_fingerprint.clone(),
         request_fingerprint: request.request_fingerprint.clone(),
+        catalog_revision: request.catalog_revision,
+        upstream_runtime_revision: request.upstream_runtime_revision.clone(),
+        provider_response_id: request.provider_response_id.clone(),
         model_execution_configuration: request.model_execution_configuration.clone(),
         messages: request
             .messages

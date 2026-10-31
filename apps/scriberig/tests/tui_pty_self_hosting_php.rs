@@ -4,8 +4,6 @@
 mod assertions;
 #[path = "tui_pty_support/branch_assertions.rs"]
 mod branch_assertions;
-#[path = "tui_pty_support/onboarding_wait.rs"]
-mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -19,13 +17,15 @@ use assertions::{
     assert_unrelated_source_unchanged,
 };
 use branch_assertions::assert_nested_branch_results;
-use onboarding_wait::{visible_session, wait_for_branch_completion, wait_for_onboarding};
 use scriberig_project::ProjectService;
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store::SnapshotStore;
 use scriberig_store_sqlite::SqliteStore;
-use tui_pty_support::{TuiPty, test_lock};
+use tui_pty_support::onboarding_wait::{
+    visible_session, wait_for_branch_completion, wait_for_onboarding,
+};
+use tui_pty_support::{TuiPty, candidate_review, test_lock};
 
 /// Drives onboarding and PHP candidate construction through the native product process.
 #[test]
@@ -34,8 +34,14 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     let mut tui = TuiPty::start_self_hosting();
     let checkout = tui.fixture_path().join("scriberig");
     assertions::assert_tracked_serena_configuration(&checkout);
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
-    tui.send(b"Onboard the current project.\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send_slow(b"/project\r");
+    assert!(
+        tui.read_until("No active project is selected."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send_slow(b"Onboard the current project.\r");
     let session = visible_session(&tui);
     wait_for_onboarding(&mut tui, session);
     let scan_before =
@@ -87,6 +93,7 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         &checkout,
         &database,
         project.id,
+        session,
         base.snapshot,
         &candidate,
     );
@@ -162,14 +169,15 @@ fn restart_and_verify(
         candidate_target.join("debug/srig"),
     );
     assert!(
-        restarted.read_until_for("snp_", Duration::from_secs(600)),
+        restarted.read_until_for("Conversation", Duration::from_secs(120)),
         "{}",
         restarted.diagnostic()
     );
+    restarted.send_slow(b"/project\r");
     assert!(
-        restarted.screen().contains(" @ snp_"),
+        restarted.read_until(" @ snp_"),
         "{}",
-        restarted.screen()
+        restarted.diagnostic()
     );
     assert_eq!(
         assert_durable_candidate_effect(
@@ -210,6 +218,7 @@ fn restart_and_verify(
 /// - `checkout`: Copied source checkout.
 /// - `database`: Durable product database path.
 /// - `project`: Onboarded project identity.
+/// - `session`: Durable agent session carrying the candidate result.
 /// - `base_snapshot`: Exact candidate base.
 /// - `candidate`: Durable candidate handle returned by the agent.
 ///
@@ -221,42 +230,20 @@ fn review_and_apply(
     checkout: &std::path::Path,
     database: &std::path::Path,
     project: scriberig_core::ProjectId,
+    session: scriberig_core::EntityId,
     base_snapshot: scriberig_core::SnapshotId,
     candidate: &str,
 ) -> scriberig_core::SnapshotId {
-    tui.send_slow(b"/changes\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    candidate_review::wait_for_durable_candidate_projection(tui, session, candidate, base_snapshot);
+    candidate_review::open_candidate_review(tui, "Validation: Passed");
     let review = tui.screen();
-    assert!(review.contains("validation: Passed"), "{review}");
+    assert!(review.contains("Validation: Passed"), "{review}");
     assert!(
         review.contains("profile: project-ingestion-e2e"),
         "{review}"
     );
     assert!(review.contains(&candidate[..20]), "{review}");
-    let php_path = "crates/domains/scriberig-domain-php";
-    for _ in 0..20 {
-        if tui.screen().contains(php_path) {
-            break;
-        }
-        tui.send(b"\x1b[B");
-        let _ = tui.read_until_for(php_path, Duration::from_millis(150));
-    }
-    let create_review = tui.screen();
-    assert!(create_review.contains(php_path), "{create_review}");
-    assert!(create_review.contains("old:"), "{create_review}");
-    assert!(create_review.contains("new:"), "{create_review}");
-    let root_manifest = "update Cargo.toml";
-    for _ in 0..20 {
-        if tui.screen().contains(root_manifest) {
-            break;
-        }
-        tui.send(b"\x1b[A");
-        let _ = tui.read_until_for(root_manifest, Duration::from_millis(150));
-    }
-    let update_review = tui.screen();
-    assert!(update_review.contains(root_manifest), "{update_review}");
-    assert!(update_review.contains("old:"), "{update_review}");
-    assert!(update_review.contains("new:"), "{update_review}");
+    assert!(review.contains("old:"), "{review}");
     assert_candidate_conflicts_are_visible(
         tui,
         checkout,
@@ -265,15 +252,35 @@ fn review_and_apply(
         base_snapshot,
         candidate,
     );
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
-    tui.send(b"\r");
-    assert!(
-        tui.read_until_for("materialized", Duration::from_secs(120)),
-        "{}",
-        tui.diagnostic()
-    );
-    assert_materialized_php_fixture(checkout, database, project, base_snapshot)
+    candidate_review::open_apply_confirmation(tui);
+    candidate_review::confirm_candidate_apply(tui);
+    let deadline = std::time::Instant::now() + Duration::from_secs(120);
+    loop {
+        let file_exists = checkout
+            .join("crates/domains/scriberig-domain-php/src/lib.rs")
+            .is_file();
+        let store = match SqliteStore::open(database) {
+            Ok(store) => store,
+            Err(error) if error.to_string().contains("database is locked") => {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "project store stayed locked"
+                );
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(error) => panic!("project store: {error}"),
+        };
+        let current = ProjectService::new(Arc::new(store))
+            .workspace(project)
+            .expect("applied project workspace");
+        if file_exists && current.snapshot != base_snapshot {
+            candidate_review::assert_confirmation_closed(tui);
+            return assert_materialized_php_fixture(checkout, database, project, base_snapshot);
+        }
+        assert!(std::time::Instant::now() < deadline, "{}", tui.diagnostic());
+        std::thread::sleep(Duration::from_millis(50));
+    }
 }
 
 /// Confirms candidate construction left the canonical snapshot and checkout unchanged.

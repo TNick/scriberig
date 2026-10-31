@@ -2,6 +2,68 @@
 
 use super::*;
 
+/// Keeps branch activation separate from the explicitly pinned reply anchor.
+#[test]
+fn conversation_branch_activation_does_not_move_reply_anchor() {
+    let session = scriberig_core::EntityId::from_bytes([35; 16]);
+    let root = scriberig_core::EntityId::from_bytes([36; 16]);
+    let selected = scriberig_core::EntityId::from_bytes([37; 16]);
+    let turn = scriberig_core::EntityId::from_bytes([38; 16]);
+    let anchor = scriberig_session::ContinuationAnchor::HumanInput { branch: root, turn };
+    let mut state = TuiState {
+        primary_view: crate::selection::PrimaryView::Conversation,
+        conversation: Some(crate::view::conversation::ConversationModel {
+            rows: vec![crate::view::conversation::ConversationRow {
+                source: crate::view::conversation::ConversationSource::Branch(selected),
+                reply_anchor: Some(scriberig_session::ContinuationAnchor::BranchHead {
+                    branch: selected,
+                }),
+                depth: 1,
+                label: "Selected branch".to_owned(),
+                kind: crate::view::conversation::ConversationRowKind::Branch,
+            }],
+            coordinator_cursor: Some((
+                scriberig_core::EntityId::from_bytes([39; 16]),
+                scriberig_core::EntityId::from_bytes([40; 16]),
+            )),
+        }),
+        conversation_cursor: Some(crate::view::conversation::ConversationSource::Branch(
+            selected,
+        )),
+        conversation_composer: crate::state::ConversationComposerState {
+            target: crate::state::ConversationTarget::Existing {
+                session,
+                reply_anchor: anchor,
+            },
+            draft: String::new(),
+            pending_prompt: None,
+            pending: false,
+            error: None,
+        },
+        cursor: 0,
+        ..TuiState::default()
+    };
+
+    assert_eq!(reduce(&mut state, Action::Activated), vec![Effect::None]);
+    assert_eq!(
+        state.conversation_composer.target,
+        crate::state::ConversationTarget::Existing {
+            session,
+            reply_anchor: anchor,
+        }
+    );
+    assert_eq!(
+        state
+            .conversation
+            .as_ref()
+            .and_then(|model| model.coordinator_cursor),
+        Some((
+            scriberig_core::EntityId::from_bytes([39; 16]),
+            scriberig_core::EntityId::from_bytes([40; 16]),
+        ))
+    );
+}
+
 /// Verifies composer slash commands open shared controls.
 #[test]
 fn composer_slash_commands_open_shared_controls() {
@@ -76,58 +138,6 @@ fn session_slash_view_returns_to_conversation() {
         state.primary_view,
         crate::selection::PrimaryView::Conversation
     );
-}
-
-/// Opens snapshot-scoped Explorer through a local slash command.
-#[test]
-fn explorer_slash_command_lists_the_selected_snapshot() {
-    let entity = scriberig_core::EntityId::from_bytes([157; 16]);
-    let snapshot = scriberig_core::SnapshotId::new([158; 32]);
-    let mut state = TuiState {
-        selection: Some(crate::selection::EntitySelection {
-            entity,
-            revision: None,
-            snapshot: Some(snapshot),
-        }),
-        ..TuiState::default()
-    };
-    state.conversation_composer.draft = "/explorer".to_owned();
-
-    let effects = reduce(&mut state, Action::InputSubmitted);
-
-    assert_eq!(state.primary_view, crate::selection::PrimaryView::Explorer);
-    assert_eq!(state.primary_view, crate::selection::PrimaryView::Explorer);
-    assert!(matches!(effects.as_slice(), [Effect::ListExplorer {
-        entity: actual_entity,
-        snapshot: actual_snapshot,
-        continuation: None,
-        ..
-    }] if *actual_entity == entity && *actual_snapshot == snapshot));
-    reduce(
-        &mut state,
-        Action::ViewSelected(crate::selection::PrimaryView::Conversation),
-    );
-    assert_eq!(
-        state.primary_view,
-        crate::selection::PrimaryView::Conversation
-    );
-}
-
-/// Inspects one evidence entity at the exact snapshot shown by a plan view.
-#[test]
-fn inspect_slash_command_accepts_an_exact_snapshot() {
-    let entity = scriberig_core::EntityId::from_bytes([163; 16]);
-    let snapshot = scriberig_core::SnapshotId::new([164; 32]);
-    let mut state = TuiState::default();
-    state.conversation_composer.draft = format!("/inspect {entity} {snapshot}");
-
-    let effects = reduce(&mut state, Action::InputSubmitted);
-
-    assert!(matches!(effects.as_slice(), [Effect::InspectEntity {
-        entity: actual_entity,
-        snapshot: Some(actual_snapshot),
-        ..
-    }] if *actual_entity == entity && *actual_snapshot == snapshot));
 }
 
 /// Opens the existing two-snapshot chooser from the `/diff` command.
@@ -351,5 +361,7 @@ fn plan_show_reports_durable_plan_summary_without_execution() {
     assert!(state.shell_message.contains("0/0 results"));
 }
 
+#[path = "state_session_composer_tests_part1_part2/inspection.rs"]
+mod inspection;
 #[path = "state_session_composer_tests_part1_part2_part3.rs"]
 mod part3;

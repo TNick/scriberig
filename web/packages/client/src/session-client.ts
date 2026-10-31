@@ -9,6 +9,10 @@ import type {
   BranchResultReference,
   SessionId,
   SessionReadResponse,
+  SessionPlan,
+  SessionPlanAttemptsRequest,
+  SessionPlanAttemptsResponse,
+  SessionPlanMutationRequest,
   ModelRequestDetailResponse,
   ModelRequestDetailPageRequest,
   ToolResultDetailResponse,
@@ -38,6 +42,9 @@ import {
 import { normalizeExecutionSelection, normalizeModelLibrary } from "./model-views";
 import { readPresentationPreferences, replacePresentationPreferences } from "./presentation-views";
 import type { TransportConnectionState } from "./transport";
+import { normalizeSessionPlan } from "./session-plan-views";
+import { planMutationToWire } from "./session-plan-mutation-wire";
+import { normalizePlanAttempts } from "./session-plan-attempts";
 import { SessionPlanEvolutionClient } from "./session-plan-evolution-client";
 
 /** Durable agent and session operations on top of semantic operations.
@@ -58,6 +65,12 @@ export class SessionClient extends SessionPlanEvolutionClient {
             ? {}
             : {
                 selection: {
+                  ...(request.selection.projectId === undefined
+                    ? {}
+                    : { project_id: request.selection.projectId }),
+                  ...(request.selection.rootId === undefined
+                    ? {}
+                    : { root: { id: request.selection.rootId } }),
                   entity: { id: request.selection.entityId },
                   snapshot: { id: request.selection.snapshotId ?? "" },
                 },
@@ -83,6 +96,12 @@ export class SessionClient extends SessionPlanEvolutionClient {
             ? {}
             : {
                 selection: {
+                  ...(request.selection.projectId === undefined
+                    ? {}
+                    : { project_id: request.selection.projectId }),
+                  ...(request.selection.rootId === undefined
+                    ? {}
+                    : { root: { id: request.selection.rootId } }),
                   entity: { id: request.selection.entityId },
                   snapshot: { id: request.selection.snapshotId ?? "" },
                 },
@@ -110,6 +129,48 @@ export class SessionClient extends SessionPlanEvolutionClient {
     return this.transport
       .request("session", { session: { id: sessionId } }, signal)
       .then(normalizeSession);
+  }
+  /** Applies one typed semantic plan mutation through the shared app boundary.
+   * @param request Plan identity, expected revision, and mutation.
+   * @param signal Optional request cancellation signal.
+   * @returns The authoritative plan projection.
+   */
+  mutatePlan(request: SessionPlanMutationRequest, signal?: AbortSignal): Promise<SessionPlan> {
+    return this.transport
+      .request<unknown>(
+        "plan_mutation",
+        {
+          session: request.session,
+          plan: request.plan,
+          expected_revision: request.expectedRevision,
+          mutation: planMutationToWire(request.mutation),
+        },
+        signal,
+      )
+      .then(normalizeSessionPlan);
+  }
+  /** Reads one bounded, transcript-free page of plan-node attempts.
+   * @param request Session, plan, node, and optional page bounds.
+   * @param signal Optional request cancellation signal.
+   * @returns Safe attempt metadata and the next page cursor.
+   */
+  getPlanAttempts(
+    request: SessionPlanAttemptsRequest,
+    signal?: AbortSignal,
+  ): Promise<SessionPlanAttemptsResponse> {
+    return this.transport
+      .request<unknown>(
+        "plan_attempts",
+        {
+          session: request.session,
+          plan: request.plan,
+          node: request.node,
+          ...(request.offset === undefined ? {} : { offset: request.offset }),
+          ...(request.limit === undefined ? {} : { limit: request.limit }),
+        },
+        signal,
+      )
+      .then(normalizePlanAttempts);
   }
   /** Reads a previously captured safe model request without invoking a provider. */
   getModelRequestDetail(

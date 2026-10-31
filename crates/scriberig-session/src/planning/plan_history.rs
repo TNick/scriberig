@@ -60,29 +60,10 @@ impl Plan {
             }
             attempt.status = state.status;
             attempt.result = state.result;
-            attempt.failure = state
-                .last_failure
-                .as_ref()
-                .filter(|failure| failure_belongs_to_branch(failure, branch))
-                .cloned();
+            attempt.failure.clone_from(&state.last_failure);
         }
         Some(attempts.into_values().collect())
     }
-}
-
-/// Checks that a failure reference identifies the branch for one attempt.
-///
-/// # Parameters
-/// - `failure`: Failure evidence retained by the plan node.
-/// - `branch`: Branch identity represented by the attempt.
-///
-/// # Returns
-/// `true` when the failure explicitly names this exact branch.
-fn failure_belongs_to_branch(failure: &super::PlanEvidenceReference, branch: EntityId) -> bool {
-    failure
-        .attributes
-        .get("branch")
-        .is_some_and(|value| value == &branch.to_string())
 }
 
 /// Creates a borrowed-compatible revision snapshot of the current plan state.
@@ -90,8 +71,10 @@ fn failure_belongs_to_branch(failure: &super::PlanEvidenceReference, branch: Ent
 /// # Parameters
 /// - `plan`: Current plan state to include in the history walk.
 ///
-/// # Returns
 /// The equivalent plan revision record.
+///
+/// # Returns
+/// The value described by the return type.
 fn current_revision(plan: &Plan) -> PlanRevision {
     PlanRevision {
         revision: plan.revision,

@@ -102,7 +102,7 @@ impl TuiPty {
                 .join("golden-rust-project"),
             &project,
         );
-        Self::start_configured(fixture, Some(project), true, None, true)
+        Self::start_configured(fixture, Some(project.clone()), true, Some(project), true)
     }
 
     /// Restarts the native TUI against an existing golden fixture.
@@ -249,6 +249,48 @@ impl TuiPty {
         executable: Option<PathBuf>,
         model_catalog: Option<&str>,
     ) -> Self {
+        Self::start_configured_scenario_with_catalog_and_environment(
+            fixture,
+            project,
+            working_directory,
+            deterministic_agent,
+            scenario,
+            executable,
+            model_catalog,
+            &[],
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "PTY setup keeps independent process-boundary inputs explicit"
+    )]
+    /// Starts the native process with explicit extra child environment values.
+    ///
+    /// - `fixture`: Directory used for the fresh database.
+    /// - `project`: Optional project behavior selected for startup.
+    /// - `working_directory`: Optional process working directory.
+    /// - `deterministic_agent`: Whether to select the deterministic provider.
+    /// - `scenario`: Optional deterministic scenario identifier.
+    /// - `executable`: Optional native executable override for restart gates.
+    /// - `model_catalog`: Optional fake model catalog passed to the child.
+    /// - `environment`: Additional child environment entries.
+    ///
+    /// # Returns
+    /// The configured product process and captured terminal output.
+    ///
+    /// # Panics
+    /// Panics when the PTY or child process cannot be created.
+    pub(super) fn start_configured_scenario_with_catalog_and_environment(
+        fixture: PathBuf,
+        project: ProjectStartupOptions,
+        working_directory: Option<PathBuf>,
+        deterministic_agent: bool,
+        scenario: Option<&str>,
+        executable: Option<PathBuf>,
+        model_catalog: Option<&str>,
+        environment: &[(&str, String)],
+    ) -> Self {
         let database = fixture.join("scriberig.sqlite");
         let product_project = project.path.clone().unwrap_or_else(|| fixture.clone());
         let pty_system = native_pty_system();
@@ -266,6 +308,12 @@ impl TuiPty {
         command.env("CARGO_TARGET_DIR", workspace_target_directory());
         if let Some(catalog) = model_catalog {
             command.env("SCRIBE_AGENT_MODEL_CATALOG", catalog);
+        }
+        for (name, value) in environment {
+            command.env(name, value);
+        }
+        for name in ["SCRIBE_AGENT_PACKAGE_ROOTS", "SCRIBE_AGENT_PLUGIN_FILES"] {
+            command.env_remove(name);
         }
         if let Some(temp) = std::env::var_os("TEMP") {
             command.env("TEMP", temp);
@@ -297,6 +345,12 @@ impl TuiPty {
             );
         }
         command.args(["tui", "--db", database.to_str().expect("database path")]);
+        if scenario == Some("self_hosting_php") {
+            command.args(["--debug", "--log-file"]);
+            command.arg(fixture.join("tui-debug.log"));
+            command.env("RUST_LOG", "info");
+            command.env("SCRIBE_LOG_FILE", fixture.join("agent-trace.log"));
+        }
         if let Some(project_path) = project.path {
             command.args(["--project", project_path.to_str().expect("project path")]);
             if project.import {

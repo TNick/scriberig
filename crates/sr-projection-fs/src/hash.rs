@@ -1,9 +1,10 @@
 //! Defines exact-byte filesystem content digests.
 
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// BLAKE3 digest of exact file bytes.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct FileDigest(pub [u8; 32]);
 
 /// Hashes exact in-memory bytes.

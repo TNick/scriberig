@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 scriberig-core = { path = "../../scriberig-core" }
+blake3 = "1.8.2"
 
 [lints]
 workspace = true

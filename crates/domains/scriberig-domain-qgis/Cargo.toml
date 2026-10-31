@@ -1,0 +1,19 @@
+[package]
+name = "scriberig-domain-qgis"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "QGIS project references over shared geospatial datasets."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../../scriberig-core" }
+scriberig-domain-geo = { path = "../scriberig-domain-geo" }
+serde = { version = "1.0", features = ["derive"] }
+blake3 = "1.8.2"
+roxmltree = "0.20"
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+
+[lints]
+workspace = true

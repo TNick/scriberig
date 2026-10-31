@@ -5,6 +5,27 @@
 use super::*;
 
 impl<S> StoreOperationProvider<S> {
+    /// Registers a canonical migration for later apply or commit execution.
+    ///
+    /// # Parameters
+    /// - `self`: Provider owning the migration registry.
+    /// - `id`: Stable migration handle supplied by the caller.
+    /// - `migration`: Validated canonical migration.
+    ///
+    /// # Returns
+    /// `true` when the handle was new, or `false` when it already existed.
+    #[must_use]
+    pub fn register_migration(
+        &self,
+        id: impl Into<String>,
+        migration: sr_change::Migration,
+    ) -> bool {
+        let Ok(mut migrations) = self.migrations.lock() else {
+            return false;
+        };
+        migrations.insert(id.into(), migration).is_none()
+    }
+
     /// Derives migration references from durable snapshot ancestry.
     ///
     /// - `self`: Storage-backed operation provider.
@@ -59,6 +80,10 @@ impl<S> StoreOperationProvider<S> {
                         EntityDelta::new(entity, before, after).ok()
                     })
                     .collect();
+                let provenance = self
+                    .store
+                    .change_provenance(result)
+                    .map_err(|_| ApplicationError::SnapshotUnavailable { snapshot: result })?;
                 graph.insert(MigrationReference {
                     id: format!("snapshot:{result}"),
                     base: parent,
@@ -66,11 +91,8 @@ impl<S> StoreOperationProvider<S> {
                     parents: vec![format!("snapshot:{parent}")],
                     deltas,
                     workspace: None,
-                    source_change_id: self
-                        .store
-                        .change_provenance(result)
-                        .map_err(|_| ApplicationError::SnapshotUnavailable { snapshot: result })?
-                        .map(|provenance| provenance.change_id),
+                    source_change_id: provenance.as_ref().map(|value| value.change_id.clone()),
+                    semantic_operation: provenance.and_then(|value| value.semantic_operation),
                 });
                 pending.push_back(parent);
             }
@@ -78,20 +100,23 @@ impl<S> StoreOperationProvider<S> {
         Ok(graph)
     }
 
-    /// Resolves a registered migration into storage changes.
+    /// Resolves a registered migration into atomic entity and relation changes.
     ///
     /// - `self`: Provider owning canonical migrations.
     /// - `id`: Stable migration handle.
     /// - `super`: Parent-module visibility marker.
     ///
-    /// Exact storage changes in canonical entity order.
+    /// Exact entity and typed relation changes from the migration.
     ///
     /// Returns not-found when the migration handle is unknown.
     /// # Returns
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub(super) fn changes_for(&self, id: &str) -> Result<Vec<SnapshotChange>, ApplicationError> {
+    pub(super) fn semantic_changes_for(
+        &self,
+        id: &str,
+    ) -> Result<(Vec<SnapshotChange>, Vec<SnapshotRelationChange>), ApplicationError> {
         let migrations = self
             .migrations
             .lock()
@@ -103,14 +128,43 @@ impl<S> StoreOperationProvider<S> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: id.to_owned(),
             })?;
-        Ok(migration
+        let entity_changes = migration
             .deltas
             .iter()
             .map(|delta| match delta.after {
                 Some(revision) => SnapshotChange::Set(delta.entity, revision),
                 None => SnapshotChange::Remove(delta.entity),
             })
-            .collect())
+            .collect();
+        let relation_changes = migration
+            .operations
+            .iter()
+            .filter_map(|operation| match operation {
+                sr_change::Operation::AddRelation { from, relation, to } => {
+                    Some((*from, relation, *to, true))
+                }
+                sr_change::Operation::RemoveRelation { from, relation, to } => {
+                    Some((*from, relation, *to, false))
+                }
+                _ => None,
+            })
+            .map(|(from, relation, to, add)| {
+                let relation_type =
+                    scriberig_core::TypeId::new(relation.clone()).map_err(|error| {
+                        ApplicationError::InvalidRequest {
+                            operation: "migration relation".to_owned(),
+                            message: error.to_string(),
+                        }
+                    })?;
+                let relation = scriberig_store::SnapshotRelation::new(from, relation_type, to);
+                Ok(if add {
+                    SnapshotRelationChange::Add(relation)
+                } else {
+                    SnapshotRelationChange::Remove(relation)
+                })
+            })
+            .collect::<Result<Vec<_>, ApplicationError>>()?;
+        Ok((entity_changes, relation_changes))
     }
 }
 

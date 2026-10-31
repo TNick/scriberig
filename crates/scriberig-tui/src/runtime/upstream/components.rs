@@ -13,6 +13,14 @@ use super::ComposerInput;
 #[path = "components/help_panel.rs"]
 mod help_panel;
 pub(super) use help_panel::HelpPanel;
+#[path = "components/extension_panels.rs"]
+mod extension_panels;
+pub(super) use extension_panels::{
+    ExtensionFooterPanels, ExtensionSidebarPanels, SidebarSide, text_panel_options,
+};
+#[path = "components/session_list.rs"]
+mod session_list;
+pub(super) use session_list::SessionListPanel;
 
 /// Adapts focused terminal events to an upstream editor.
 ///
@@ -244,10 +252,24 @@ impl SelectionStatusPanel {
     /// # Returns
     /// Safe status text for the upstream footer renderer.
     fn content(state: &TuiState) -> String {
-        let mut content = state.project.as_ref().map_or_else(
+        let mut content = String::new();
+        if !state.shell_message.is_empty() {
+            content.push_str(&crate::inspector::sanitize(&state.shell_message));
+        }
+        if state.conversation_browsing {
+            if !content.is_empty() {
+                content.push_str(" · ");
+            }
+            content.push_str("Enter pin reply target");
+        }
+        let project = state.project.as_ref().map_or_else(
             || "No active project is selected".to_owned(),
             |project| format!("Project {}", crate::inspector::sanitize(project)),
         );
+        if !content.is_empty() {
+            content.push_str(" · ");
+        }
+        content.push_str(&project);
         content.push_str(" · ");
         if let crate::inspector::LoadState::Ready(session) = &state.session {
             let provider = session
@@ -271,6 +293,15 @@ impl SelectionStatusPanel {
                     .iter()
                     .find(|status| status.provider_id == provider_id && status.model_id == model_id)
                     .map_or("credential status unavailable", |status| {
+                        match status.authentication {
+                            Some(scriberig_protocol::ProviderAuthenticationStatus::Accepted) => {
+                                return "last request accepted by provider";
+                            }
+                            Some(scriberig_protocol::ProviderAuthenticationStatus::Rejected) => {
+                                return "last request rejected by provider";
+                            }
+                            None => {}
+                        }
                         match status.credential {
                             scriberig_protocol::ProviderCredentialReadiness::NotRequired => {
                                 "authentication not required"
@@ -303,12 +334,6 @@ impl SelectionStatusPanel {
             }
         } else {
             content.push_str("No active session assignment");
-        }
-        if !state.shell_message.is_empty() {
-            if !content.is_empty() {
-                content.push_str(" · ");
-            }
-            content.push_str(&crate::inspector::sanitize(&state.shell_message));
         }
         content
     }

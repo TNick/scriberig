@@ -49,13 +49,13 @@ fn application_semantic_plan_mutations_preserve_exact_evidence_and_waivers() {
         snapshot: Some(scriberig_core::SnapshotId::new([165; 32])),
     };
     let summarized = service
-        .mutate_plan_semantics(
+        .mutate_plan(
             &context,
-            &scriberig_app::PlanSemanticMutationRequest {
+            &scriberig_app::PlanMutationRequest {
                 session,
                 plan: plan.id,
                 expected_revision: plan.revision,
-                mutation: scriberig_app::PlanSemanticMutation::UpdateSummary {
+                mutation: scriberig_app::PlanMutation::UpdateSummary {
                     node,
                     text: "The work has exact source evidence.".to_owned(),
                     sources: vec![source],
@@ -67,13 +67,13 @@ fn application_semantic_plan_mutations_preserve_exact_evidence_and_waivers() {
     assert_eq!(summarized.nodes[0].purpose, "complete verified work");
 
     let gate_added = service
-        .mutate_plan_semantics(
+        .mutate_plan(
             &context,
-            &scriberig_app::PlanSemanticMutationRequest {
+            &scriberig_app::PlanMutationRequest {
                 session,
                 plan: plan.id,
                 expected_revision: summarized.revision,
-                mutation: scriberig_app::PlanSemanticMutation::AddGate {
+                mutation: scriberig_app::PlanMutation::AddGate {
                     owner: node,
                     phase: scriberig_session::PlanGatePhase::Entry,
                     requirement: scriberig_session::PlanGateRequirement::EvidencePresent {
@@ -94,13 +94,13 @@ fn application_semantic_plan_mutations_preserve_exact_evidence_and_waivers() {
         attributes: std::collections::BTreeMap::default(),
     };
     let satisfied = service
-        .mutate_plan_semantics(
+        .mutate_plan(
             &context,
-            &scriberig_app::PlanSemanticMutationRequest {
+            &scriberig_app::PlanMutationRequest {
                 session,
                 plan: plan.id,
                 expected_revision: gate_added.revision,
-                mutation: scriberig_app::PlanSemanticMutation::AttachEvidence {
+                mutation: scriberig_app::PlanMutation::AttachEvidence {
                     owner: scriberig_session::PlanEvidenceOwner::Gate(gate),
                     role: scriberig_session::PlanEvidenceRole::Supports,
                     evidence: evidence.clone(),
@@ -117,13 +117,13 @@ fn application_semantic_plan_mutations_preserve_exact_evidence_and_waivers() {
     assert_eq!(evaluation.supporting_evidence, vec![evidence]);
 
     let plan_with_waivable_gate = service
-        .mutate_plan_semantics(
+        .mutate_plan(
             &context,
-            &scriberig_app::PlanSemanticMutationRequest {
+            &scriberig_app::PlanMutationRequest {
                 session,
                 plan: plan.id,
                 expected_revision: satisfied.revision,
-                mutation: scriberig_app::PlanSemanticMutation::AddGate {
+                mutation: scriberig_app::PlanMutation::AddGate {
                     owner: node,
                     phase: scriberig_session::PlanGatePhase::Completion,
                     requirement: scriberig_session::PlanGateRequirement::DecisionResolved {
@@ -135,13 +135,13 @@ fn application_semantic_plan_mutations_preserve_exact_evidence_and_waivers() {
         .expect("add waivable gate");
     let waiver_gate = plan_with_waivable_gate.gates[1].id;
     let waived = service
-        .mutate_plan_semantics(
+        .mutate_plan(
             &context,
-            &scriberig_app::PlanSemanticMutationRequest {
+            &scriberig_app::PlanMutationRequest {
                 session,
                 plan: plan.id,
                 expected_revision: plan_with_waivable_gate.revision,
-                mutation: scriberig_app::PlanSemanticMutation::WaiveGate {
+                mutation: scriberig_app::PlanMutation::WaiveGate {
                     gate: waiver_gate,
                     reason: "approved after review".to_owned(),
                 },

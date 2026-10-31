@@ -20,14 +20,14 @@ use super::ProjectAgentTool;
 ///
 /// - `entity`: Selected semantic entity.
 /// - `snapshot`: Selected exact snapshot.
-/// - `accepted`: Deterministic accepted source text.
+/// - `replacement`: Deterministic replacement expression for the selected source.
 ///
 /// # Returns
 /// A deterministic upstream Faux provider and its selected model.
 pub(super) fn faux_provider(
     entity: EntityId,
     snapshot: SnapshotId,
-    accepted: &str,
+    replacement: &str,
 ) -> (Arc<dyn rpi_ai::Provider>, rpi_ai::Model) {
     let provider = FauxProvider::new(
         FauxScript::new()
@@ -35,7 +35,7 @@ pub(super) fn faux_provider(
                 "inspect",
                 json!({"entity": entity.to_string(), "snapshot": snapshot.to_string(), "detail": "detailed"}),
             )
-            .with_tool_call("project_propose", json!({"text": accepted}))
+            .with_tool_call("project_propose", json!({"text": replacement}))
             .with_text("Candidate ready for review."),
     );
     let model = provider.default_model().clone();

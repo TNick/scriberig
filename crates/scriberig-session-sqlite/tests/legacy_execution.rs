@@ -3,7 +3,8 @@
 use rusqlite::{Connection, params};
 use scriberig_core::EntityId;
 use scriberig_session::{
-    Branch, ModelAssignment, Plan, PlanNode, PlanNodeStatus, Session, SessionStore,
+    Branch, ModelAssignment, Plan, PlanNode, PlanNodeStatus, SelectionStoreError, Session,
+    SessionStore,
 };
 use scriberig_session_sqlite::SqliteSessionStore;
 
@@ -185,8 +186,12 @@ fn current_selection_pair_survives_retired_profile_import() {
     let _ = std::fs::remove_file(path);
 }
 
-/// Preserves legacy plan assignments while plan CAS writes a current assignment.
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "This regression covers migration, compare-and-swap, exact-target recovery, and historical preservation in one SQLite lifecycle."
+)]
+/// Preserves legacy plan assignments while plan CAS writes a current assignment.
 fn legacy_plan_assignment_survives_load_and_plan_cas() {
     let path = std::env::temp_dir().join(format!(
         "scriberig-session-legacy-plan-{}.sqlite",
@@ -256,6 +261,21 @@ fn legacy_plan_assignment_survives_load_and_plan_cas() {
         record.path == "/plans/0/nodes/0/assignment"
             && record.value["profile"] == "retired-profile"
             && record.value["model"] == "retired-model"
+            && record.target.as_ref().is_some_and(|target| {
+                target.plan_id == loaded.plans[0].id
+                    && target.node_id == node_id
+                    && target.revision.is_none()
+                    && !target.claim
+            })
+    }));
+    assert!(legacy.iter().any(|record| {
+        record.path.starts_with("/plans/0/history/")
+            && record.target.as_ref().is_some_and(|target| {
+                target.plan_id == loaded.plans[0].id
+                    && target.node_id == node_id
+                    && target.revision.is_some()
+                    && !target.claim
+            })
     }));
     assert!(
         !serde_json::to_string(&legacy)
@@ -276,6 +296,36 @@ fn legacy_plan_assignment_survives_load_and_plan_cas() {
             .expect("read preserved legacy assignments"),
         legacy
     );
+    let exact_record = legacy
+        .iter()
+        .find(|record| record.path == "/plans/0/nodes/0/assignment")
+        .expect("current assignment record");
+    let exact_target = exact_record.target.as_ref().expect("stable target");
+    let mut mismatched_target = exact_target.clone();
+    mismatched_target.node_id = EntityId::new();
+    assert_eq!(
+        store.resolve_legacy_plan_assignment(session_id, &exact_record.path, &mismatched_target,),
+        Err(SelectionStoreError::LegacyRecordNotFound),
+        "a path match cannot remove a different plan-node recovery record"
+    );
+    assert_eq!(
+        store
+            .legacy_execution_records(session_id)
+            .expect("mismatched target leaves recovery record"),
+        legacy
+    );
+    store
+        .resolve_legacy_plan_assignment(session_id, &exact_record.path, exact_target)
+        .expect("remove exact mapped current assignment");
+    let remaining = store
+        .legacy_execution_records(session_id)
+        .expect("read remaining historical assignments");
+    assert!(
+        remaining
+            .iter()
+            .all(|record| record.path != exact_record.path)
+    );
+    assert_eq!(remaining.len(), legacy.len() - 1);
     drop(store);
     let _ = std::fs::remove_file(path);
 }

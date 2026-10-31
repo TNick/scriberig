@@ -3,8 +3,8 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use rpi_agent::{Agent, AgentBuilder, AgentEvent, AgentTool, ToolExecutionMode};
-use rpi_ai::{AssistantMessageEvent, ProviderContinuation};
+use rpi_agent::{Agent, AgentBuilder, AgentTool, ToolExecutionMode};
+use rpi_ai::ProviderContinuation;
 use tokio_util::sync::CancellationToken;
 
 #[path = "upstream_invocation/request_projection.rs"]
@@ -14,7 +14,8 @@ type CapturedRequestSink = Arc<std::sync::Mutex<Vec<scriberig_session::ModelRequ
 
 mod types;
 pub use types::{
-    UpstreamBranchError, UpstreamBranchFailure, UpstreamBranchInvocation, UpstreamBranchResult,
+    ProviderLifecycleContext, UpstreamBranchError, UpstreamBranchFailure, UpstreamBranchInvocation,
+    UpstreamBranchResult,
 };
 
 #[path = "upstream_invocation/blocking.rs"]
@@ -23,9 +24,18 @@ pub use blocking::run_upstream_branch_invocation_blocking;
 
 #[path = "upstream_invocation/applied_settings.rs"]
 mod applied_settings;
+#[path = "upstream_invocation/failure.rs"]
+mod failure;
+use failure::classify_agent_state;
 #[path = "upstream_invocation/provider_stream.rs"]
 mod provider_stream;
 use provider_stream::build_provider_stream;
+mod event_forwarding;
+mod response_identity;
+
+#[cfg(test)]
+#[path = "upstream_invocation/observability.rs"]
+mod observability;
 
 /// Executes one compiled branch using upstream provider streaming and tool settlement.
 ///
@@ -90,62 +100,73 @@ pub async fn run_upstream_branch_invocation_with_continuation(
     summary_callback: Option<crate::ReasoningSummaryCallback>,
     continuation: Option<ProviderContinuation>,
 ) -> Result<(UpstreamBranchResult, Option<ProviderContinuation>), UpstreamBranchFailure> {
-    let built = build_agent(&invocation, continuation)?;
+    // A provider response id may be the bearer material from which continuation is
+    // reconstructed, so keep it out of durable provenance for continuation providers.
+    let provider_supports_continuation = invocation.provider.supports_response_continuation();
     let prompt = prompt.into();
-    let mut events = built.agent.subscribe();
-    let run = built.agent.prompt(prompt);
-    tokio::pin!(run);
-    let mut events_open = true;
-    let mut summary_ordinal = 0_u64;
-    let run_result = loop {
-        tokio::select! {
-            () = cancellation.cancelled() => {
-                built.agent.abort();
-                break Err(UpstreamBranchError::Cancelled);
-            }
-            result = &mut run => {
-                break result.map_err(|error| UpstreamBranchError::Agent(error.to_string()));
-            }
-            event = events.recv(), if events_open => {
-                match event {
-                    Ok(AgentEvent::MessageUpdate {
-                        assistant_message_event: AssistantMessageEvent::TextDelta { delta, .. },
-                        ..
-                    }) => {
-                        if let Some(callback) = &output_callback {
-                            callback(&delta);
-                        }
-                    }
-                    Ok(AgentEvent::MessageUpdate {
-                        assistant_message_event:
-                            AssistantMessageEvent::ReasoningSummaryDelta { delta, .. },
-                        ..
-                    }) => {
-                        if let Some(callback) = &summary_callback {
-                            summary_ordinal = summary_ordinal.saturating_add(1);
-                            callback(summary_ordinal, &delta);
-                        }
-                    }
-                    Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => events_open = false,
-                }
-            }
-        }
-    };
-    let model_requests = built
+    tracing::info!(
+        target: "scriberig::agent_invocation",
+        context_bytes = invocation.context.provider_context.len(),
+        tool_count = invocation.tools.len(),
+        prompt_bytes = prompt.len(),
+        "building upstream branch agent"
+    );
+    let built = build_agent(&invocation, continuation)?;
+    tracing::info!(
+        target: "scriberig::agent_invocation",
+        message_count = built.agent.state().messages.len(),
+        "upstream branch agent is ready"
+    );
+    let initial_message_count = built.agent.state().messages.len();
+    let run_result = event_forwarding::run_agent_and_forward(
+        &built.agent,
+        prompt,
+        &cancellation,
+        output_callback.as_ref(),
+        summary_callback.as_ref(),
+        invocation.provider_lifecycle.as_ref(),
+    )
+    .await;
+    let state = built.agent.state();
+    let response_ids = state
+        .messages
+        .iter()
+        .skip(initial_message_count)
+        .filter_map(|message| message.as_assistant())
+        .map(|message| {
+            (!provider_supports_continuation)
+                .then(|| {
+                    message
+                        .response_id
+                        .as_deref()
+                        .and_then(response_identity::safe_provider_response_id)
+                })
+                .flatten()
+        });
+    let mut model_requests = built
         .captured_requests
         .lock()
         .map(|requests| requests.clone())
         .unwrap_or_default();
+    for (request, response_id) in model_requests.iter_mut().zip(response_ids) {
+        request.catalog_revision = invocation
+            .provider_lifecycle
+            .as_ref()
+            .map(|lifecycle| lifecycle.catalog_revision);
+        request.upstream_runtime_revision = Some(crate::UPSTREAM_MODEL_RUNTIME_REVISION.to_owned());
+        request.provider_response_id = response_id;
+    }
     let failure = |error| UpstreamBranchFailure {
         error,
         model_requests: model_requests.clone(),
     };
     run_result.map_err(failure)?;
 
-    let state = built.agent.state();
-    if let Some(error) = state.error_message {
-        return Err(failure(UpstreamBranchError::Agent(error)));
+    // Upstream owns provider transport and authorization classification. The
+    // typed terminal reason it records on agent state is the only input used to
+    // choose the public ScribeRig category.
+    if let Some(error) = classify_agent_state(&state) {
+        return Err(failure(error));
     }
     let assistant = state
         .messages
@@ -153,17 +174,6 @@ pub async fn run_upstream_branch_invocation_with_continuation(
         .rev()
         .find_map(|message| message.as_assistant())
         .ok_or_else(|| failure(UpstreamBranchError::MissingFinalAssistant))?;
-    if let Some(error) = &assistant.error_message {
-        return Err(failure(UpstreamBranchError::Agent(error.clone())));
-    }
-    if matches!(
-        assistant.stop_reason,
-        rpi_ai::types::StopReason::Error | rpi_ai::types::StopReason::Aborted
-    ) {
-        return Err(failure(UpstreamBranchError::Agent(
-            "provider response did not complete successfully".to_owned(),
-        )));
-    }
     let output = assistant
         .content
         .iter()
@@ -188,16 +198,15 @@ pub async fn run_upstream_branch_invocation_with_continuation(
     ))
 }
 
-/// Builds a fresh upstream agent after validating branch tool ownership.
+/// Holds the fresh upstream agent and transient request capture outputs.
 ///
-/// # Parameters
-/// - `invocation`: Exact provider, model, branch context, and approved tools.
+/// # Public members
+/// None.
 ///
-/// # Returns
-/// The branch-local agent and its safe request projection sink.
-///
-/// # Errors
-/// Returns a scoped-tool or upstream agent-construction failure.
+/// # Private members
+/// - `agent`: Branch-local upstream agent.
+/// - `captured_requests`: Safe provider request projections.
+/// - `captured_continuation`: Opaque provider continuation kept in process memory.
 struct BuiltAgent {
     /// Fresh upstream agent configured for one branch invocation.
     agent: Agent,

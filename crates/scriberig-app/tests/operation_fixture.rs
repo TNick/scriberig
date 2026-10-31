@@ -75,6 +75,7 @@ impl OperationProvider for OperationFixture {
             left: request.left,
             right: request.right,
             resolved_deltas: Vec::new(),
+            resolved_relation_changes: Vec::new(),
             conflicts: Vec::new(),
             result: None,
         })

@@ -47,21 +47,25 @@ fn application_decomposition_creates_required_child_gates_once() {
         )
         .expect("start plan");
     let decomposed = service
-        .decompose_plan_node(
+        .mutate_plan(
             &context,
-            &PlanDecomposeRequest {
+            &PlanMutationRequest {
                 session,
                 plan: plan.id,
-                parent,
                 expected_revision: running.revision,
-                children: vec![PlanChildDraft {
-                    title: "Child work".to_owned(),
-                    purpose: "complete one required part".to_owned(),
-                    expected_result: None,
-                    semantic_scope: Vec::new(),
-                    assignment: None,
-                }],
-                required: true,
+                mutation: PlanMutation::Decompose {
+                    parent,
+                    children: vec![PlanNodeDraft {
+                        key: "child".to_owned(),
+                        parent_index: None,
+                        title: "Child work".to_owned(),
+                        purpose: "complete one required part".to_owned(),
+                        expected_result: None,
+                        semantic_scope: Vec::new(),
+                        assignment: None,
+                    }],
+                    required: true,
+                },
             },
         )
         .expect("decompose parent");

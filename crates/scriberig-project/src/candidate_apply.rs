@@ -54,6 +54,33 @@ impl ProjectService {
         candidate: &ProjectCandidate,
         filesystem: &dyn FileSystem,
     ) -> Result<CandidateApplyReport, ProjectError> {
+        let mut source_watch = self.source_watch.lock().map_err(|_| {
+            candidate_error(
+                "source_watch_unavailable",
+                "project source watcher coordinator is unavailable",
+            )
+        })?;
+        self.apply_candidate_with_coordinator(candidate, filesystem, &mut source_watch)
+    }
+
+    /// Applies a candidate while the caller holds source-event coordination.
+    ///
+    /// # Parameters
+    /// - `candidate`: Durable candidate returned by shared project operations.
+    /// - `filesystem`: Filesystem capability used for source effects.
+    /// - `source_watch`: Coordinator lock already held by the caller.
+    ///
+    /// # Returns
+    /// The successor snapshot and durable materialization receipts.
+    ///
+    /// # Errors
+    /// Returns stale, validation, ownership, path, conflict, I/O, or import errors.
+    pub(crate) fn apply_candidate_with_coordinator(
+        &self,
+        candidate: &ProjectCandidate,
+        filesystem: &dyn FileSystem,
+        source_watch: &mut crate::source_watch::ProjectSourceWatchCoordinator,
+    ) -> Result<CandidateApplyReport, ProjectError> {
         let durable = self
             .candidate(&candidate.id)?
             .ok_or_else(|| candidate_error("candidate_not_found", &candidate.id))?;
@@ -79,8 +106,16 @@ impl ProjectService {
         let root = self.project_path(durable.project)?;
         preflight_project_tree(&base_files, &durable.effects, &root)?;
         let plans = preflight_effects(self, &durable, &base_files, &root)?;
+        if self.workspace(durable.project)?.snapshot != durable.base_snapshot {
+            let error = candidate_error(
+                "stale_candidate",
+                "project snapshot advanced while candidate effects were being preflighted",
+            );
+            self.record_effect(&durable, None, "failed", Some(&error.message))?;
+            return Err(error);
+        }
         if let Err(error) =
-            materialize_effects(self, &durable, &plans, &base_files, &root, filesystem)
+            materialize_effects(self, &durable, &plans, &root, filesystem, source_watch)
         {
             self.record_effect(&durable, None, "unknown", Some(&error.message))?;
             return Err(error);
@@ -196,13 +231,49 @@ impl ProjectService {
         observed: Option<&[u8]>,
         diagnostic: Option<&str>,
     ) -> Result<(), ProjectError> {
+        self.record_effect_path_with_digest(
+            candidate,
+            effect,
+            state,
+            observed.map(digest),
+            diagnostic,
+        )
+    }
+
+    /// Records the durable state of one source effect from a known digest.
+    ///
+    /// - `candidate`: Candidate owning the effect.
+    /// - `effect`: Path effect whose state is recorded.
+    /// - `state`: Per-path receipt state.
+    /// - `observed_digest`: Digest of the bytes observed at the path, when known.
+    /// - `diagnostic`: Safe failure detail.
+    ///
+    /// Unit after the path receipt is durable.
+    ///
+    /// Returns a storage error when the receipt cannot be persisted.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn record_effect_path_with_digest(
+        &self,
+        candidate: &ProjectCandidate,
+        effect: &ProjectSourceEffect,
+        state: &str,
+        observed_digest: Option<[u8; 32]>,
+        diagnostic: Option<&str>,
+    ) -> Result<(), ProjectError> {
         self.store
             .put_project_effect_path(&ProjectEffectPathRecord {
                 candidate: candidate.id.clone(),
                 path: effect.path.clone(),
                 state: state.to_owned(),
-                expected_digest: effect.old.as_deref().map(digest),
-                observed_digest: observed.map(digest),
+                expected_digest: effect
+                    .observed
+                    .as_deref()
+                    .or(effect.old.as_deref())
+                    .map(digest),
+                observed_digest,
                 diagnostic: diagnostic.map(ToOwned::to_owned),
             })
             .map_err(crate::errors::storage_error)
@@ -241,6 +312,15 @@ impl ProjectService {
 /// # Errors
 /// Returns an error when the operation fails.
 fn require_validation(candidate: &ProjectCandidate) -> Result<(), ProjectError> {
+    if candidate.validation == CandidateValidation::Passed
+        && candidate.validation_digest
+            != Some(super::candidate_validation_digest(&candidate.effects))
+    {
+        return Err(candidate_error(
+            "validation_digest_mismatch",
+            "candidate outputs differ from the exact content accepted by validation",
+        ));
+    }
     match &candidate.validation {
         CandidateValidation::Passed
             if candidate.validation_profile.as_deref()
@@ -293,3 +373,6 @@ fn digest(bytes: &[u8]) -> [u8; 32] {
 #[cfg(test)]
 #[path = "candidate_apply_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "candidate_watch_tests.rs"]
+mod watch_tests;

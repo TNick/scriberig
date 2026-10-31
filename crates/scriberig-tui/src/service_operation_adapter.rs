@@ -11,6 +11,22 @@ mod accepted_agent;
 #[macro_use]
 #[path = "service_operation_adapter/agent_methods.rs"]
 mod agent_methods;
+#[path = "service_operation_adapter/recovery.rs"]
+mod recovery;
+#[path = "service_operation_adapter/runtime.rs"]
+mod runtime;
+#[macro_use]
+#[path = "service_operation_adapter/cad_qgis.rs"]
+mod cad_qgis;
+#[macro_use]
+#[path = "service_operation_adapter/geospatial.rs"]
+mod geospatial;
+#[macro_use]
+#[path = "service_operation_adapter/documents.rs"]
+mod documents;
+#[macro_use]
+#[path = "service_operation_adapter/plugins_models.rs"]
+mod plugins_models;
 
 /// Optional local project labels keyed by stable entity identity.
 pub type ExplorerLabels = std::collections::HashMap<EntityId, String>;
@@ -141,71 +157,13 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
 impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
     operation_agent_methods!();
 
-    /// Reads upstream property descriptors for one locally authorized model.
-    ///
-    /// - `context`: Local authorization context for model settings.
-    /// - `provider_id`: Exact upstream provider identity.
-    /// - `model_id`: Provider-native model identity.
-    ///
-    /// # Returns
-    /// Upstream schema-backed descriptors for the selected model.
-    ///
-    /// # Errors
-    /// Returns an authorization or configuration error.
-    fn model_properties(
-        &self,
-        context: &ApplicationContext,
-        provider_id: &str,
-        model_id: &str,
-    ) -> Result<Vec<rpi_model_runtime::ModelPropertyDescriptor>, ApplicationError> {
-        require_local_model_config_edit(context)?;
-        self.agent_runner.model_properties(provider_id, model_id)
-    }
+    operation_cad_qgis_methods!();
 
-    /// Updates a provider property only through upstream schema validation.
-    ///
-    /// - `context`: Local authorization context for model settings.
-    /// - `provider_id`: Exact upstream provider identity.
-    /// - `model_id`: Provider-native model identity.
-    /// - `key`: Upstream schema property key.
-    /// - `value`: User value validated by upstream.
-    ///
-    /// # Returns
-    /// Success after the upstream config accepts the value.
-    ///
-    /// # Errors
-    /// Returns an authorization, validation, or persistence error.
-    fn set_model_property(
-        &self,
-        context: &ApplicationContext,
-        provider_id: &str,
-        model_id: &str,
-        key: &str,
-        value: serde_json::Value,
-    ) -> Result<(), ApplicationError> {
-        require_local_model_config_edit(context)?;
-        self.agent_runner
-            .set_model_property(provider_id, model_id, key, value)
-    }
+    operation_geospatial_methods!();
 
-    /// Reports the semantic operations exposed by the embedded application.
-    ///
-    /// - `self`: Embedded application adapter.
-    /// - `_context`: Authorization context used by the surrounding runtime.
-    ///
-    /// Capability descriptors used to keep the command palette honest.
-    ///
-    /// This adapter has no separate capability-discovery failure path.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn runtime_capabilities(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
-        service_operation_helpers::runtime_capabilities(self)
-    }
+    operation_documents_methods!();
+
+    operation_plugins_models_methods!();
 
     /// Runs the deterministic provider through the selected semantic scope.
     ///
@@ -322,45 +280,19 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         self.service.execute(context, request)
     }
 
-    /// Reads an operation record from the shared application registry.
-    ///
-    /// - `_context`: Application context for the lookup.
-    /// - `operation`: Operation identity to resolve.
-    ///
-    /// The current operation record.
-    ///
-    /// Returns a lookup error when the operation is unknown.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn operation_status(
-        &self,
-        _context: &ApplicationContext,
-        operation: &scriberig_core::OperationId,
-    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        service_operation_helpers::operation_status(self, operation)
-    }
-
-    /// Cancels an operation through the shared application registry.
-    ///
-    /// - `_context`: Application context for the cancellation.
-    /// - `operation`: Operation identity to cancel.
-    ///
-    /// The cancelled operation record.
-    ///
-    /// Returns a cancellation error when the operation is unknown.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn cancel_operation(
-        &self,
-        _context: &ApplicationContext,
-        operation: &scriberig_core::OperationId,
-    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        service_operation_helpers::cancel_operation(self, operation)
-    }
-
     tui_operation_contract_methods!();
+}
+
+/// Creates a sanitized invalid-identity error for a CAD request.
+///
+/// # Parameters
+/// - `field`: CAD identity field that failed parsing.
+///
+/// # Returns
+/// Application request error without echoing untrusted input.
+fn invalid_cad_request(field: &str) -> ApplicationError {
+    ApplicationError::InvalidRequest {
+        operation: "cad.tui".to_owned(),
+        message: format!("CAD {field} identity is invalid"),
+    }
 }

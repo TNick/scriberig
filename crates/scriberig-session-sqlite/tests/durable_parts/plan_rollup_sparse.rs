@@ -160,7 +160,7 @@ fn assert_cache_metadata(path: &Path, session: EntityId, plan: EntityId, snapsho
         )
         .expect("read cache metadata");
     assert_eq!(metadata.0.as_slice(), snapshot);
-    assert_eq!(metadata.1, 1);
+    assert_eq!(metadata.1, 2);
     assert_eq!(metadata.2, 3);
     let direct: (Vec<u8>, i64) = connection
         .query_row(

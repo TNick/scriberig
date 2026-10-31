@@ -34,6 +34,39 @@ fn atomic_revision_insert_and_promotion_commits_together() {
     assert_eq!(store.get(revision.id()).expect("revision"), Some(revision));
 }
 
+/// Rolls back root and revision writes when the related application write fails.
+#[test]
+fn related_write_failure_rolls_back_semantic_promotion() {
+    let store = SqliteStore::open_in_memory().expect("open");
+    let root = RootName::new("main").expect("root");
+    let base = scriberig_store::Snapshot::empty().id();
+    let revision = Revision::new(
+        EncodingVersion::V1,
+        ObjectType::new("test.atomic-related-write").expect("type"),
+        vec![9],
+    )
+    .expect("revision");
+    let entity = EntityId::from_bytes([6; 16]);
+    let error = store
+        .apply_revisions_and_promote_with(
+            root.clone(),
+            None,
+            base,
+            std::slice::from_ref(&revision),
+            &[SnapshotChange::Set(entity, revision.id())],
+            |_| Err("related projection failed".to_owned()),
+        )
+        .expect_err("related write failure");
+
+    assert_eq!(
+        error,
+        scriberig_store_sqlite::PromotionError::Backend("related projection failed".to_owned())
+    );
+    assert_eq!(store.read_root(&root), None);
+    assert_eq!(store.get(revision.id()).expect("read revision"), None);
+    assert_eq!(store.stats().expect("stats").snapshots, Some(0));
+}
+
 /// Verifies snapshots cannot publish references to missing revisions.
 #[test]
 fn missing_revision_rejects_promotion_and_rolls_back() {
@@ -64,7 +97,7 @@ fn newer_schema_version_is_rejected() {
     let path = temporary_database_path("schema");
     {
         let store = SqliteStore::open(&path).expect("open");
-        assert_eq!(store.schema_version().expect("version"), 5);
+        assert_eq!(store.schema_version().expect("version"), 8);
     }
     let connection = rusqlite::Connection::open(&path).expect("connection");
     connection
@@ -91,7 +124,7 @@ fn incompatible_recovery_metadata_is_rejected() {
     let path = temporary_database_path("metadata");
     {
         let store = SqliteStore::open(&path).expect("open");
-        assert_eq!(store.schema_version().expect("version"), 5);
+        assert_eq!(store.schema_version().expect("version"), 6);
     }
     let connection = rusqlite::Connection::open(&path).expect("connection");
     connection

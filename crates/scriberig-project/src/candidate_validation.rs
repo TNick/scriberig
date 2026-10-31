@@ -118,9 +118,15 @@ impl ProjectService {
             &files,
             &candidate.effects,
             profile,
+            candidate.semantic_operation.as_deref(),
+            candidate.semantic_target,
+            &candidate.semantic_changes,
             cancelled,
         )?;
         candidate.validation_profile = Some(profile.identifier().to_owned());
+        candidate.validation_digest =
+            matches!(&candidate.validation, super::CandidateValidation::Passed)
+                .then(|| super::candidate_validation_digest(&candidate.effects));
         if cancelled.load(Ordering::Acquire) {
             return Err(cancelled_error());
         }

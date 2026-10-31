@@ -11,6 +11,28 @@ use crate::errors::adapter_diagnostics_error;
 
 use super::add_child;
 
+#[path = "adapters/xlsx.rs"]
+mod xlsx;
+pub(super) use xlsx::import_xlsx;
+#[path = "adapters/dxf.rs"]
+pub(crate) mod dxf;
+pub(super) use dxf::import_dxf;
+#[path = "adapters/dwg.rs"]
+mod dwg;
+pub(super) use dwg::import_dwg;
+#[path = "adapters/docx.rs"]
+mod docx;
+pub(super) use docx::import_docx;
+#[path = "adapters/qgis.rs"]
+mod qgis;
+pub(super) use qgis::import_qgis;
+#[path = "adapters/shapefile.rs"]
+pub(crate) mod shapefile;
+pub(super) use shapefile::import_shapefile;
+#[path = "adapters/geopackage.rs"]
+pub(crate) mod geopackage;
+pub(super) use geopackage::import_geopackage;
+
 #[path = "adapters/binary.rs"]
 mod binary;
 pub(super) use binary::import_binary;

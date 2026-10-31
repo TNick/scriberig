@@ -13,11 +13,15 @@ import type {
   SessionWorkerClaim,
 } from "@scriberig/protocol";
 import {
-  normalizePlanEvidence,
-  normalizePlanEvidenceReference,
-  normalizePlanGates,
-  normalizePlanSummaries,
-} from "./session-plan-semantic-views";
+  isAbandonReason,
+  normalizeEvidence,
+  normalizeEvidenceReference,
+  normalizeGate,
+  normalizeGateCounts,
+  normalizeStatusCounts,
+  normalizeStrings,
+  normalizeSummary,
+} from "./session-plan-semantic-views.js";
 
 /** Normalizes one durable plan without exposing transcripts or credentials.
  * @param value Unknown plan value from the transport.
@@ -27,13 +31,13 @@ export function normalizeSessionPlan(value: unknown): SessionPlan {
   const plan = isObject(value) ? value : {};
   const anchor = normalizeAnchor(plan.anchor);
   const coordinatorClaim = plan.coordinator_claim ?? plan.coordinatorClaim;
+  const exactRevision = plan.exactRevision ?? plan.exact_revision;
+  const snapshot = plan.snapshot;
   return {
     id: typeof plan.id === "string" ? plan.id : "",
     revision: typeof plan.revision === "number" ? plan.revision : 0,
-    ...(typeof (plan.exactRevision ?? plan.exact_revision) === "string"
-      ? { exactRevision: String(plan.exactRevision ?? plan.exact_revision) }
-      : {}),
-    ...(typeof plan.snapshot === "string" ? { snapshot: plan.snapshot } : {}),
+    ...(typeof exactRevision === "string" ? { exactRevision } : {}),
+    ...(typeof snapshot === "string" ? { snapshot } : {}),
     goal: typeof plan.goal === "string" ? plan.goal : "",
     status: normalizePlanStatus(plan.status),
     ...(anchor === undefined ? {} : { anchor }),
@@ -42,9 +46,9 @@ export function normalizeSessionPlan(value: unknown): SessionPlan {
     dependencies: normalizeDependencies(plan.dependencies),
     rootNodes: normalizeStrings(plan.rootNodes ?? plan.root_nodes),
     statusCounts: normalizeStatusCounts(plan.statusCounts ?? plan.status_counts),
-    gates: normalizePlanGates(plan.gates),
-    evidence: normalizePlanEvidence(plan.evidence),
-    summaries: normalizePlanSummaries(plan.summaries),
+    gates: (Array.isArray(plan.gates) ? plan.gates : []).flatMap(normalizeGate),
+    evidence: (Array.isArray(plan.evidence) ? plan.evidence : []).flatMap(normalizeEvidence),
+    summaries: (Array.isArray(plan.summaries) ? plan.summaries : []).flatMap(normalizeSummary),
     ...(typeof (plan.coordinator ?? plan.coordinator_branch) === "string"
       ? { coordinator: String(plan.coordinator ?? plan.coordinator_branch) as BranchId }
       : {}),
@@ -153,9 +157,13 @@ function normalizePlanRevision(value: unknown): SessionPlanRevision {
     status: normalizePlanStatus(revision.status),
     nodes: (Array.isArray(revision.nodes) ? revision.nodes : []).map(normalizePlanNode),
     dependencies: normalizeDependencies(revision.dependencies),
-    summaries: normalizePlanSummaries(revision.summaries),
-    gates: normalizePlanGates(revision.gates),
-    evidence: normalizePlanEvidence(revision.evidence),
+    summaries: (Array.isArray(revision.summaries) ? revision.summaries : []).flatMap(
+      normalizeSummary,
+    ),
+    gates: (Array.isArray(revision.gates) ? revision.gates : []).flatMap(normalizeGate),
+    evidence: (Array.isArray(revision.evidence) ? revision.evidence : []).flatMap(
+      normalizeEvidence,
+    ),
     ...(typeof revision.reason === "string" ? { reason: revision.reason } : {}),
   };
 }
@@ -183,30 +191,44 @@ function normalizePlanNode(value: unknown): SessionPlanNode {
   const branch = node.branch;
   const result = node.result;
   const supersededBy = node.supersededBy ?? node.superseded_by;
-  const abandonReason = normalizeAbandonReason(node.abandonReason ?? node.abandon_reason);
-  const lastFailure = normalizePlanEvidenceReference(node.lastFailure ?? node.last_failure);
+  const exactRevision = node.exactRevision ?? node.exact_revision;
+  const abandonReason = node.abandonReason ?? node.abandon_reason;
+  const lastFailure = normalizeEvidenceReference(node.lastFailure ?? node.last_failure);
+  const effectiveStatus = node.effectiveStatus ?? node.effective_status;
+  const entryGates = normalizeGateCounts(node.entryGates ?? node.entry_gates);
+  const completionGates = normalizeGateCounts(node.completionGates ?? node.completion_gates);
+  const summaryId = node.summaryId ?? node.summary_id;
+  const summaryPreview = node.summaryPreview ?? node.summary_preview;
   return {
     id: typeof node.id === "string" ? node.id : "",
+    ...(typeof exactRevision === "string" ? { exactRevision } : {}),
+    ...(typeof node.snapshot === "string" ? { snapshot: node.snapshot } : {}),
     parent: String(node.parent ?? ""),
     title: typeof node.title === "string" ? node.title : "",
     purpose: typeof node.purpose === "string" ? node.purpose : "",
     status: statuses.includes(node.status as SessionPlanNodeStatus)
       ? (node.status as SessionPlanNodeStatus)
       : "Planned",
-    ...(typeof (node.exactRevision ?? node.exact_revision) === "string"
-      ? { exactRevision: String(node.exactRevision ?? node.exact_revision) }
-      : {}),
-    ...(typeof (node.effectiveStatus ?? node.effective_status) === "string"
-      ? {
-          effectiveStatus: normalizeNodeStatus(node.effectiveStatus ?? node.effective_status),
-        }
-      : {}),
-    containsIgnored: (node.containsIgnored ?? node.contains_ignored) === true,
-    containsAbandoned: (node.containsAbandoned ?? node.contains_abandoned) === true,
-    ...(abandonReason === undefined ? {} : { abandonReason }),
     ...(typeof branch === "string" ? { branch: branch as BranchId } : {}),
     ...(typeof result === "string" ? { result } : {}),
     ...(typeof supersededBy === "string" ? { supersededBy } : {}),
+    ...(isAbandonReason(abandonReason) ? { abandonReason } : {}),
+    ...(lastFailure === undefined ? {} : { lastFailure }),
+    ...(statuses.includes(effectiveStatus as SessionPlanNodeStatus)
+      ? { effectiveStatus: effectiveStatus as SessionPlanNodeStatus }
+      : {}),
+    containsIgnored: Boolean(node.containsIgnored ?? node.contains_ignored),
+    containsAbandoned: Boolean(node.containsAbandoned ?? node.contains_abandoned),
+    entryGates: entryGates ?? { pending: 0, satisfied: 0, failed: 0, waived: 0 },
+    completionGates: completionGates ?? { pending: 0, satisfied: 0, failed: 0, waived: 0 },
+    evidenceCount:
+      typeof (node.evidenceCount ?? node.evidence_count) === "number"
+        ? Number(node.evidenceCount ?? node.evidence_count)
+        : 0,
+    canRetry: Boolean(node.canRetry ?? node.can_retry),
+    dependencyBlockers: normalizeStrings(node.dependencyBlockers ?? node.dependency_blockers),
+    ...(typeof summaryId === "string" ? { summaryId } : {}),
+    ...(typeof summaryPreview === "string" ? { summaryPreview } : {}),
     ...(expected === undefined
       ? {}
       : {
@@ -220,98 +242,7 @@ function normalizePlanNode(value: unknown): SessionPlanNode {
       : [],
     ...(assignment === undefined ? {} : { assignment }),
     ...(claim === undefined ? {} : { claim }),
-    ...(typeof (node.summaryId ?? node.summary_id) === "string"
-      ? { summaryId: String(node.summaryId ?? node.summary_id) }
-      : {}),
-    ...(typeof (node.summaryPreview ?? node.summary_preview) === "string"
-      ? { summaryPreview: String(node.summaryPreview ?? node.summary_preview) }
-      : {}),
-    dependencyBlockers: normalizeStrings(node.dependencyBlockers ?? node.dependency_blockers),
-    entryGates: normalizeGateCounts(node.entryGates ?? node.entry_gates),
-    completionGates: normalizeGateCounts(node.completionGates ?? node.completion_gates),
-    evidenceCount: numberValue(node.evidenceCount ?? node.evidence_count),
-    canRetry: (node.canRetry ?? node.can_retry) === true,
-    ...(lastFailure === undefined ? {} : { lastFailure }),
   };
-}
-
-/** Normalizes one direct-status count bundle.
- * @param value Unknown status-count record.
- * @returns Counts for every supported node status.
- */
-function normalizeStatusCounts(value: unknown): SessionPlan["statusCounts"] {
-  const counts = isObject(value) ? value : {};
-  return {
-    planned: numberValue(counts.planned),
-    ready: numberValue(counts.ready),
-    running: numberValue(counts.running),
-    completed: numberValue(counts.completed),
-    failed: numberValue(counts.failed),
-    abandoned: numberValue(counts.abandoned),
-  };
-}
-
-/** Normalizes one entry or completion gate-count bundle.
- * @param value Unknown evaluated-gate counts.
- * @returns Counts for every supported gate outcome.
- */
-function normalizeGateCounts(value: unknown): SessionPlanNode["entryGates"] {
-  const counts = isObject(value) ? value : {};
-  return {
-    pending: numberValue(counts.pending),
-    satisfied: numberValue(counts.satisfied),
-    failed: numberValue(counts.failed),
-    waived: numberValue(counts.waived),
-  };
-}
-
-/** Keeps only string identities from an unknown wire array.
- * @param value Unknown identity list.
- * @returns Valid string values.
- */
-function normalizeStrings(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string")
-    : [];
-}
-
-/** Normalizes a bounded nonnegative integer field.
- * @param value Unknown numeric field.
- * @returns A safe integer or zero.
- */
-function numberValue(value: unknown): number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
-}
-
-/** Normalizes one node lifecycle value.
- * @param value Unknown wire status.
- * @returns A supported node lifecycle state.
- */
-function normalizeNodeStatus(value: unknown): SessionPlanNodeStatus {
-  const statuses: readonly SessionPlanNodeStatus[] = [
-    "Planned",
-    "Ready",
-    "Running",
-    "Completed",
-    "Failed",
-    "Abandoned",
-  ];
-  return statuses.includes(value as SessionPlanNodeStatus)
-    ? (value as SessionPlanNodeStatus)
-    : "Planned";
-}
-
-/** Normalizes one explicit node-abandonment reason.
- * @param value Unknown abandonment reason.
- * @returns A supported reason or `undefined` when malformed.
- */
-function normalizeAbandonReason(
-  value: unknown,
-): NonNullable<SessionPlanNode["abandonReason"]> | undefined {
-  const reasons = ["Ignored", "Superseded", "Cancelled", "Obsolete"] as const;
-  return typeof value === "string" && reasons.includes(value as (typeof reasons)[number])
-    ? (value as NonNullable<SessionPlanNode["abandonReason"]>)
-    : undefined;
 }
 
 /** Normalizes a safe model assignment.

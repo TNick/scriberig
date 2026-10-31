@@ -1,0 +1,87 @@
+{
+  "request": {
+    "sessionId": "ent_02020202020202020202020202020202",
+    "prompt": "The fixture result is durable."
+  },
+  "accepted": {
+    "operation": {
+      "operation": {
+        "reference": { "id": "operation-agent-1" },
+        "kind": "Agent",
+        "status": "Completed",
+        "progress": null,
+        "result_snapshot": null,
+        "result_handles": [],
+        "agent_result": {
+          "session": { "id": "ent_02020202020202020202020202020202" },
+          "root_branch": { "id": "ent_03030303030303030303030303030303" },
+          "branch_result": "branch-result-1",
+          "final_output": "The fixture result is durable.",
+          "produced_changes": [],
+          "validation_results": [],
+          "unresolved_questions": [],
+          "candidate_changes": []
+        },
+        "error": null
+      }
+    },
+    "session": { "id": "ent_02020202020202020202020202020202" },
+    "branch": { "id": "ent_03030303030303030303030303030303" }
+  },
+  "operation": {
+    "reference": { "id": "operation-agent-1" },
+    "kind": "Agent",
+    "status": "Completed",
+    "progress": null,
+    "result_snapshot": null,
+    "result_handles": [],
+    "agent_result": {
+      "session": { "id": "ent_02020202020202020202020202020202" },
+      "root_branch": { "id": "ent_03030303030303030303030303030303" },
+      "branch_result": "branch-result-1",
+      "final_output": "The fixture result is durable.",
+      "produced_changes": [],
+      "validation_results": [],
+      "unresolved_questions": [],
+      "candidate_changes": []
+    },
+    "error": null
+  },
+  "session": {
+    "session": { "id": "ent_02020202020202020202020202020202" },
+    "branches": [
+      {
+        "id": "ent_03030303030303030303030303030303",
+        "parent": null,
+        "children": [],
+        "title": "root",
+        "status": "Completed",
+        "turns": [
+          {
+            "id": "turn-1",
+            "ordinal": 1,
+            "has_human_input": true,
+            "has_agent_output": true,
+            "agent_output": "The fixture result is durable.",
+            "tool_invocation": null,
+            "tool_result": null
+          }
+        ],
+        "activity": [],
+        "result": {
+          "id": "branch-result-1",
+          "references": [],
+          "result_handles": []
+        }
+      }
+    ],
+    "plans": [],
+    "execution": { "revision": 0 }
+  },
+  "expected": {
+    "finalOutput": "The fixture result is durable.",
+    "branchResultId": "branch-result-1",
+    "turnOrdinal": 1,
+    "branchStatus": "Completed"
+  }
+}

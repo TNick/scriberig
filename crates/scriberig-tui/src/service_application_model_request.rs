@@ -121,6 +121,9 @@ pub(super) fn model_request_response(
             .collect(),
         context_fingerprint: detail.context_fingerprint,
         request_fingerprint: detail.request_fingerprint,
+        catalog_revision: detail.catalog_revision,
+        upstream_runtime_revision: detail.upstream_runtime_revision,
+        provider_response_id: detail.provider_response_id,
         model_execution_configuration: detail.model_execution_configuration,
         messages: detail
             .messages

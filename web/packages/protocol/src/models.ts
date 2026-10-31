@@ -42,11 +42,23 @@ export interface ModelDescriptor {
 /** Safe provider credential readiness reported by the host. */
 export type ProviderCredentialReadiness =
   "not_required" | "available" | "missing" | "denied" | "unsupported" | "catalog_header";
-/** Readiness for one provider/model endpoint without credential material. */
+/** Provider-authored result of the latest request for a model. */
+export type ProviderAuthenticationStatus = "accepted" | "rejected";
+/** Readiness for one provider/model endpoint without credential material.
+ *
+ * Public members:
+ * - `providerId`: Upstream provider identity.
+ * - `modelId`: Provider-scoped model identity.
+ * - `credential`: Host-projected credential availability.
+ * - `authentication`: Optional upstream-authored request outcome.
+ *
+ * Private members: None.
+ */
 export interface ProviderReadiness {
   providerId: string;
   modelId: string;
   credential: ProviderCredentialReadiness;
+  authentication?: ProviderAuthenticationStatus;
 }
 /** Credential-safe upstream-derived model display rows. */
 export interface ModelLibraryResponse {
@@ -65,4 +77,39 @@ export interface SessionThinkingSelectionRequest {
   session: { id: string };
   expectedRevision: number;
   thinkingLevel: string;
+}
+/** One sanitized historical execution value retained for explicit recovery. */
+export interface LegacyExecutionRecordView {
+  path: string;
+  value: unknown;
+  target?: LegacyExecutionTargetView;
+}
+/** Stable plan owner for a preserved legacy assignment. */
+export interface LegacyExecutionTargetView {
+  planId: string;
+  nodeId: string;
+  revision?: number;
+  claim: boolean;
+}
+/** Reads preserved legacy execution values for one session. */
+export interface LegacyExecutionRecordsRequest {
+  session: { id: string };
+}
+/** Maps one exact preserved session execution choice to current upstream IDs. */
+export interface LegacyExecutionMappingRequest {
+  session: { id: string };
+  expectedRevision: number;
+  legacyPath: string;
+  providerId: string;
+  modelId: string;
+  thinkingLevel?: string;
+}
+/** Maps one current legacy plan-node assignment to active upstream IDs. */
+export interface LegacyPlanAssignmentMappingRequest {
+  session: { id: string };
+  legacyPath: string;
+  expectedPlanRevision: number;
+  providerId: string;
+  modelId: string;
+  thinkingLevel?: string;
 }

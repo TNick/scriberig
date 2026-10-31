@@ -3,7 +3,10 @@
 #![allow(clippy::wildcard_imports)]
 
 use super::*;
-use scriberig_project::{ProjectSourceChange, ProjectSourceChangeKind};
+use scriberig_project::{CandidateValidation, ProjectSourceChange, ProjectSourceChangeKind};
+
+/// Maximum per-path recovery receipts returned with one apply error.
+const MAX_APPLY_FAILURE_PATHS: usize = 32;
 
 /// Request body for candidate creation.
 #[derive(serde::Deserialize)]
@@ -62,7 +65,9 @@ pub(super) fn propose<S: ApplicationService>(
         serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
     let project = input.project.parse().map_err(|_| invalid_project())?;
     let entity = input.entity.parse().map_err(|_| invalid_project())?;
-    let candidate = ProjectService::new(Arc::clone(store))
+    let candidate = state
+        .service
+        .project_service(Arc::clone(store))
         .propose_candidate(project, entity, input.text)
         .map_err(|error| project_error(&error))?;
     let id = candidate.id.clone();
@@ -133,7 +138,9 @@ pub(super) fn propose_change<S: ApplicationService>(
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let candidate = ProjectService::new(Arc::clone(store))
+    let candidate = state
+        .service
+        .project_service(Arc::clone(store))
         .propose_project_change(project, base_snapshot, changes)
         .map_err(|error| project_error(&error))?;
     Ok(json!({
@@ -169,7 +176,9 @@ pub(super) fn candidate<S: ApplicationService>(
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: CandidateInput =
         serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
-    let candidate = ProjectService::new(Arc::clone(store))
+    let candidate = state
+        .service
+        .project_service(Arc::clone(store))
         .candidate(&input.candidate)
         .map_err(|error| project_error(&error))?
         .ok_or_else(|| (404, json!({"code": "candidate_not_found"})))?;
@@ -204,7 +213,9 @@ pub(super) fn validate_candidate<S: ApplicationService>(
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: CandidateInput =
         serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
-    let candidate = ProjectService::new(Arc::clone(store))
+    let candidate = state
+        .service
+        .project_service(Arc::clone(store))
         .validate_candidate(&input.candidate)
         .map_err(|error| project_error(&error))?;
     Ok(candidate_json(&candidate))
@@ -249,7 +260,7 @@ pub(super) fn apply<S: ApplicationService>(
 ) -> Result<Value, (u16, Value)> {
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: ApplyInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
-    let service = ProjectService::new(Arc::clone(store));
+    let service = state.service.project_service(Arc::clone(store));
     let candidate = service
         .candidate(&input.candidate)
         .map_err(|error| project_error(&error))?
@@ -261,22 +272,39 @@ pub(super) fn apply<S: ApplicationService>(
             _ => 500,
         };
         let mut response = json!({"code": error.code, "message": error.message});
+        let mut materialization = None;
+        let mut diagnostic = None;
         if let Ok(Some(effect)) = store.project_effect(&input.candidate) {
             response["effectState"] = json!(effect.state);
             response["effectDiagnostic"] = json!(effect.diagnostic);
+            materialization = Some(json!(effect.state));
+            diagnostic = effect.diagnostic.map(Value::String);
         }
-        if let Ok(effects) = store.project_effect_paths(&input.candidate) {
-            response["effectPaths"] = json!(
+        let path_records = store.project_effect_paths(&input.candidate).ok();
+        let path_count = path_records.as_ref().map(Vec::len);
+        let paths = path_records.map(|effects| {
+            json!(
                 effects
                     .iter()
+                    .take(MAX_APPLY_FAILURE_PATHS)
                     .map(|effect| json!({
                         "path": effect.path,
                         "state": effect.state,
                         "diagnostic": effect.diagnostic,
                     }))
                     .collect::<Vec<_>>()
-            );
+            )
+        });
+        if let Some(paths) = &paths {
+            response["effectPaths"] = paths.clone();
         }
+        response["details"] = materialization_failure_details(
+            &input.candidate,
+            materialization,
+            diagnostic,
+            paths,
+            path_count,
+        );
         (status, response)
     })?;
     Ok(json!({
@@ -288,4 +316,68 @@ pub(super) fn apply<S: ApplicationService>(
         "materialization": report.effect_state,
         "history": true,
     }))
+}
+
+/// Builds structured details that retain durable candidate recovery receipts.
+///
+/// # Parameters
+/// - `candidate`: Exact candidate whose apply operation failed.
+/// - `materialization`: Optional aggregate materialization state.
+/// - `diagnostic`: Optional aggregate recovery diagnostic.
+/// - `paths`: Optional per-path materialization receipt array.
+/// - `path_count`: Total affected paths, including omitted receipt details.
+///
+/// # Returns
+/// Protocol error details safe for client-side recovery presentation.
+fn materialization_failure_details(
+    candidate: &str,
+    materialization: Option<Value>,
+    diagnostic: Option<Value>,
+    paths: Option<Value>,
+    path_count: Option<usize>,
+) -> Value {
+    let mut details = json!({"candidate": candidate});
+    if let Some(materialization) = materialization {
+        details["materialization"] = materialization;
+    }
+    if let Some(diagnostic) = diagnostic {
+        details["diagnostic"] = diagnostic;
+    }
+    if let Some(paths) = paths {
+        details["paths"] = paths;
+    }
+    if let Some(count) = path_count {
+        details["pathCount"] = json!(count);
+        details["pathsOmitted"] = json!(count.saturating_sub(MAX_APPLY_FAILURE_PATHS));
+    }
+    details
+}
+
+#[cfg(test)]
+mod apply_failure_tests {
+    use super::materialization_failure_details;
+    use serde_json::json;
+
+    /// Keeps aggregate and per-path recovery evidence in protocol error details.
+    #[test]
+    fn materialization_failure_details_preserve_partial_path_receipts() {
+        let details = materialization_failure_details(
+            "candidate-1",
+            Some(json!("partial")),
+            Some(json!("recovery required")),
+            Some(json!([
+                {"path": "a.docx", "state": "applied", "diagnostic": null},
+                {"path": "b.docx", "state": "failed", "diagnostic": "permission denied"}
+            ])),
+            Some(2),
+        );
+        assert_eq!(details["candidate"], "candidate-1");
+        assert_eq!(details["materialization"], "partial");
+        assert_eq!(details["diagnostic"], "recovery required");
+        assert_eq!(details["paths"][0]["state"], "applied");
+        assert_eq!(details["paths"][1]["state"], "failed");
+        assert_eq!(details["paths"][1]["diagnostic"], "permission denied");
+        assert_eq!(details["pathCount"], 2);
+        assert_eq!(details["pathsOmitted"], 0);
+    }
 }

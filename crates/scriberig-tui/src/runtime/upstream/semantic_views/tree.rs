@@ -5,6 +5,19 @@ use rpi_tui::TreeItem;
 use super::projection::TreeProjection;
 use crate::state::TuiState;
 
+#[cfg(test)]
+#[path = "tree_refresh_tests.rs"]
+mod refresh_tests;
+#[cfg(test)]
+#[path = "tree_render_tests.rs"]
+mod render_tests;
+#[cfg(test)]
+#[path = "tree_test_support.rs"]
+mod test_support;
+#[cfg(test)]
+#[path = "tree_tests.rs"]
+mod tests;
+
 /// Builds reusable tree items and details for the active semantic view.
 ///
 /// - `state`: Current `ScribeRig` view and cursor.
@@ -13,7 +26,11 @@ use crate::state::TuiState;
 /// # Returns
 /// A tree projection when the active view has ready semantic rows.
 pub(super) fn projection(state: &TuiState) -> Option<TreeProjection> {
-    let rows = semantic_rows(state)?;
+    let mut rows = semantic_rows(state)?;
+    // Upstream tree validation rejects a duplicate item ID and discards the whole
+    // item set, so a semantic identity projected onto several rows must keep one
+    // exact key and give later occurrences bounded occurrence keys.
+    super::common::unique_row_ids(rows.iter_mut().map(|row| &mut row.id));
     let details = match state.primary_view {
         crate::selection::PrimaryView::Conversation => super::details::conversation_details(state),
         crate::selection::PrimaryView::Session => super::details::session_details(state),
@@ -23,6 +40,43 @@ pub(super) fn projection(state: &TuiState) -> Option<TreeProjection> {
         items: make_tree_items(&rows),
         selected_id: selected_tree_id(state, &rows),
         details,
+    })
+}
+
+/// Refreshes cursor-dependent fields without rebuilding semantic tree rows.
+///
+/// - `state`: Current `ScribeRig` cursor and selected-row details.
+/// - `projection`: Cached tree structure receiving the current selection.
+pub(super) fn refresh_cursor_projection(state: &TuiState, projection: &mut TreeProjection) {
+    let selected = selected_cursor_id(state, projection);
+    if projection.selected_id != selected {
+        projection.selected_id = selected;
+        if state.primary_view == crate::selection::PrimaryView::Session {
+            projection.details = super::details::session_details(state);
+        }
+    }
+}
+
+/// Resolves the current cursor to a projected stable row ID in constant time.
+///
+/// - `state`: Current `ScribeRig` cursor identity.
+/// - `projection`: Cached rows used only for numeric-index fallback.
+///
+/// # Returns
+/// The selected stable row ID when one is available.
+pub(super) fn selected_cursor_id(state: &TuiState, projection: &TreeProjection) -> Option<String> {
+    match state.primary_view {
+        crate::selection::PrimaryView::Conversation => {
+            state.conversation_cursor.map(conversation_source_id)
+        }
+        crate::selection::PrimaryView::Session => state.session_cursor.map(session_row_id),
+        _ => None,
+    }
+    .or_else(|| {
+        projection
+            .items
+            .get(state.cursor)
+            .map(|item| item.id.clone())
     })
 }
 

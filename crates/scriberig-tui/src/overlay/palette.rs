@@ -59,6 +59,7 @@ impl Default for PaletteState {
                 item("project-agent", "Agent change selected entity"),
                 item("changes", "View changes/validation"),
                 item("review-candidate", "Review candidate"),
+                item("confirm-review", "Confirm reviewed change"),
                 item("session", "View session"),
                 item("plans", "View plans and dependencies"),
                 item("model-picker", "Select model"),

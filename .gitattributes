@@ -1,0 +1,2 @@
+# Preserve DXF fixture CRLF bytes and treat carriage returns as line endings.
+tests/fixtures/rich-project/drawing.dxf whitespace=cr-at-eol

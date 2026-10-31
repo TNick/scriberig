@@ -2,12 +2,10 @@
 
 use crate::context::{
     BranchExecutionContext, BranchRole, CompactResultContext, CompiledContext, ContextActivity,
-    ContextCompiler, ContextPolicy,
+    ContextCompiler, ContextPolicy, compact_branch_result,
 };
 use scriberig_core::EntityId;
-use scriberig_session::{
-    BranchResult, ContinuationAnchor, Plan, PlanNode, PlanNodeParent, Session, WorkerClaim,
-};
+use scriberig_session::{ContinuationAnchor, Plan, PlanNode, PlanNodeParent, Session, WorkerClaim};
 
 /// Holds selected durable inputs and their provider-ready compiled projection.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,6 +70,32 @@ impl PlanWorkerContext {
         node: &PlanNode,
         claim: &WorkerClaim,
     ) -> Result<Self, String> {
+        Self::from_plan_with_profile(session, plan, node, claim, None)
+    }
+
+    /// Compiles one worker context against the exact supplied profile revision.
+    ///
+    /// - `session`: Exact durable session snapshot before provider execution.
+    /// - `plan`: Exact durable plan revision containing the worker node.
+    /// - `node`: Selected plan node.
+    /// - `claim`: Exact branch and worker claim being executed.
+    /// - `profile`: Exact semantic profile selected for this worker.
+    ///
+    /// Selected structured inputs and bounded compiled model context.
+    ///
+    /// # Returns
+    /// The compiled context bound to the supplied profile revision.
+    ///
+    /// # Errors
+    /// Returns an error when exact plan, branch, ancestor, or dependency state
+    /// cannot be resolved.
+    pub fn from_plan_with_profile(
+        session: &Session,
+        plan: &Plan,
+        node: &PlanNode,
+        claim: &WorkerClaim,
+        profile: Option<&scriberig_agent_core::AgentProfileDescriptor>,
+    ) -> Result<Self, String> {
         if !plan.nodes.iter().any(|candidate| candidate.id == node.id)
             || claim.node != node.id
             || claim.branch == EntityId::from_bytes([0; 16])
@@ -111,7 +135,13 @@ impl PlanWorkerContext {
         }
         add_local_branch_history(&mut inputs, session, claim.branch);
 
-        let compiled = ContextCompiler::new(ContextPolicy::default()).compile(&inputs);
+        let context_compiler = ContextCompiler::new(ContextPolicy::default());
+        let compiled = match profile {
+            Some(profile) => context_compiler
+                .with_profile(profile.clone())
+                .compile(&inputs),
+            None => context_compiler.compile(&inputs),
+        };
         Ok(Self { inputs, compiled })
     }
 }
@@ -253,24 +283,6 @@ fn compact_result(session: &Session, result_id: EntityId) -> Result<CompactResul
         .find(|result| result.id == result_id)
         .ok_or_else(|| "selected durable branch result is missing".to_owned())?;
     Ok(compact_branch_result(result))
-}
-
-/// Converts a durable result into summary and semantic handles only.
-/// # Parameters
-/// - `result`: Input for this operation.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-fn compact_branch_result(result: &BranchResult) -> CompactResultContext {
-    CompactResultContext {
-        handle: format!("branch-result:{}", result.id),
-        revision: result
-            .candidate_context
-            .map(|candidate| candidate.candidate_snapshot.to_string()),
-        summary: result.summary.clone().unwrap_or_default(),
-        semantic_handles: result.result_handles.clone(),
-    }
 }
 
 /// Adds only the claimed branch's existing visible local conversation history.

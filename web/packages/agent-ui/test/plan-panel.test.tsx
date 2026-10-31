@@ -1,114 +1,82 @@
-/** @file Verifies shared plan data is rendered by the agent plan panel. */
+/** @file Verifies semantic plan action controls. */
 
-import type { SessionPlan } from "@scriberig/protocol";
-import { ScriberigProvider } from "@scriberig/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { PlanPanel } from "../src/plan-panel";
-import { PlanNodeAuthoringForm } from "../src/plan-node-authoring-form";
+import type { SessionPlan } from "@scriberig/protocol";
+import { SessionPlanPanel } from "../src/plan-panel";
 
-describe("plan panel", () => {
-  it("renders shared status, blockers, and retry capability", () => {
-    const plan = {
+describe("session plan panel", () => {
+  it("renders retry, gate, waiver, and evidence actions", () => {
+    const plan: SessionPlan = {
       id: "plan-1",
-      revision: 3,
-      snapshot: "snapshot-3",
+      revision: 4,
       goal: "Ship feature",
       status: "Running",
       rootBranch: "branch-1" as never,
-      dependencies: [],
-      rootNodes: ["node-1"],
-      statusCounts: { planned: 0, ready: 0, running: 0, completed: 0, failed: 1, abandoned: 0 },
-      gates: [],
-      evidence: [],
-      summaries: [],
-      history: [],
       nodes: [
         {
           id: "node-1",
-          parent: "",
+          parent: "branch-1",
           title: "Implement",
-          purpose: "Write code",
+          purpose: "Make the change",
           status: "Failed",
-          effectiveStatus: "Failed",
+          semanticScope: [],
           containsIgnored: false,
           containsAbandoned: false,
-          semanticScope: [],
-          dependencyBlockers: ["node-0"],
+          dependencyBlockers: [],
           entryGates: { pending: 0, satisfied: 0, failed: 0, waived: 0 },
-          completionGates: { pending: 0, satisfied: 0, failed: 0, waived: 0 },
-          evidenceCount: 1,
+          completionGates: { pending: 1, satisfied: 0, failed: 0, waived: 0 },
+          evidenceCount: 0,
           canRetry: true,
         },
       ],
-    } as SessionPlan;
-    const markup = renderToStaticMarkup(
-      <ScriberigProvider
-        value={{ client: {} as never, model: {} as never, selection: {} as never, commands: [] }}
-      >
-        <PlanPanel
-          sessionId={"session-1" as never}
-          plans={[plan]}
-          onPlanUpdated={async () => undefined}
-        />
-      </ScriberigProvider>,
-    );
-    expect(markup).toContain("Ship feature (Running)");
-    expect(markup).toContain("Implement: Failed / Failed");
-    expect(markup).toContain("Blocked by node-0");
-    expect(markup).toContain(">Retry</button>");
-    expect(markup).toContain('aria-label="Add next step to Ship feature"');
-  });
-
-  it("renders summary and typed gate authoring forms for a selected node", () => {
-    const plan = {
-      id: "plan-1",
-      revision: 3,
-      goal: "Ship feature",
-      status: "Running",
-      rootBranch: "branch-1" as never,
       dependencies: [],
       rootNodes: ["node-1"],
-      statusCounts: { planned: 0, ready: 1, running: 0, completed: 0, failed: 0, abandoned: 0 },
-      gates: [],
+      statusCounts: {
+        planned: 0,
+        ready: 0,
+        running: 0,
+        completed: 0,
+        failed: 1,
+        abandoned: 0,
+      },
+      gates: [
+        {
+          id: "gate-1",
+          owner: "node-1",
+          phase: "Completion",
+          requirement: { EvidencePresent: { kind: "BranchResult" } },
+        },
+      ],
       evidence: [],
       summaries: [],
       history: [],
-      nodes: [
-        {
-          id: "node-1",
-          parent: "",
-          title: "Implement",
-          purpose: "Write code",
-          status: "Ready",
-          containsIgnored: false,
-          containsAbandoned: false,
-          summaryPreview: "Current progress",
-          semanticScope: [],
-          dependencyBlockers: [],
-          entryGates: { pending: 0, satisfied: 0, failed: 0, waived: 0 },
-          completionGates: { pending: 0, satisfied: 0, failed: 0, waived: 0 },
-          evidenceCount: 0,
-          canRetry: false,
-        },
-      ],
-    } as SessionPlan;
-    const markup = renderToStaticMarkup(
-      <ScriberigProvider
-        value={{ client: {} as never, model: {} as never, selection: {} as never, commands: [] }}
-      >
-        <PlanNodeAuthoringForm
-          sessionId={"session-1" as never}
-          plan={plan}
-          node={plan.nodes[0]!}
-          onPlanUpdated={async () => undefined}
-        />
-      </ScriberigProvider>,
+    };
+    const html = renderToStaticMarkup(
+      <SessionPlanPanel
+        plans={[plan]}
+        branches={[
+          {
+            branchId: "branch-2" as never,
+            name: "completed worker",
+            status: "completed",
+            childCount: 0,
+            activityCount: 1,
+            result: {
+              branchId: "branch-2" as never,
+              resultId: "result-2",
+              summary: "Validated change",
+              handles: [],
+            },
+          },
+        ]}
+        onMutation={async () => undefined}
+      />,
     );
 
-    expect(markup).toContain('aria-label="Update summary for Implement"');
-    expect(markup).toContain('aria-label="Add gate to Implement"');
-    expect(markup).toContain("Save summary");
-    expect(markup).toContain("Add gate");
+    expect(html).toContain("Retry failed node");
+    expect(html).toContain("Require branch-result evidence");
+    expect(html).toContain("Waive gate");
+    expect(html).toContain("Attach result from completed worker");
   });
 });

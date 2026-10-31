@@ -2,64 +2,82 @@
 
 use scriberig_protocol::{
     SessionContinuationAnchor, SessionCoordinatorClaim, SessionExpectedResult,
-    SessionModelAssignment, SessionPlan, SessionPlanDependency, SessionPlanNode,
-    SessionPlanNodeStatus, SessionPlanRevision, SessionPlanStatus, SessionWorkerClaim,
+    SessionModelAssignment, SessionPlan, SessionPlanAttempt, SessionPlanDependency,
+    SessionPlanNode, SessionPlanNodeStatus, SessionPlanRevision, SessionPlanStatus,
+    SessionWorkerClaim,
 };
 use scriberig_session::{Plan, PlanDependency, PlanNode, PlanNodeView, PlanRevision};
 
 #[path = "server_helpers_session_plan_semantics.rs"]
-mod semantics;
+pub(crate) mod semantics;
+
+/// Converts one retained attempt into a bounded, transcript-free DTO.
+///
+/// # Parameters
+/// - `value`: Shared attempt reconstructed from immutable plan history.
+///
+/// # Returns
+/// The safe protocol attempt record.
+pub(crate) fn attempt(value: &scriberig_session::PlanAttemptView) -> SessionPlanAttempt {
+    SessionPlanAttempt {
+        branch: value.branch.to_string(),
+        claim_generation: value.claim_generation,
+        claim: value.claim.map(|claim| claim.to_string()),
+        status: node_status(value.status),
+        result: value.result.map(|result| result.to_string()),
+        failure: value.failure.as_ref().map(semantics::evidence_reference),
+    }
+}
+
+/// Converts one canonical plan gate to its transport projection.
+///
+/// # Parameters
+/// - `value`: Gate definition with retained waiver provenance.
+///
+/// # Returns
+/// The protocol gate without storage-specific details.
+pub(crate) fn gate_detail(
+    value: &scriberig_session::PlanGate,
+) -> scriberig_protocol::SessionPlanGate {
+    semantics::gate(value)
+}
+
+/// Converts one exact plan evidence association to its transport projection.
+///
+/// # Parameters
+/// - `value`: Evidence reference and typed role.
+///
+/// # Returns
+/// The protocol evidence association without copied source payloads.
+pub(crate) fn evidence_detail(
+    value: &scriberig_session::PlanEvidenceAssociation,
+) -> scriberig_protocol::SessionPlanEvidenceAssociation {
+    semantics::evidence(value)
+}
 
 /// Converts one plan and its retained history into a safe wire projection.
 ///
 /// - `plan`: Durable plan value from the shared session subsystem.
-/// - `results`: Exact durable branch results visible in the session snapshot.
 ///
 /// Protocol state including current and historical graph revisions.
 /// # Returns
 /// The operation result.
+/// - `results`: Exact branch results used for projection and readiness.
+///
 /// # Errors
-/// Returns an application error when shared plan views cannot be assembled.
+/// Returns an error when the requested operation cannot complete.
 pub(crate) fn project(
     plan: Plan,
     results: Option<&[scriberig_session::BranchResult]>,
 ) -> Result<SessionPlan, scriberig_app::ApplicationError> {
-    project_with_rollups(plan, results, None)
-}
-
-/// Projects a plan using exact-snapshot rollups supplied by shared storage.
-///
-/// # Parameters
-/// - `plan`: Durable plan value from the shared session subsystem.
-/// - `results`: Exact durable branch results visible in the session snapshot.
-/// - `rollups`: Valid snapshot-bound cache, when the application supplied one.
-///
-/// # Returns
-/// Protocol-safe plan state with shared effective statuses.
-///
-/// # Errors
-/// Returns an application error when shared plan views cannot be assembled.
-pub(crate) fn project_with_rollups(
-    plan: Plan,
-    results: Option<&[scriberig_session::BranchResult]>,
-    rollups: Option<
-        &std::collections::BTreeMap<scriberig_core::EntityId, scriberig_session::PlanNodeRollup>,
-    >,
-) -> Result<SessionPlan, scriberig_app::ApplicationError> {
     let snapshot = plan.source_snapshot;
     let plan_view = plan.plan_view(snapshot).map_err(view_error)?;
-    let evaluated_rollups;
-    let rollups = if let Some(rollups) = rollups {
-        rollups
-    } else {
-        evaluated_rollups = plan.node_rollups().map_err(view_error)?;
-        &evaluated_rollups
-    };
+    let rollups = plan.node_rollups().map_err(view_error)?;
     let node_views = plan
         .nodes
         .iter()
         .map(|plan_node| {
-            plan.node_view(plan_node.id, snapshot, results, rollups)
+            plan.node_view(plan_node.id, snapshot, results, &rollups)
                 .map(|view| (plan_node.id, view))
                 .map_err(view_error)
         })
@@ -102,23 +120,65 @@ pub(crate) fn project_with_rollups(
     })
 }
 
-/// Projects bounded per-node gate and evidence records into protocol values.
+/// Converts a plan and its cached semantic views without embedding detail history.
 ///
 /// # Parameters
-/// - `offset`: Offset applied to both detail categories.
-/// - `details`: Shared semantic records returned by the repository.
+/// - `plan`: Compact current plan projection.
+/// - `view`: Shared plan summary carrying exact identity and status counts.
+/// - `node_views`: Shared node summaries carrying gate and evidence counts.
 ///
 /// # Returns
-/// Protocol-safe detail page without physical storage metadata.
-pub(crate) fn project_details(
-    offset: usize,
-    details: &scriberig_session::PlanSemanticNodeDetails,
-) -> scriberig_protocol::SessionPlanNodeDetailsPage {
-    scriberig_protocol::SessionPlanNodeDetailsPage {
-        offset,
-        gates: details.gates.iter().map(semantics::gate).collect(),
-        evidence: details.evidence.iter().map(semantics::evidence).collect(),
+/// A session-tree plan DTO with bounded summaries and empty detail collections.
+///
+/// # Errors
+/// Returns an error when the base plan projection cannot be assembled.
+pub(crate) fn project_compact(
+    plan: Plan,
+    view: &scriberig_session::PlanView,
+    node_views: Vec<PlanNodeView>,
+) -> Result<SessionPlan, scriberig_app::ApplicationError> {
+    let mut projected = project(plan, None)?;
+    projected.revision = view.mutation_revision;
+    projected.exact_revision = Some(view.revision.to_string());
+    projected.snapshot = view.snapshot.map(|snapshot| snapshot.to_string());
+    projected.goal.clone_from(&view.goal);
+    projected.status = plan_status(view.status);
+    projected.status_counts = semantics::status_counts(view.status_counts);
+    let by_id = node_views
+        .into_iter()
+        .map(|node| (node.id.to_string(), node))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    for node in &mut projected.nodes {
+        let Some(view) = by_id.get(&node.id) else {
+            return Err(view_error("shared compact node view is missing"));
+        };
+        node.exact_revision = Some(view.revision.to_string());
+        node.effective_status = Some(node_status(view.effective_status));
+        node.contains_ignored = view.contains_ignored;
+        node.contains_abandoned = view.contains_abandoned;
+        node.branch = view.branch.map(|id| id.to_string());
+        node.result = view.result.map(|id| id.to_string());
+        node.assignment = view.assignment.clone().map(assignment);
+        node.summary_id = view.summary_id.map(|id| id.to_string());
+        node.summary_preview.clone_from(&view.summary_preview);
+        node.dependency_blockers = view
+            .dependency_blockers
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        node.entry_gates = semantics::gate_counts(view.entry_gates);
+        node.completion_gates = semantics::gate_counts(view.completion_gates);
+        node.evidence_count = view.evidence_count;
+        node.can_retry = view.can_retry;
+        node.last_failure = view
+            .last_failure
+            .as_ref()
+            .map(semantics::evidence_reference);
     }
+    projected.gates.clear();
+    projected.evidence.clear();
+    projected.history.clear();
+    Ok(projected)
 }
 
 /// Converts one immutable plan revision.
@@ -149,11 +209,11 @@ fn revision(value: PlanRevision) -> SessionPlanRevision {
 /// Converts one plan node while omitting provider secrets.
 ///
 /// - `value`: Durable session-domain plan node.
-/// - `view`: Shared exact and derived node view, when available.
 ///
 /// Protocol node with stable structural and execution references.
 /// # Returns
 /// The operation result.
+/// - `view`: Exact node view used for derived presentation fields.
 fn node(value: PlanNode, view: Option<&PlanNodeView>) -> SessionPlanNode {
     SessionPlanNode {
         id: value.id.to_string(),
@@ -220,8 +280,9 @@ fn node(value: PlanNode, view: Option<&PlanNodeView>) -> SessionPlanNode {
 /// - `error`: Typed plan projection failure.
 ///
 /// A bounded internal protocol-projection error.
+///
 /// # Returns
-/// An application error that hides storage details from protocol callers.
+/// The value described by the return type.
 fn view_error(error: impl std::fmt::Debug) -> scriberig_app::ApplicationError {
     scriberig_app::ApplicationError::Internal {
         message: format!("plan view assembly failed: {error:?}"),
@@ -300,7 +361,7 @@ fn anchor(value: scriberig_session::ContinuationAnchor) -> SessionContinuationAn
 /// Provider-neutral protocol state.
 /// # Returns
 /// The operation result.
-fn plan_status(value: scriberig_session::PlanStatus) -> SessionPlanStatus {
+pub(crate) fn plan_status(value: scriberig_session::PlanStatus) -> SessionPlanStatus {
     match value {
         scriberig_session::PlanStatus::Draft => SessionPlanStatus::Draft,
         scriberig_session::PlanStatus::Planned => SessionPlanStatus::Planned,
@@ -319,7 +380,7 @@ fn plan_status(value: scriberig_session::PlanStatus) -> SessionPlanStatus {
 /// Provider-neutral protocol state.
 /// # Returns
 /// The operation result.
-fn node_status(value: scriberig_session::PlanNodeStatus) -> SessionPlanNodeStatus {
+pub(crate) fn node_status(value: scriberig_session::PlanNodeStatus) -> SessionPlanNodeStatus {
     match value {
         scriberig_session::PlanNodeStatus::Planned => SessionPlanNodeStatus::Planned,
         scriberig_session::PlanNodeStatus::Ready => SessionPlanNodeStatus::Ready,

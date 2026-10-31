@@ -2,8 +2,9 @@
 use scriberig_core::EntityId;
 use scriberig_session::{
     AgentOutput, Branch, BranchResult, BranchStatus, ContinuationAnchor, ContinuationOrigin,
-    ModelAssignment, Plan, PlanError, PlanNode, PlanNodeParent, PlanNodeStatus, PlanStatus,
-    Session, SessionError, SessionExecutionSelection, Turn,
+    ModelAssignment, Plan, PlanError, PlanEvidenceKind, PlanGate, PlanGatePhase,
+    PlanGateRequirement, PlanNode, PlanNodeParent, PlanNodeStatus, PlanStatus, Session,
+    SessionError, SessionExecutionSelection, Turn,
 };
 
 /// Builds deterministic plan nodes for scheduling tests.
@@ -218,9 +219,9 @@ fn plan_dependency_chain_is_valid_and_sorted() {
     let root = EntityId::from_bytes([70; 16]);
     let mut plan = Plan {
         id: EntityId::from_bytes([71; 16]),
+        source_snapshot: None,
         session: None,
         anchor: None,
-        source_snapshot: None,
         goal: String::new(),
         revision: 0,
         status: PlanStatus::Planned,
@@ -336,4 +337,6 @@ fn plan_claims_allow_one_coordinator_and_distinct_workers() {
 
 #[path = "session_structure_parts/part1.rs"]
 mod part1;
+#[path = "session_structure_parts/retry_recovery.rs"]
+mod retry_recovery;
 use part1::plan_fixture;

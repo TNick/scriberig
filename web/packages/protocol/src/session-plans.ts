@@ -87,9 +87,9 @@ export type SessionPlanSemanticPredicate = "EntityExists" | "ExactRevision";
 /** Describes one supported plan gate requirement. */
 export type SessionPlanGateRequirement =
   | { EvidencePresent: { kind: SessionPlanEvidenceKind } }
-  | { ValidationPassed: { profile?: string } }
+  | { ValidationPassed: { profile?: string | null } }
   | { DecisionResolved: { decision: string } }
-  | { HumanApproval: { policy: string; role?: string } }
+  | { HumanApproval: { policy: string; role?: string | null } }
   | {
       SemanticCondition: {
         reference: SessionSemanticReference;

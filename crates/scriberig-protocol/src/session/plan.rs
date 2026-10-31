@@ -278,53 +278,6 @@ pub struct SessionPlanLifecycleRequest {
     pub action: SessionPlanAction,
 }
 
-/// Retries one failed plan node at an observed plan revision.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct SessionPlanRetryRequest {
-    /// Owning session identity.
-    pub session: SessionReference,
-    /// Stable plan identity.
-    pub plan: String,
-    /// Stable failed node identity.
-    pub node: String,
-    /// Plan revision observed by the client.
-    pub expected_revision: u64,
-}
-
-/// Reads one bounded page of worker attempts at an exact plan snapshot.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct SessionPlanAttemptHistoryRequest {
-    /// Owning session identity.
-    pub session: SessionReference,
-    /// Stable plan identity.
-    pub plan: String,
-    /// Stable plan-node identity.
-    pub node: String,
-    /// Exact semantic snapshot identity.
-    pub snapshot: String,
-    /// Number of matching attempts to skip in stable order.
-    pub offset: usize,
-    /// Maximum number of attempts to return.
-    pub limit: usize,
-}
-
-/// Reads one bounded page of gates and evidence at an exact plan snapshot.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct SessionPlanNodeDetailsRequest {
-    /// Owning session identity.
-    pub session: SessionReference,
-    /// Stable plan identity.
-    pub plan: String,
-    /// Stable plan-node identity.
-    pub node: String,
-    /// Exact universal snapshot identity.
-    pub snapshot: String,
-    /// Number of matching records to skip in each category.
-    pub offset: usize,
-    /// Maximum records to return in each category.
-    pub limit: usize,
-}
-
 /// Changes one unstarted node's safe model assignment.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct SessionPlanAssignmentRequest {

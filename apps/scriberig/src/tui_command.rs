@@ -126,9 +126,18 @@ pub(super) fn run(
     )?);
     let agent_runner =
         super::native_tui_agent::NativeTuiAgentRunner::from_environment(Arc::clone(&store))?;
+    let project_workflow = scriberig_project::ProjectService::new(Arc::clone(&store));
     let service = ApplicationService::new(backend)
+        .with_project_service(project_workflow.clone())
         .with_session_store(session_store)
-        .with_model_catalog(agent_runner.model_catalog());
+        .with_agent_profile_provider(super::agent_profile_composition::provider(Arc::clone(
+            &store,
+        )))
+        .with_provider_extension_runtime(agent_runner.provider_extension_runtime())
+        .with_extension_component_mailbox(agent_runner.extension_component_mailbox())
+        .with_projection_style_configuration(
+            super::projection_style_composition::domain_projection_style_configuration(&args.db)?,
+        );
     let labels = project
         .as_ref()
         .map(|value| project_labels(&store, value.project))
@@ -159,7 +168,7 @@ pub(super) fn run(
                     .collect();
                 scriberig_tui::ProjectProjection {
                     project: value.project,
-                    workflow: scriberig_project::ProjectService::new(Arc::clone(&store)),
+                    workflow: project_workflow.clone(),
                     snapshot,
                     sources,
                 }
@@ -168,24 +177,33 @@ pub(super) fn run(
     let service = scriberig_tui::ApplicationOperationAdapter::new(service)
         .with_agent_runner(agent_runner)
         .with_explorer_labels(labels.unwrap_or_default())
-        .with_project_workflow(scriberig_project::ProjectService::new(Arc::clone(&store)));
+        .with_project_workflow(project_workflow);
     let service = if let Some(value) = projection {
         service.with_project_projection(value)
     } else {
         service
     };
-    let context = ApplicationContext {
+    let granted_capabilities = [
+        "inspect.entity",
+        "agent_model_library",
+        "agent_model_config_edit",
+        "session_model_selection",
+        "session_management",
+    ]
+    .into_iter()
+    .map(scriberig_app::CapabilityId::new)
+    .collect::<Result<Vec<_>, _>>()?;
+    #[cfg(feature = "isolated-plugin-worker")]
+    let granted_capabilities = {
+        let mut granted_capabilities = granted_capabilities;
+        if let Ok(plugin_capability) = std::env::var("SCRIBE_AGENT_PLUGIN_CAPABILITY") {
+            granted_capabilities.push(scriberig_app::CapabilityId::new(plugin_capability)?);
+        }
+        granted_capabilities
+    };
+    let mut context = ApplicationContext {
         capabilities: scriberig_app::CapabilityContext {
-            granted: [
-                "inspect.entity",
-                "agent_model_library",
-                "agent_model_config_edit",
-                "session_model_selection",
-                "session_management",
-            ]
-            .into_iter()
-            .map(scriberig_app::CapabilityId::new)
-            .collect::<Result<Vec<_>, _>>()?,
+            granted: granted_capabilities,
             grants: vec![scriberig_app::Capability {
                 scope: scriberig_app::CapabilityScope::Project,
                 actions: super::agent_actions(),
@@ -198,6 +216,7 @@ pub(super) fn run(
         })
     }
     .with_user_preferences_principal("local-user");
+    super::native_tui_agent::grant_configured_plugin_capability(&mut context);
     scriberig_tui::run(
         &service,
         &context,

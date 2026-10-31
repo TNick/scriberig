@@ -1,19 +1,17 @@
 //! Decodes versioned SQLite session payloads and preserves retired selections.
 
-use scriberig_session::Session;
+#[path = "payload/branch_results.rs"]
+mod branch_results;
+pub(crate) use branch_results::decode as decode_branch_results;
+#[path = "payload/legacy_plan.rs"]
+mod legacy_plan;
+use legacy_plan::import_plan_assignments;
+
+use scriberig_session::{LegacyExecutionRecord, Session};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 const LEGACY_PAYLOAD_VERSION: u32 = 1;
-
-/// Retains one exact legacy model selection that cannot be resolved safely.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
-pub struct LegacyExecutionRecord {
-    /// JSON pointer locating the original value in the prior session payload.
-    pub path: String,
-    /// Allowlisted historical selection fields; arbitrary properties are removed.
-    pub value: Value,
-}
 
 /// Holds a decoded session and any unresolved legacy execution choices.
 pub(crate) struct DecodedSession {
@@ -141,6 +139,7 @@ fn import_session_selection(session: &mut Value, legacy: &mut Vec<LegacyExecutio
                 execution,
                 &["model_profile", "model", "thinking_level"],
             )),
+            target: None,
         });
         return;
     }
@@ -150,6 +149,7 @@ fn import_session_selection(session: &mut Value, legacy: &mut Vec<LegacyExecutio
             execution,
             &["model_profile", "model", "thinking_level", "revision"],
         )),
+        target: None,
     });
     let revision = execution
         .get("revision")
@@ -162,83 +162,7 @@ fn import_session_selection(session: &mut Value, legacy: &mut Vec<LegacyExecutio
 ///
 /// - `session`: Untrusted JSON session object being imported.
 /// - `legacy`: Destination for exact legacy assignment objects.
-fn import_plan_assignments(session: &mut Value, legacy: &mut Vec<LegacyExecutionRecord>) {
-    let Some(plans) = session.get_mut("plans").and_then(Value::as_array_mut) else {
-        return;
-    };
-    for (plan_index, plan) in plans.iter_mut().enumerate() {
-        if let Some(nodes) = plan.get_mut("nodes").and_then(Value::as_array_mut) {
-            import_nodes(nodes, &format!("/plans/{plan_index}/nodes"), legacy);
-        }
-        if let Some(history) = plan.get_mut("history").and_then(Value::as_array_mut) {
-            for (revision_index, revision) in history.iter_mut().enumerate() {
-                if let Some(nodes) = revision.get_mut("nodes").and_then(Value::as_array_mut) {
-                    import_nodes(
-                        nodes,
-                        &format!("/plans/{plan_index}/history/{revision_index}/nodes"),
-                        legacy,
-                    );
-                }
-            }
-        }
-    }
-}
-
-/// Clears legacy assignment objects while recording their exact JSON paths.
 ///
-/// - `nodes`: Plan node JSON values.
-/// - `base_path`: JSON pointer to the node array.
-/// - `legacy`: Destination for exact legacy assignment objects.
-fn import_nodes(nodes: &mut [Value], base_path: &str, legacy: &mut Vec<LegacyExecutionRecord>) {
-    for (node_index, node) in nodes.iter_mut().enumerate() {
-        let node_path = format!("{base_path}/{node_index}");
-        import_assignment(node, &format!("{node_path}/assignment"), legacy);
-        if let Some(claim) = node.get_mut("claim") {
-            import_assignment(claim, &format!("{node_path}/claim/assignment"), legacy);
-        }
-    }
-}
-
-/// Retains and clears one legacy `{profile, model}` assignment.
-///
-/// - `owner`: Node or worker-claim object that contains an assignment.
-/// - `path`: Exact JSON pointer to the assignment field.
-/// - `legacy`: Destination for the exact old assignment object.
-fn import_assignment(owner: &mut Value, path: &str, legacy: &mut Vec<LegacyExecutionRecord>) {
-    let Some(owner) = owner.as_object_mut() else {
-        return;
-    };
-    let Some(assignment) = owner.get("assignment") else {
-        return;
-    };
-    let Some(object) = assignment.as_object() else {
-        return;
-    };
-    let has_current_pair = object.get("provider_id").and_then(Value::as_str).is_some()
-        && object.get("model_id").and_then(Value::as_str).is_some();
-    if has_current_pair && object.contains_key("profile") {
-        legacy.push(LegacyExecutionRecord {
-            path: path.to_owned(),
-            value: Value::Object(selected_fields(
-                object,
-                &["profile", "model", "thinking_level"],
-            )),
-        });
-        return;
-    }
-    if has_current_pair || !object.contains_key("profile") {
-        return;
-    }
-    legacy.push(LegacyExecutionRecord {
-        path: path.to_owned(),
-        value: Value::Object(selected_fields(
-            object,
-            &["profile", "model", "thinking_level"],
-        )),
-    });
-    owner.insert("assignment".to_owned(), Value::Null);
-}
-
 /// Keeps only fields declared by the historical selection data types.
 ///
 /// - `value`: Historical JSON object.
@@ -248,7 +172,7 @@ fn import_assignment(owner: &mut Value, path: &str, legacy: &mut Vec<LegacyExecu
 ///
 /// # Returns
 /// The allowlisted fields with unsafe values omitted.
-fn selected_fields(value: &Map<String, Value>, allowed: &[&str]) -> Map<String, Value> {
+pub(super) fn selected_fields(value: &Map<String, Value>, allowed: &[&str]) -> Map<String, Value> {
     let mut selected = Map::new();
     for key in allowed {
         if let Some(value) = value.get(*key) {

@@ -2,10 +2,12 @@
 
 use super::{ImportCompletion, ImportRequest, MemorySyncStore, ObservationResult};
 use crate::{
-    FailureStage, FileSystem, IoError, MemoryRecoveryStore, Observation, RecoveryRecord,
-    hash::digest_bytes,
+    ArtifactMaterializationPlan, ArtifactMaterializationReceipt, FileSystem, IoError,
+    MemoryRecoveryStore, Observation, hash::digest_bytes,
 };
-use sr_projection::{ProjectionRef, ProjectionStatus, SemanticStateRef};
+use sr_projection::{ProjectionRef, ProjectionStatus};
+
+mod materialization;
 
 /// Owns the filesystem boundary while leaving semantic interpretation to adapters.
 #[derive(Clone, Debug)]
@@ -16,6 +18,53 @@ pub struct SyncCoordinator<F> {
 }
 
 impl<F: FileSystem> SyncCoordinator<F> {
+    /// Records only committed artifact members for exact watcher self-write suppression.
+    ///
+    /// Uncommitted, failed, missing, or unknown members do not alter observation state.
+    /// The receipt and plan must identify the same artifact.
+    ///
+    /// # Parameters
+    /// - `plan`: Exact materialization plan mapping member keys to project-relative paths.
+    /// - `receipt`: Per-member outcomes from that materialization attempt.
+    ///
+    /// # Returns
+    /// Number of committed members matched to owned synchronization records.
+    ///
+    /// # Errors
+    /// Returns an IO error when persistent synchronization state cannot be saved.
+    pub fn record_artifact_materialization(
+        &mut self,
+        plan: &ArtifactMaterializationPlan,
+        receipt: &ArtifactMaterializationReceipt,
+    ) -> Result<usize, IoError> {
+        if plan.artifact != receipt.artifact {
+            return Ok(0);
+        }
+        let mut recorded = 0;
+        for outcome in receipt.members.iter().filter(|member| member.committed) {
+            let Some(member) = plan.members.iter().find(|member| member.key == outcome.key) else {
+                continue;
+            };
+            if member.bytes.as_deref().map(crate::digest_bytes) != outcome.output_digest {
+                continue;
+            }
+            let location = crate::ProjectionLocation::new(plan.root.join(&member.relative_path));
+            let Some(state) = self.states.find_mut(&location) else {
+                continue;
+            };
+            if member.bytes.is_some() {
+                state.self_write_digest = outcome.output_digest;
+            } else {
+                state.self_write_digest = None;
+                state.observed = None;
+                state.status = ProjectionStatus::Missing;
+            }
+            recorded += 1;
+        }
+        self.states.persist()?;
+        Ok(recorded)
+    }
+
     /// Creates a coordinator with existing synchronization records.
     ///
     /// - `filesystem`: Filesystem implementation.
@@ -33,6 +82,37 @@ impl<F: FileSystem> SyncCoordinator<F> {
         }
     }
 
+    /// Opens a coordinator with synchronization baselines retained across restarts.
+    ///
+    /// - `filesystem`: Filesystem boundary used for projections.
+    /// - `path`: Atomic persistence file for synchronization records.
+    ///
+    /// # Returns
+    /// A coordinator loaded with previously synchronized baselines.
+    ///
+    /// # Errors
+    /// Returns an IO error when persisted state cannot be read or decoded.
+    pub fn open_persistent(
+        filesystem: F,
+        path: impl Into<std::path::PathBuf>,
+    ) -> Result<Self, IoError> {
+        Ok(Self::new(filesystem, MemorySyncStore::open(path)?))
+    }
+
+    /// Registers a projection state and persists it when the store is durable.
+    ///
+    /// - `state`: Exact projection baseline and ownership state to track.
+    ///
+    /// # Returns
+    /// Success after the state is retained.
+    ///
+    /// # Errors
+    /// Returns an IO error when durable state cannot be written.
+    pub fn register_state(&mut self, state: super::SyncState) -> Result<(), IoError> {
+        self.states.put(state);
+        self.states.persist()
+    }
+
     /// Borrows current synchronization records.
     ///
     /// The current synchronization state store.
@@ -44,6 +124,10 @@ impl<F: FileSystem> SyncCoordinator<F> {
     }
 
     /// Borrows mutable synchronization records.
+    ///
+    /// Direct changes to a file-backed store must be followed by
+    /// [`MemorySyncStore::persist`]. Prefer [`Self::register_state`] when adding
+    /// a projection so the write result is propagated.
     ///
     /// The mutable synchronization state store.
     /// # Returns
@@ -75,16 +159,11 @@ impl<F: FileSystem> SyncCoordinator<F> {
         let recovery = self.recoveries.find(projection)?;
         Some(ImportRequest {
             projection,
-            specification: state.specification,
-            scope: state.scope,
-            kind: state.kind.clone(),
-            base: recovery.base,
+            baseline: state.baseline.clone(),
             current: recovery.current,
             bytes: recovery.bytes.clone(),
             digest: recovery.external,
             location: recovery.location.clone(),
-            style: state.style.clone(),
-            renderer: state.renderer.clone(),
         })
     }
 
@@ -100,6 +179,21 @@ impl<F: FileSystem> SyncCoordinator<F> {
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn observe(&mut self, event: &Observation) -> Result<Option<ObservationResult>, IoError> {
+        let result = self.observe_inner(event);
+        self.states.persist()?;
+        result
+    }
+
+    /// Applies a watcher hint before the public method persists state.
+    ///
+    /// - `event`: Watcher-neutral observation hint.
+    ///
+    /// # Returns
+    /// The resulting state and optional exact import request.
+    ///
+    /// # Errors
+    /// Returns a filesystem inspection error.
+    fn observe_inner(&mut self, event: &Observation) -> Result<Option<ObservationResult>, IoError> {
         let location = match event {
             Observation::Created(location)
             | Observation::Modified(location)
@@ -138,7 +232,14 @@ impl<F: FileSystem> SyncCoordinator<F> {
             return Ok(None);
         };
         state.observed = Some(digest);
-        if digest == state.rendered {
+        if state.self_write_digest == Some(digest) {
+            return Ok(Some(ObservationResult {
+                status: state.status,
+                import: None,
+            }));
+        }
+        state.self_write_digest = None;
+        if digest == crate::digest_bytes(&state.baseline.rendered.bytes) {
             state.status = ProjectionStatus::Synchronized;
             return Ok(Some(ObservationResult {
                 status: state.status,
@@ -150,16 +251,11 @@ impl<F: FileSystem> SyncCoordinator<F> {
             state.status = ProjectionStatus::ImportPending;
             Some(ImportRequest {
                 projection: state.projection,
-                specification: state.specification,
-                scope: state.scope,
-                kind: state.kind.clone(),
-                base: state.base,
+                baseline: state.baseline.clone(),
                 current: state.current,
                 bytes,
                 digest,
                 location: state.location.clone(),
-                style: state.style.clone(),
-                renderer: state.renderer.clone(),
             })
         } else {
             None
@@ -168,140 +264,6 @@ impl<F: FileSystem> SyncCoordinator<F> {
             status: state.status,
             import,
         }))
-    }
-
-    /// Applies a domain import result without performing semantic mutation.
-    ///
-    /// - `projection`: Projection whose import completed.
-    /// - `completion`: Domain result and exact bytes to synchronize.
-    ///
-    /// Unit after applying the completion.
-    ///
-    /// Returns an IO or ownership error when rerendering cannot complete.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn complete_import(
-        &mut self,
-        projection: ProjectionRef,
-        completion: ImportCompletion,
-    ) -> Result<(), IoError> {
-        match completion {
-            ImportCompletion::NoSemanticChange {
-                request,
-                bytes,
-                base,
-            }
-            | ImportCompletion::Committed {
-                request,
-                bytes,
-                base,
-            } => {
-                self.write_rendered(projection, &bytes, base)?;
-                self.recoveries.remove(request.projection);
-                Ok(())
-            }
-            ImportCompletion::Failed {
-                request,
-                stage,
-                diagnostic,
-            } => {
-                let Some(state) = self.states.find_projection_mut(projection) else {
-                    return Err(IoError::OwnershipDenied);
-                };
-                state.status = ProjectionStatus::ImportFailed;
-                self.recoveries.put(RecoveryRecord {
-                    projection: request.projection,
-                    base: request.base,
-                    current: request.current,
-                    external: request.digest,
-                    location: request.location,
-                    stage,
-                    diagnostics: vec![diagnostic],
-                    bytes: request.bytes,
-                });
-                Ok(())
-            }
-            ImportCompletion::Conflict {
-                request,
-                diagnostic,
-            } => {
-                let Some(state) = self.states.find_projection_mut(projection) else {
-                    return Err(IoError::OwnershipDenied);
-                };
-                state.status = ProjectionStatus::Conflict;
-                self.recoveries.put(RecoveryRecord {
-                    projection: request.projection,
-                    base: request.base,
-                    current: request.current,
-                    external: request.digest,
-                    location: request.location,
-                    stage: FailureStage::Reconcile,
-                    diagnostics: vec![diagnostic],
-                    bytes: request.bytes,
-                });
-                Ok(())
-            }
-        }
-    }
-
-    /// Atomically writes canonical bytes and establishes a synchronization base.
-    ///
-    /// - `projection`: Projection whose output is being written.
-    /// - `bytes`: Exact canonical bytes to write.
-    /// - `base`: Semantic state represented by the written bytes.
-    ///
-    /// Unit after the exact bytes have been written and verified.
-    ///
-    /// Returns an IO or ownership error when writing or verification fails.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn write_rendered(
-        &mut self,
-        projection: ProjectionRef,
-        bytes: &[u8],
-        base: SemanticStateRef,
-    ) -> Result<(), IoError> {
-        let (location, previous_status) = {
-            let Some(state) = self.states.find_projection_mut(projection) else {
-                return Err(IoError::OwnershipDenied);
-            };
-            if !state.ownership.may_write() {
-                return Err(IoError::OwnershipDenied);
-            }
-            let previous_status = state.status;
-            state.status = ProjectionStatus::Rendering;
-            (state.location.clone(), previous_status)
-        };
-        if let Err(error) = self.filesystem.write_atomic(location.path(), bytes) {
-            if let Some(state) = self.states.find_projection_mut(projection) {
-                state.status = previous_status;
-            }
-            return Err(error);
-        }
-        let written = match self.filesystem.read(location.path()) {
-            Ok(written) => written,
-            Err(error) => {
-                if let Some(state) = self.states.find_projection_mut(projection) {
-                    state.status = previous_status;
-                }
-                return Err(error);
-            }
-        };
-        let digest = digest_bytes(&written);
-        let Some(state) = self.states.find_projection_mut(projection) else {
-            return Err(IoError::OwnershipDenied);
-        };
-        state.base = base;
-        state.current = base;
-        state.rendered = digest;
-        state.observed = Some(digest);
-        state.status = ProjectionStatus::Synchronized;
-        self.recoveries.remove(projection);
-        Ok(())
     }
 }
 

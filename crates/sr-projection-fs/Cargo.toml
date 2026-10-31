@@ -11,6 +11,8 @@ repository.workspace = true
 sr-projection = { path = "../sr-projection" }
 scriberig-core = { path = "../scriberig-core" }
 blake3 = "1.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [lints]
 workspace = true

@@ -4,6 +4,9 @@ use crate::{ApplicationContext, ApplicationError};
 use scriberig_core::{EntityId, OperationId, SnapshotId};
 use scriberig_session::{Session, SessionExecutionSelection};
 
+#[path = "session/plan_requests.rs"]
+mod plan_requests;
+
 #[path = "session/plan_mutations.rs"]
 mod plan_mutations;
 pub use plan_mutations::{
@@ -134,161 +137,7 @@ pub struct AgentContinuationAccepted {
     pub branch: EntityId,
 }
 
-/// Describes one proposed node before application identities are allocated.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlanNodeDraft {
-    /// Stable request-local key used by dependency declarations.
-    pub key: String,
-    /// Optional parent draft index; absent nodes attach to the anchor branch.
-    pub parent_index: Option<usize>,
-    /// Human-readable work title.
-    pub title: String,
-    /// Focused work instruction.
-    pub purpose: String,
-    /// Expected provider-neutral result contract.
-    pub expected_result: Option<scriberig_session::ExpectedResult>,
-    /// Semantic handles selected for this work.
-    pub semantic_scope: Vec<String>,
-    /// Optional safe model-library assignment.
-    pub assignment: Option<scriberig_session::ModelAssignment>,
-}
-
-/// Requests durable plan creation at an exact session anchor.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlanCreateRequest {
-    /// Owning session identity.
-    pub session: EntityId,
-    /// Exact conversation location where the plan is created.
-    pub anchor: scriberig_session::ContinuationAnchor,
-    /// Durable plan goal.
-    pub goal: String,
-    /// Structured untrusted proposal nodes.
-    pub nodes: Vec<PlanNodeDraft>,
-    /// Dependency index pairs `(prerequisite, dependent)`.
-    pub dependencies: Vec<(usize, usize)>,
-}
-
-/// Requests one optimistic plan lifecycle mutation.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlanLifecycleRequest {
-    /// Owning session identity.
-    pub session: EntityId,
-    /// Stable plan identity.
-    pub plan: EntityId,
-    /// Plan revision observed by the caller.
-    pub expected_revision: u64,
-}
-
-/// Requests an optimistic retry of one durably failed plan node.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlanRetryRequest {
-    /// Owning session identity.
-    pub session: EntityId,
-    /// Stable plan identity.
-    pub plan: EntityId,
-    /// Stable plan-node identity.
-    pub node: EntityId,
-    /// Plan revision observed by the caller.
-    pub expected_revision: u64,
-}
-
-/// Requests a bounded page of worker attempts at an exact plan snapshot.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlanAttemptHistoryRequest {
-    /// Owning session identity.
-    pub session: EntityId,
-    /// Stable plan identity.
-    pub plan: EntityId,
-    /// Stable plan-node identity.
-    pub node: EntityId,
-    /// Exact semantic snapshot to resolve.
-    pub snapshot: SnapshotId,
-    /// Number of matching attempts to skip in stable order.
-    pub offset: usize,
-    /// Maximum number of matching attempts to return.
-    pub limit: usize,
-}
-
-/// Requests a bounded page of gate and evidence details at an exact snapshot.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlanNodeDetailsRequest {
-    /// Owning session identity.
-    pub session: EntityId,
-    /// Stable plan identity.
-    pub plan: EntityId,
-    /// Stable plan-node identity.
-    pub node: EntityId,
-    /// Exact semantic snapshot to resolve.
-    pub snapshot: SnapshotId,
-    /// Number of matching records to skip in each category.
-    pub offset: usize,
-    /// Maximum gates and evidence records returned in each category.
-    pub limit: usize,
-}
-
-/// Selects a durable lifecycle transition for a plan.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PlanLifecycleAction {
-    /// Enables auto-advancing coordination.
-    Start,
-    /// Pauses dispatch while preserving plan state.
-    Pause,
-    /// Resumes dispatch for a paused plan.
-    Resume,
-    /// Stops auto-advancement.
-    Stop,
-    /// Completes only after explicit durable node results are present.
-    Complete,
-}
-
-/// Requests a safe model assignment change for one plan node.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlanAssignmentRequest {
-    /// Owning session identity.
-    pub session: EntityId,
-    /// Stable plan identity.
-    pub plan: EntityId,
-    /// Stable plan-node identity.
-    pub node: EntityId,
-    /// Plan revision observed by the caller.
-    pub expected_revision: u64,
-    /// New library-validated assignment, or `None` to inherit defaults.
-    pub assignment: Option<scriberig_session::ModelAssignment>,
-}
-
-/// Identifies an existing or newly proposed node in a replan request.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PlanNodeReference {
-    /// Existing durable node identity.
-    Existing(EntityId),
-    /// Request-local key for a proposed node.
-    Proposed(String),
-}
-
-/// Requests one optimistic durable plan revision.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlanReplanRequest {
-    /// Owning session identity.
-    pub session: EntityId,
-    /// Stable plan identity.
-    pub plan: EntityId,
-    /// Plan revision observed by the caller.
-    pub expected_revision: u64,
-    /// New structured nodes to append.
-    pub additions: Vec<PlanNodeDraft>,
-    /// Explicit dependency references `(prerequisite, dependent)`.
-    pub dependencies: Vec<(PlanNodeReference, PlanNodeReference)>,
-    /// Existing dependency edges to remove explicitly.
-    pub removed_dependencies: Vec<(EntityId, EntityId)>,
-    /// Existing node and proposed replacement key pairs.
-    pub superseded: Vec<(EntityId, String)>,
-    /// Safe assignment changes for existing unstarted nodes.
-    pub assignment_changes: Vec<(EntityId, Option<scriberig_session::ModelAssignment>)>,
-    /// Completed terminal node identities that the proposal preserves.
-    pub preserved_terminal_nodes: Vec<EntityId>,
-    /// Safe explanation or trigger recorded in revision history.
-    pub reason: String,
-}
+pub use plan_requests::*;
 
 /// Identifies the exact semantic scope supplied to an agent.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -341,6 +190,6 @@ pub use backend::SessionBackend;
 #[path = "session/agent_console.rs"]
 mod agent_console;
 pub use agent_console::{
-    AgentConsoleBackend, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
-    ToolResultDetail,
+    AgentConsoleBackend, LegacyExecutionMappingRequest, LegacyPlanAssignmentMappingRequest,
+    SessionModelSelectionRequest, SessionThinkingSelectionRequest, ToolResultDetail,
 };

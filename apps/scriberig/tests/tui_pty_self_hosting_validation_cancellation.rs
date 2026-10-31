@@ -1,7 +1,5 @@
 //! Verifies cancellation terminates isolated candidate validation in the native product.
 
-#[path = "tui_pty_support/onboarding_wait.rs"]
-mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -11,12 +9,12 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use onboarding_wait::wait_for_onboarding;
 use scriberig_core::EntityId;
 use scriberig_project::ProjectService;
 use scriberig_session::{BranchStatus, SessionStore};
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
+use tui_pty_support::onboarding_wait::wait_for_onboarding;
 use tui_pty_support::{TuiPty, test_lock};
 
 /// Cancels the real TUI while Cargo validates an isolated project candidate.
@@ -24,7 +22,7 @@ use tui_pty_support::{TuiPty, test_lock};
 fn tui_cancels_php_validation_without_project_or_live_source_mutation() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_self_hosting();
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
     let scanner =
@@ -200,7 +198,7 @@ fn is_candidate_validation_workspace(root: &Path) -> bool {
 /// - `tui`: Active product process.
 fn cancel_active_agent(tui: &mut TuiPty) {
     tui.send_slow(b"/operations\r");
-    assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Operation:"), "{}", tui.diagnostic());
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
         "{}",

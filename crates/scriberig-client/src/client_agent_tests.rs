@@ -5,6 +5,9 @@ use std::sync::{Arc, Mutex};
 use super::*;
 use scriberig_protocol::{ProtocolVersion, RequestEnvelope, ResponseEnvelope};
 
+#[path = "client_agent_recovery_tests.rs"]
+mod recovery_tests;
+
 /// Returns a fixed response and records the semantic request.
 #[derive(Clone)]
 struct FixtureTransport {
@@ -60,85 +63,6 @@ fn empty_plan() -> scriberig_protocol::SessionPlan {
         coordinator_claim: None,
         history: Vec::new(),
     }
-}
-
-/// Sends bounded plan attempt-history requests and returns the typed page.
-#[test]
-fn plan_attempt_history_method_preserves_snapshot_and_page_fields() {
-    let observed = Arc::new(Mutex::new(None));
-    let client = Client::new(FixtureTransport {
-        response: Response::PlanAttemptHistory(scriberig_protocol::SessionPlanAttemptHistoryPage {
-            offset: 4,
-            attempts: Vec::new(),
-        }),
-        request: Arc::clone(&observed),
-    });
-
-    let page = client
-        .plan_attempt_history(scriberig_protocol::SessionPlanAttemptHistoryRequest {
-            session: scriberig_protocol::SessionReference {
-                id: "session-1".to_owned(),
-            },
-            plan: "plan-1".to_owned(),
-            node: "node-1".to_owned(),
-            snapshot: "snapshot-1".to_owned(),
-            offset: 4,
-            limit: 12,
-        })
-        .expect("attempt page");
-
-    assert_eq!(page.offset, 4);
-    assert_eq!(
-        page.attempts,
-        [] as [scriberig_protocol::SessionPlanAttempt; 0]
-    );
-    assert!(matches!(
-        observed.lock().expect("request").as_ref(),
-        Some(Request::PlanAttemptHistory(request))
-            if request.snapshot == "snapshot-1" && request.offset == 4 && request.limit == 12
-    ));
-}
-
-/// Sends bounded node gate/evidence requests and preserves their page fields.
-#[test]
-fn plan_node_details_method_preserves_snapshot_and_page_fields() {
-    let observed = Arc::new(Mutex::new(None));
-    let client = Client::new(FixtureTransport {
-        response: Response::PlanNodeDetails(scriberig_protocol::SessionPlanNodeDetailsPage {
-            offset: 3,
-            gates: Vec::new(),
-            evidence: Vec::new(),
-        }),
-        request: Arc::clone(&observed),
-    });
-
-    let page = client
-        .plan_node_details(scriberig_protocol::SessionPlanNodeDetailsRequest {
-            session: scriberig_protocol::SessionReference {
-                id: "session-1".to_owned(),
-            },
-            plan: "plan-1".to_owned(),
-            node: "node-1".to_owned(),
-            snapshot: "snapshot-1".to_owned(),
-            offset: 3,
-            limit: 12,
-        })
-        .expect("node details page");
-
-    assert_eq!(page.offset, 3);
-    assert_eq!(
-        page.gates,
-        Vec::<scriberig_protocol::SessionPlanGate>::new()
-    );
-    assert_eq!(
-        page.evidence,
-        Vec::<scriberig_protocol::SessionPlanEvidenceAssociation>::new()
-    );
-    assert!(matches!(
-        observed.lock().expect("request").as_ref(),
-        Some(Request::PlanNodeDetails(request))
-            if request.snapshot == "snapshot-1" && request.offset == 3 && request.limit == 12
-    ));
 }
 
 /// Verifies semantic selection calls use revision-bearing protocol requests.
@@ -199,6 +123,11 @@ fn domain_operation_uses_exact_protocol_command_payload() {
         },
         revision: None,
         branch: None,
+        projection_anchor: Some(scriberig_protocol::ProjectionAnchor::SpreadsheetCell {
+            worksheet_id: "worksheet-exact".to_owned(),
+            row: 4,
+            column: 2,
+        }),
         arguments: [("name".to_owned(), serde_json::json!("greet"))]
             .into_iter()
             .collect(),
@@ -210,6 +139,10 @@ fn domain_operation_uses_exact_protocol_command_payload() {
     assert_eq!(request.kind, "domain_operation");
     assert_eq!(request.payload["entity"]["id"], "entity-exact");
     assert_eq!(request.payload["snapshot"]["id"], "snapshot-exact");
+    assert_eq!(
+        request.payload["projection_anchor"]["worksheetId"],
+        "worksheet-exact"
+    );
 }
 
 /// Sends application allocated new-session requests without local identities.
@@ -230,6 +163,39 @@ fn new_session_request_uses_explicit_protocol_variant() {
         observed.lock().expect("request").as_ref(),
         Some(Request::AgentNewSession(request)) if request.prompt == "start"
     ));
+}
+
+/// Keeps spreadsheet and CRS-aware feature selections identical across client requests.
+#[test]
+fn agent_selection_normalization_matches_shared_cross_surface_fixture() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/agent-selection-normalization.json"
+    ))
+    .expect("shared selection normalization fixture");
+    for case in fixture["cases"].as_array().expect("selection cases") {
+        let selection: scriberig_protocol::AgentSelection =
+            serde_json::from_value(case["wire"].clone()).expect("valid protocol selection");
+        let observed = Arc::new(Mutex::new(None));
+        let client = Client::new(FixtureTransport {
+            response: Response::Error(scriberig_protocol::ProtocolError {
+                code: scriberig_protocol::ProtocolErrorCode::UnsupportedOperation,
+                message: "fixture response".to_owned(),
+                details: None,
+                correlation_id: None,
+            }),
+            request: Arc::clone(&observed),
+        });
+        let _ = client.start_new_session_agent("inspect selection", Some(selection.clone()));
+
+        assert!(matches!(
+            observed.lock().expect("recorded request").as_ref(),
+            Some(Request::AgentNewSession(request)) if request.selection.as_ref() == Some(&selection)
+        ));
+        assert_eq!(
+            serde_json::to_value(selection).expect("serialized protocol selection"),
+            case["wire"]
+        );
+    }
 }
 
 /// Sends exact anchor identity in a dedicated remote continuation request.
@@ -257,12 +223,8 @@ fn exact_continuation_request_keeps_historical_anchor() {
     ));
 }
 
+/// Uses typed plan creation, lifecycle, and assignment protocol operations.
 #[test]
-#[expect(
-    clippy::too_many_lines,
-    reason = "The test exercises each typed plan client request through one fixture."
-)]
-/// Uses typed plan creation, lifecycle, assignment, and retry operations.
 fn plan_client_methods_send_shared_application_requests() {
     let observed = Arc::new(Mutex::new(None));
     let client = Client::new(FixtureTransport {
@@ -320,82 +282,20 @@ fn plan_client_methods_send_shared_application_requests() {
     ));
     assert!(
         client
-            .retry_plan_node(scriberig_protocol::SessionPlanRetryRequest {
+            .mutate_plan(scriberig_protocol::SessionPlanMutationRequest {
                 session: SessionReference {
                     id: "session-1".to_owned(),
                 },
                 plan: "plan-1".to_owned(),
-                node: "node-1".to_owned(),
                 expected_revision: 2,
+                mutation: scriberig_protocol::SessionPlanMutation::RecoverFailedPlan,
             })
             .is_ok()
     );
     assert!(matches!(
         observed.lock().expect("request").as_ref(),
-        Some(Request::PlanRetry(_))
-    ));
-    assert!(
-        client
-            .add_plan_next_step(scriberig_protocol::SessionPlanNextStepRequest {
-                session: SessionReference {
-                    id: "session-1".to_owned(),
-                },
-                plan: "plan-1".to_owned(),
-                expected_revision: 3,
-                title: "next".to_owned(),
-                purpose: "do follow-up work".to_owned(),
-                expected_result: None,
-                semantic_scope: Vec::new(),
-                assignment: None,
-            })
-            .is_ok()
-    );
-    assert!(matches!(
-        observed.lock().expect("request").as_ref(),
-        Some(Request::PlanNextStep(_))
-    ));
-    assert!(
-        client
-            .decompose_plan_node(scriberig_protocol::SessionPlanDecomposeRequest {
-                session: SessionReference {
-                    id: "session-1".to_owned(),
-                },
-                plan: "plan-1".to_owned(),
-                parent: "node-1".to_owned(),
-                expected_revision: 4,
-                children: vec![scriberig_protocol::SessionPlanChildDraft {
-                    title: "child".to_owned(),
-                    purpose: "work".to_owned(),
-                    expected_result: None,
-                    semantic_scope: Vec::new(),
-                    assignment: None,
-                }],
-                required: true,
-            })
-            .is_ok()
-    );
-    assert!(matches!(
-        observed.lock().expect("request").as_ref(),
-        Some(Request::PlanDecompose(_))
-    ));
-    assert!(
-        client
-            .mutate_plan_semantics(scriberig_protocol::SessionPlanSemanticMutationRequest {
-                session: SessionReference {
-                    id: "session-1".to_owned(),
-                },
-                plan: "plan-1".to_owned(),
-                expected_revision: 5,
-                mutation: scriberig_protocol::SessionPlanSemanticMutation::UpdateSummary {
-                    node: "node-1".to_owned(),
-                    text: "Progress summary".to_owned(),
-                    sources: Vec::new(),
-                },
-            },)
-            .is_ok()
-    );
-    assert!(matches!(
-        observed.lock().expect("request").as_ref(),
-        Some(Request::PlanSemanticMutation(_))
+        Some(Request::PlanMutation(request))
+            if request.expected_revision == 2
+                && request.mutation == scriberig_protocol::SessionPlanMutation::RecoverFailedPlan
     ));
 }

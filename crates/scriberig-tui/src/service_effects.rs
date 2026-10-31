@@ -6,9 +6,14 @@ use super::{
     ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult,
     execute_operation_effect,
 };
-use crate::{action::Action, effect::Effect, inspector::InspectorModel, service::TuiService};
+use crate::{action::Action, effect::Effect, service::TuiService};
 use scriberig_core::EntityId;
 use scriberig_session::Session;
+
+#[path = "service_effects_recovery.rs"]
+mod recovery;
+#[path = "service_effects_rich.rs"]
+mod rich;
 
 /// Supplies shared application operations to semantic TUI views.
 pub trait TuiOperationService {
@@ -38,39 +43,11 @@ pub fn execute_effect<S: TuiService>(
     context: &ApplicationContext,
     effect: Effect,
 ) -> Action {
+    let effect = match rich::execute(service, context, effect) {
+        Ok(action) => return action,
+        Err(effect) => *effect,
+    };
     match effect {
-        Effect::InspectEntity {
-            request_id,
-            entity,
-            snapshot,
-        } => match service.inspect_entity(context, entity, snapshot) {
-            Ok(result) => Action::InspectSucceeded {
-                request_id,
-                model: InspectorModel::from_result(result),
-            },
-            Err(error) => Action::InspectFailed {
-                request_id,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            },
-        },
-        Effect::ListExplorer {
-            request_id,
-            entity,
-            snapshot,
-            continuation,
-        } => service
-            .list_explorer(context, entity, snapshot, continuation)
-            .map(|page| Action::ExplorerSucceeded {
-                request_id,
-                rows: page.rows,
-                next: page.next,
-            })
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
         Effect::RequestCapabilities => match service.runtime_capabilities(context) {
             Ok(capabilities) => Action::CapabilitiesLoaded(capabilities),
             Err(error) => Action::InspectFailed {
@@ -136,6 +113,9 @@ pub fn execute_effect<S: TuiService>(
                 category: error.category().to_owned(),
                 message: crate::inspector::sanitize(&error.to_string()),
             }),
+        effect @ (Effect::LegacyRecoveryList { .. } | Effect::LegacyRecoveryMap { .. }) => {
+            recovery::execute(service, context, effect)
+        }
         Effect::ListSessions => service
             .list_sessions(context)
             .map(Action::SessionsListed)
@@ -275,40 +255,16 @@ pub fn execute_effect<S: TuiService>(
                 category: error.category().to_owned(),
                 message: crate::inspector::sanitize(&error.to_string()),
             }),
+        Effect::PlanMutation(request) => service
+            .mutate_plan(context, &request)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
         Effect::SetPlanNodeAssignment(request) => service
             .set_plan_node_assignment(context, &request)
-            .map(Action::PlanUpdated)
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id: 0,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
-        Effect::RetryPlanNode(request) => service
-            .retry_plan_node(context, &request)
-            .map(Action::PlanUpdated)
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id: 0,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
-        Effect::AddPlanNextStep(request) => service
-            .add_plan_next_step(context, &request)
-            .map(Action::PlanUpdated)
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id: 0,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
-        Effect::DecomposePlanNode(request) => service
-            .decompose_plan_node(context, &request)
-            .map(Action::PlanUpdated)
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id: 0,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
-        Effect::MutatePlanSemantics(request) => service
-            .mutate_plan_semantics(context, &request)
             .map(Action::PlanUpdated)
             .unwrap_or_else(|error| Action::OperationFailed {
                 request_id: 0,
@@ -361,6 +317,7 @@ pub fn execute_effect<S: TuiService>(
             message: format!("semantic action is not available through this TUI service: {id}"),
         },
         Effect::None => Action::Noop,
+        _ => unreachable!("rich-domain effects are dispatched before this match"),
     }
 }
 

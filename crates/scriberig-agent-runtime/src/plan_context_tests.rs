@@ -1,15 +1,57 @@
 //! Verifies plan-worker roles follow canonical session branch topology.
 
 use super::PlanWorkerContext;
-use crate::context::BranchRole;
+use crate::context::compact_branch_result;
+use crate::context::{BranchExecutionContext, BranchRole, ContextCompiler, ContextPolicy};
 use scriberig_core::EntityId;
 use scriberig_session::{
-    Branch, ContinuationAnchor, Plan, PlanNode, PlanNodeParent, PlanNodeStatus, Session,
-    WorkerClaim,
+    Branch, BranchResult, BranchStatus, ContinuationAnchor, Plan, PlanNode, PlanNodeParent,
+    PlanNodeStatus, Session, WorkerClaim,
 };
 
-/// Uses persisted branch parents even when plan-node nesting differs.
+/// Keeps oversized durable branch summaries bounded in compiled worker context.
 #[test]
+fn compiled_plan_context_compacts_large_branch_results() {
+    let result = BranchResult {
+        id: EntityId::from_bytes([41; 16]),
+        branch: EntityId::from_bytes([42; 16]),
+        status: BranchStatus::Completed,
+        summary: Some(format!("{}TAIL_SENTINEL", "x".repeat(4096))),
+        result_kind: Some("plan-worker".to_owned()),
+        candidate_context: None,
+        references: Vec::new(),
+        result_handles: (0..80)
+            .map(|index| match index % 2 {
+                0 => format!("spreadsheet-cell:{index}"),
+                _ => format!("geo-feature:{index}"),
+            })
+            .collect(),
+        touched: Vec::new(),
+        produced_changes: Vec::new(),
+        validations: Vec::new(),
+        unresolved_questions: Vec::new(),
+    };
+    let inputs = BranchExecutionContext::new("session", "worker", "purpose", "instruction")
+        .with_ancestor_result(compact_branch_result(&result));
+    let compiled = ContextCompiler::new(ContextPolicy::default()).compile(&inputs);
+
+    assert!(compiled.canonical.contains("[summary truncated]"));
+    assert!(!compiled.canonical.contains("TAIL_SENTINEL"));
+    assert_eq!(inputs.ancestor_results[0].semantic_handles.len(), 32);
+    assert!(compiled.canonical.contains("spreadsheet-cell:0"));
+    assert!(compiled.canonical.contains("geo-feature:1"));
+    assert!(!compiled.canonical.contains("spreadsheet-cell:78"));
+    assert!(!compiled.canonical.contains("geo-feature:79"));
+    assert!(result.summary.as_ref().unwrap().contains("TAIL_SENTINEL"));
+    assert!(compiled.canonical.chars().count() < 16_000);
+}
+
+#[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "The regression checks the full compiled context boundary for one claimed plan worker and its exact branch role."
+)]
+/// Uses persisted branch parents even when plan-node nesting differs.
 fn plan_worker_role_comes_from_claimed_branch_parent() {
     let session_id = EntityId::from_bytes([1; 16]);
     let root_branch = EntityId::from_bytes([2; 16]);
@@ -83,12 +125,24 @@ fn plan_worker_role_comes_from_claimed_branch_parent() {
     let root_claim = worker_claim(root_worker_node, root_worker_branch);
     let child_claim = worker_claim(child_worker_node, child_worker_branch);
 
-    let root_context = PlanWorkerContext::from_plan(&session, &plan, &plan.nodes[1], &root_claim)
-        .expect("root worker context");
+    let mut exact_profile = crate::profile::bootstrap_default_agent_profile();
+    exact_profile.reference.revision = "captured-profile-revision".to_owned();
+    let root_context = PlanWorkerContext::from_plan_with_profile(
+        &session,
+        &plan,
+        &plan.nodes[1],
+        &root_claim,
+        Some(&exact_profile),
+    )
+    .expect("root worker context");
     let child_context = PlanWorkerContext::from_plan(&session, &plan, &plan.nodes[2], &child_claim)
         .expect("child worker context");
 
     assert_eq!(root_context.inputs.branch_role, BranchRole::Root);
+    assert_eq!(
+        root_context.compiled.profile, exact_profile.reference,
+        "plan-worker context must retain the profile revision captured by its coordinator"
+    );
     assert_eq!(
         child_context.inputs.branch_role,
         BranchRole::NonRoot {

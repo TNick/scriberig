@@ -23,46 +23,39 @@ pub(super) fn from_response(
         .coordinator_claim
         .as_ref()
         .map_or(0, |claim| claim.generation);
-    let source_snapshot = value
-        .snapshot
-        .as_deref()
-        .map(super::parse_snapshot)
-        .transpose()?;
-    let nodes = value
-        .nodes
-        .into_iter()
-        .map(node)
-        .collect::<Result<Vec<_>, _>>()?;
-    let root_branch = parse_entity(&value.root_branch)?;
-    let root_nodes = if value.root_nodes.is_empty() {
-        nodes
-            .iter()
-            .filter(|node| {
-                node.parent == Some(scriberig_session::PlanNodeParent::Branch(root_branch))
-            })
-            .map(|node| node.id)
-            .collect()
-    } else {
-        value
-            .root_nodes
-            .iter()
-            .map(|identity| parse_entity(identity))
-            .collect::<Result<Vec<_>, _>>()?
-    };
     Ok(scriberig_session::Plan {
         id: parse_entity(&value.id)?,
-        source_snapshot,
+        source_snapshot: semantics::snapshot(value.snapshot.as_deref())?,
         session: None,
         anchor: value.anchor.map(anchor).transpose()?,
         goal: value.goal,
         revision: value.revision,
         status: plan_status(value.status),
-        root_branch,
-        nodes,
+        root_branch: parse_entity(&value.root_branch)?,
+        nodes: value
+            .nodes
+            .into_iter()
+            .map(node)
+            .collect::<Result<Vec<_>, _>>()?,
         dependencies: value
             .dependencies
             .iter()
             .map(dependency)
+            .collect::<Result<Vec<_>, _>>()?,
+        summaries: value
+            .summaries
+            .into_iter()
+            .map(semantics::summary)
+            .collect::<Result<Vec<_>, _>>()?,
+        evidence: value
+            .evidence
+            .into_iter()
+            .map(semantics::evidence)
+            .collect::<Result<Vec<_>, _>>()?,
+        gates: value
+            .gates
+            .into_iter()
+            .map(semantics::gate)
             .collect::<Result<Vec<_>, _>>()?,
         coordinator: value.coordinator.as_deref().map(parse_entity).transpose()?,
         coordinator_cursor: value
@@ -89,21 +82,10 @@ pub(super) fn from_response(
             })
             .transpose()?,
         coordinator_generation,
-        root_nodes,
-        summaries: value
-            .summaries
-            .into_iter()
-            .map(semantics::summary)
-            .collect::<Result<Vec<_>, _>>()?,
-        evidence: value
-            .evidence
-            .into_iter()
-            .map(semantics::evidence)
-            .collect::<Result<Vec<_>, _>>()?,
-        gates: value
-            .gates
-            .into_iter()
-            .map(semantics::gate)
+        root_nodes: value
+            .root_nodes
+            .iter()
+            .map(|identity| parse_entity(identity))
             .collect::<Result<Vec<_>, _>>()?,
         history: value
             .history
@@ -214,7 +196,7 @@ fn node(
             .as_deref()
             .map(parse_entity)
             .transpose()?,
-        abandon_reason: value.abandon_reason.map(semantics::abandon_reason),
+        abandon_reason: semantics::abandon_reason(value.abandon_reason),
         last_failure: value
             .last_failure
             .map(semantics::evidence_reference)

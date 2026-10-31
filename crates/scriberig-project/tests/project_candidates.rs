@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use scriberig_project::{
     ProjectService, ProjectSourceChange, ProjectSourceChangeKind, ProjectSourceEffectKind,
+    ProjectSourceObservation, ProjectSourceObservationResult,
 };
 use scriberig_store_sqlite::SqliteStore;
 
@@ -243,8 +244,35 @@ fn project_candidate_delete_remains_a_reviewable_effect() {
     assert_ne!(report.successor_snapshot, snapshot);
     assert!(!root.join("src/obsolete.rs").exists());
     assert_eq!(
+        workflow
+            .handle_source_observation(project, "src/obsolete.rs", None)
+            .expect("classify committed deletion"),
+        ProjectSourceObservationResult {
+            observation: ProjectSourceObservation::SelfWrite,
+            imported_snapshot: None,
+        }
+    );
+    assert_eq!(
         fs::read_to_string(root.join("src/lib.rs")).expect("updated live source"),
         candidate_source
+    );
+    let external_source = b"pub fn externally_changed() {}\n";
+    fs::write(&lib_path, external_source).expect("external source change");
+    let external_digest = *blake3::hash(external_source).as_bytes();
+    let observation = workflow
+        .handle_source_observation(project, "src/lib.rs", Some(external_digest))
+        .expect("import external source event");
+    assert_eq!(
+        observation.observation,
+        ProjectSourceObservation::ExternalChange
+    );
+    assert!(observation.imported_snapshot.is_some());
+    assert_eq!(
+        workflow
+            .workspace(project)
+            .expect("updated workspace")
+            .snapshot,
+        observation.imported_snapshot.expect("imported snapshot")
     );
 }
 

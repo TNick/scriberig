@@ -292,6 +292,8 @@ pub enum PlanError {
     StaleRollupIndex,
 }
 
+#[path = "planning/plan_completion.rs"]
+mod plan_completion;
 #[path = "planning/plan_coordinator.rs"]
 mod plan_coordinator;
 #[path = "planning/plan_definition.rs"]
@@ -304,7 +306,7 @@ mod plan_readiness;
 mod plan_requirement_types;
 #[path = "planning/plan_requirements.rs"]
 mod plan_requirements;
-#[path = "planning/plan_views/mod.rs"]
+#[path = "planning/plan_views.rs"]
 mod plan_views;
 #[path = "planning/plan_workers.rs"]
 mod plan_workers;
@@ -314,3 +316,4 @@ pub mod semantic;
 pub use plan_requirement_types::*;
 pub use plan_requirements::{PlanNodeRollup, PlanNodeRollupIndex, PlanNodeStatusCounts};
 pub use plan_views::{PlanGateCounts, PlanNodeView, PlanView};
+pub use semantic::{PlanSemanticAttempt, PlanSemanticNodeDetails};

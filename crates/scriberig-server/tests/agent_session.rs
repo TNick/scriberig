@@ -10,7 +10,8 @@ use scriberig_protocol::{
     OperationStatusRequest, ProtocolVersion, Request, RequestEnvelope, Response,
     RuntimeCapabilitiesRequest, SessionContinuationAnchor, SessionPlanAction,
     SessionPlanAssignmentRequest, SessionPlanCreateRequest, SessionPlanLifecycleRequest,
-    SessionPlanNodeDraft, SessionReadRequest, SessionReference, SubscribeRequest,
+    SessionPlanMutation, SessionPlanMutationRequest, SessionPlanNodeDraft, SessionReadRequest,
+    SessionReference, SubscribeRequest,
 };
 use scriberig_server::Dispatcher;
 
@@ -46,7 +47,20 @@ impl ApplicationBackend for Fixture {
 #[allow(clippy::too_many_lines)]
 fn agent_start_returns_inspectable_branch() {
     let dispatcher = Dispatcher::new(ApplicationService::new(Fixture));
-    let session = "ent_01010101010101010101010101010101".to_owned();
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/conformance/fixtures/agent-operation.json"
+    ))
+    .expect("shared browser/server agent fixture");
+    let session = fixture["request"]["sessionId"]
+        .as_str()
+        .expect("fixture session")
+        .to_owned();
+    let prompt = fixture["request"]["prompt"]
+        .as_str()
+        .expect("fixture prompt");
+    let expected_output = fixture["expected"]["finalOutput"]
+        .as_str()
+        .expect("fixture final output");
     let response = dispatcher.dispatch(RequestEnvelope {
         version: ProtocolVersion::default(),
         correlation_id: "start".to_owned(),
@@ -54,7 +68,7 @@ fn agent_start_returns_inspectable_branch() {
             session: SessionReference {
                 id: session.clone(),
             },
-            prompt: "inspect".to_owned(),
+            prompt: prompt.to_owned(),
             selection: None,
         }),
     });
@@ -71,7 +85,7 @@ fn agent_start_returns_inspectable_branch() {
                 .agent_result
                 .expect("terminal agent result");
             assert_eq!(result.session.id, session);
-            assert_eq!(result.final_output, "inspect");
+            assert_eq!(result.final_output, expected_output);
             (
                 value.operation.operation.reference.id,
                 value.branch.expect("root branch handle"),
@@ -108,7 +122,7 @@ fn agent_start_returns_inspectable_branch() {
             assert_eq!(value.branches[0].turns.len(), 1);
             assert_eq!(
                 value.branches[0].turns[0].agent_output.as_deref(),
-                Some("inspect")
+                Some(expected_output)
             );
         }
         other => panic!("unexpected response: {other:?}"),
@@ -277,6 +291,10 @@ fn model_selection_mutation_round_trips_through_server() {
     assert_eq!(session.execution, selection);
 }
 
+#[path = "agent_session_parts/attempts.rs"]
+mod attempts;
+#[path = "agent_session_parts/details.rs"]
+mod details;
 #[path = "agent_session_parts/part1.rs"]
 mod part1;
 

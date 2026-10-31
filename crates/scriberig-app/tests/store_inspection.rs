@@ -8,7 +8,10 @@ use scriberig_app::{
     SnapshotResolution, StoreInspectionBackend,
 };
 use scriberig_core::{EncodingVersion, EntityId, ObjectType};
-use scriberig_store::{Revision, RevisionStore, RootStore, SnapshotChange, SnapshotStore};
+use scriberig_store::{
+    Revision, RevisionStore, RootStore, SnapshotChange, SnapshotRelation, SnapshotRelationChange,
+    SnapshotStore,
+};
 use scriberig_store_memory::MemoryStore;
 
 /// Creates an application context with project-wide inspection authority.
@@ -34,6 +37,7 @@ fn context() -> ApplicationContext {
 fn store_backed_inspection_resolves_revision_and_snapshot() {
     let store = MemoryStore::new();
     let entity = EntityId::from_bytes([7; 16]);
+    let referenced = EntityId::from_bytes([8; 16]);
     let revision = Revision::new(
         EncodingVersion::V1,
         ObjectType::new("test.entity").expect("valid type"),
@@ -45,9 +49,22 @@ fn store_backed_inspection_resolves_revision_and_snapshot() {
     let snapshot = store
         .apply_changes(
             store.empty_snapshot(),
-            &[SnapshotChange::Set(entity, revision_id)],
+            &[
+                SnapshotChange::Set(entity, revision_id),
+                SnapshotChange::Set(referenced, revision_id),
+            ],
         )
         .expect("snapshot");
+    let snapshot = store
+        .apply_relation_changes(
+            snapshot,
+            &[SnapshotRelationChange::Add(SnapshotRelation::new(
+                entity,
+                ObjectType::new("document.references").expect("relation type"),
+                referenced,
+            ))],
+        )
+        .expect("relation snapshot");
     store
         .compare_and_set_root(
             scriberig_core::RootName::new("main").expect("root"),
@@ -71,4 +88,9 @@ fn store_backed_inspection_resolves_revision_and_snapshot() {
     assert_eq!(result.entity, entity);
     assert_eq!(result.revision, Some(revision_id));
     assert_eq!(result.snapshot, Some(snapshot));
+    assert!(
+        result
+            .capabilities
+            .contains(&"document.references".to_owned())
+    );
 }

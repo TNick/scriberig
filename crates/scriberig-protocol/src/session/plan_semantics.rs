@@ -2,8 +2,9 @@
 
 use super::plan::{
     SessionContinuationAnchor, SessionCoordinatorClaim, SessionPlanDependency, SessionPlanNode,
-    SessionPlanStatus,
+    SessionPlanNodeDraft, SessionPlanStatus,
 };
+use crate::SessionReference;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -94,49 +95,6 @@ pub struct SessionPlanEvidenceReference {
     /// Safe bounded attributes used by typed requirements.
     #[serde(default)]
     pub attributes: BTreeMap<String, String>,
-}
-
-/// One immutable worker-attempt revision projected for a client.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct SessionPlanAttempt {
-    /// Stable semantic attempt identity.
-    pub id: String,
-    /// Exact immutable attempt revision.
-    pub exact_revision: String,
-    /// Stable plan-node identity.
-    pub node: String,
-    /// Isolated session branch for the attempt.
-    pub branch: String,
-    /// Monotonic attempt generation for the node.
-    pub claim_generation: u64,
-    /// Worker claim identity retained for provenance.
-    pub claim: Option<String>,
-    /// Latest durable outcome.
-    pub status: super::plan::SessionPlanNodeStatus,
-    /// Accepted successful result identity, when completed.
-    pub result: Option<String>,
-    /// Exact failure evidence, when failed.
-    pub failure: Option<SessionPlanEvidenceReference>,
-}
-
-/// Returns one bounded page of node attempts from an exact snapshot.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct SessionPlanAttemptHistoryPage {
-    /// Offset used to select this page.
-    pub offset: usize,
-    /// Attempts ordered by claim generation.
-    pub attempts: Vec<SessionPlanAttempt>,
-}
-
-/// Returns one bounded page of node gates and associated evidence.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct SessionPlanNodeDetailsPage {
-    /// Offset used to select each category's page.
-    pub offset: usize,
-    /// Gates owned by the selected node.
-    pub gates: Vec<SessionPlanGate>,
-    /// Evidence associated with the node or its gates.
-    pub evidence: Vec<SessionPlanEvidenceAssociation>,
 }
 
 /// Identifies whether evidence supports, contradicts, or informs an owner.
@@ -358,4 +316,79 @@ pub struct SessionPlan {
     /// Immutable earlier plan revisions.
     #[serde(default)]
     pub history: Vec<SessionPlanRevision>,
+}
+
+/// Applies one typed optimistic mutation to a durable plan.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionPlanMutationRequest {
+    /// Owning session identity.
+    pub session: SessionReference,
+    /// Stable plan identity.
+    pub plan: String,
+    /// Plan revision observed by the caller.
+    pub expected_revision: u64,
+    /// Semantic operation to apply.
+    pub mutation: SessionPlanMutation,
+}
+
+/// Selects a mutation supported by shared plan semantics.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub enum SessionPlanMutation {
+    /// Appends ordinary work to a running plan.
+    AddNextStep {
+        /// Structured proposed work node.
+        node: SessionPlanNodeDraft,
+    },
+    /// Adds structural children and optional completion obligations.
+    Decompose {
+        /// Existing structural parent.
+        parent: String,
+        /// New child work nodes.
+        children: Vec<SessionPlanNodeDraft>,
+        /// Whether each child must complete before its parent.
+        required: bool,
+    },
+    /// Adds one typed gate to a plan node.
+    AddGate {
+        /// Node whose lifecycle is constrained.
+        owner: String,
+        /// Entry or completion phase.
+        phase: SessionPlanGatePhase,
+        /// Typed requirement without executable expressions.
+        requirement: SessionPlanGateRequirement,
+    },
+    /// Records an explicit gate waiver.
+    WaiveGate {
+        /// Stable gate identity.
+        gate: String,
+        /// Safe waiver reason.
+        reason: String,
+    },
+    /// Associates exact evidence with a node or gate.
+    AttachEvidence {
+        /// Node or gate receiving the association.
+        owner: SessionPlanEvidenceOwner,
+        /// How evidence affects evaluation.
+        role: SessionPlanEvidenceRole,
+        /// Exact evidence reference and safe facts.
+        evidence: SessionPlanEvidenceReference,
+        /// Optional safe note.
+        note: Option<String>,
+    },
+    /// Replaces one node's concise summary.
+    UpdateSummary {
+        /// Node summarized by the record.
+        node: String,
+        /// Concise safe summary text.
+        text: String,
+        /// Exact source references.
+        sources: Vec<SessionSemanticReference>,
+    },
+    /// Retries a failed node when its requirements remain satisfied.
+    RetryFailedNode {
+        /// Failed node identity.
+        node: String,
+    },
+    /// Recovers a failed plan into a paused state for repair.
+    RecoverFailedPlan,
 }

@@ -3,7 +3,10 @@
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use std::collections::BTreeSet;
 
-use crate::{SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError};
+use crate::{
+    SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError, SnapshotRelation,
+    SnapshotRelationChange,
+};
 
 /// Defines backend-neutral snapshot operations.
 pub trait SnapshotStore {
@@ -42,6 +45,98 @@ pub trait SnapshotStore {
         base: SnapshotId,
         changes: &[SnapshotChange],
     ) -> Result<SnapshotId, SnapshotError>;
+
+    /// Applies typed relation changes and retains the resulting snapshot.
+    ///
+    /// - `_base`: Existing snapshot identity supplied by the caller.
+    /// - `_changes`: Relation additions and removals supplied by the caller.
+    ///
+    /// # Returns
+    /// The resulting immutable snapshot identity.
+    ///
+    /// # Errors
+    /// The default implementation returns an error because relation storage
+    /// must be explicitly implemented by a backend.
+    fn apply_relation_changes(
+        &self,
+        _base: SnapshotId,
+        _changes: &[SnapshotRelationChange],
+    ) -> Result<SnapshotId, SnapshotError> {
+        Err(SnapshotError::Backend(
+            "snapshot backend does not implement typed relations".to_owned(),
+        ))
+    }
+
+    /// Applies entity and relation changes in one stored snapshot transition.
+    ///
+    /// - `_base`: Existing snapshot identity supplied by the caller.
+    /// - `_entity_changes`: Entity-to-revision additions and removals.
+    /// - `_relation_changes`: Typed relation additions and removals.
+    ///
+    /// # Returns
+    /// The resulting immutable snapshot identity.
+    ///
+    /// # Errors
+    /// The default implementation returns an error because atomic relation
+    /// storage must be explicitly implemented by a backend.
+    fn apply_changes_with_relations(
+        &self,
+        _base: SnapshotId,
+        _entity_changes: &[SnapshotChange],
+        _relation_changes: &[SnapshotRelationChange],
+    ) -> Result<SnapshotId, SnapshotError> {
+        Err(SnapshotError::Backend(
+            "snapshot backend does not implement atomic relation changes".to_owned(),
+        ))
+    }
+
+    /// Reads all typed relations from one retained immutable snapshot.
+    ///
+    /// - `_snapshot`: Exact snapshot identity supplied by the caller.
+    ///
+    /// # Returns
+    /// Relations in deterministic order.
+    ///
+    /// # Errors
+    /// The default implementation returns an error because relation reads
+    /// must be explicitly implemented by a backend.
+    fn relations(&self, _snapshot: SnapshotId) -> Result<Vec<SnapshotRelation>, SnapshotError> {
+        Err(SnapshotError::Backend(
+            "snapshot backend does not implement typed relations".to_owned(),
+        ))
+    }
+
+    /// Computes exact relation additions and removals between retained snapshots.
+    ///
+    /// - `from`: Starting snapshot identity.
+    /// - `to`: Ending snapshot identity.
+    ///
+    /// # Returns
+    /// Deterministically ordered typed relation changes.
+    ///
+    /// # Errors
+    /// Returns an error when either snapshot cannot be read.
+    /// # Errors
+    /// Returns an error when relation reads fail for either snapshot.
+    fn diff_snapshot_relations(
+        &self,
+        from: SnapshotId,
+        to: SnapshotId,
+    ) -> Result<Vec<SnapshotRelationChange>, SnapshotError> {
+        let before = self.relations(from)?.into_iter().collect::<BTreeSet<_>>();
+        let after = self.relations(to)?.into_iter().collect::<BTreeSet<_>>();
+        Ok(before
+            .difference(&after)
+            .cloned()
+            .map(SnapshotRelationChange::Remove)
+            .chain(
+                after
+                    .difference(&before)
+                    .cloned()
+                    .map(SnapshotRelationChange::Add),
+            )
+            .collect())
+    }
 
     /// Iterates a stored snapshot deterministically.
     ///

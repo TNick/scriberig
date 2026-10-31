@@ -100,17 +100,21 @@ fn application_next_step_requires_running_plan_and_current_revision() {
         .find(|candidate| candidate.id == plan.id)
         .expect("plan remains running");
     let next = service
-        .add_plan_next_step(
+        .mutate_plan(
             &context,
-            &PlanNextStepRequest {
+            &PlanMutationRequest {
                 session,
                 plan: plan.id,
                 expected_revision: running.revision,
-                title: "Newly discovered step".to_owned(),
-                purpose: "perform the follow-up work".to_owned(),
-                expected_result: None,
-                semantic_scope: Vec::new(),
-                assignment: None,
+                mutation: PlanMutation::AddNextStep(PlanNodeDraft {
+                    key: "next-step".to_owned(),
+                    parent_index: None,
+                    title: "Newly discovered step".to_owned(),
+                    purpose: "perform the follow-up work".to_owned(),
+                    expected_result: None,
+                    semantic_scope: Vec::new(),
+                    assignment: None,
+                }),
             },
         )
         .expect("append next step");
@@ -140,17 +144,21 @@ fn application_next_step_requires_running_plan_and_current_revision() {
     );
     assert!(
         service
-            .add_plan_next_step(
+            .mutate_plan(
                 &context,
-                &PlanNextStepRequest {
+                &PlanMutationRequest {
                     session,
                     plan: plan.id,
                     expected_revision: running.revision,
-                    title: "Stale step".to_owned(),
-                    purpose: "must not be accepted".to_owned(),
-                    expected_result: None,
-                    semantic_scope: Vec::new(),
-                    assignment: None,
+                    mutation: PlanMutation::AddNextStep(PlanNodeDraft {
+                        key: "stale-step".to_owned(),
+                        parent_index: None,
+                        title: "Stale step".to_owned(),
+                        purpose: "must not be accepted".to_owned(),
+                        expected_result: None,
+                        semantic_scope: Vec::new(),
+                        assignment: None,
+                    }),
                 },
             )
             .is_err()

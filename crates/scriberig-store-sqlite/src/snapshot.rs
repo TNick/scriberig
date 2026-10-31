@@ -1,35 +1,12 @@
 //! Durable snapshot persistence for the SQLite backend.
 
 use crate::SqliteStore;
-#[path = "snapshot_helpers.rs"]
-mod helpers;
-pub(crate) use helpers::store_parent_in_transaction;
-use helpers::{store_in_transaction, validate_snapshot_root};
 use rusqlite::{OptionalExtension, Transaction, params};
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use scriberig_store::{
-    SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError, SnapshotStore,
+    SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError, SnapshotRelation,
+    SnapshotRelationChange, SnapshotStore,
 };
-
-impl SqliteStore {
-    /// Stores a snapshot and its persistent map root in an open transaction.
-    ///
-    /// # Parameters
-    /// - `transaction`: Transaction receiving the immutable records.
-    /// - `snapshot`: Snapshot to persist.
-    ///
-    /// # Returns
-    /// Unit after the snapshot records are prepared.
-    ///
-    /// # Errors
-    /// Returns a SQLite insertion error when the records cannot be stored.
-    pub(crate) fn store_snapshot_in_transaction(
-        transaction: &Transaction<'_>,
-        snapshot: &scriberig_store::Snapshot,
-    ) -> rusqlite::Result<()> {
-        store_in_transaction(transaction, snapshot)
-    }
-}
 
 impl SnapshotStore for SqliteStore {
     /// - `snapshot`: Operation input.
@@ -102,6 +79,67 @@ impl SnapshotStore for SqliteStore {
         self.store_snapshot_with_parent(&next, base)?;
         Ok(next.id())
     }
+
+    /// Applies typed relation changes and persists the immutable successor.
+    ///
+    /// - `base`: Existing snapshot identity.
+    /// - `changes`: Typed relation additions and removals.
+    ///
+    /// # Returns
+    /// The resulting immutable snapshot identity.
+    ///
+    /// # Errors
+    /// Returns an error when the base is unknown or SQLite rejects the transaction.
+    fn apply_relation_changes(
+        &self,
+        base: SnapshotId,
+        changes: &[SnapshotRelationChange],
+    ) -> Result<SnapshotId, SnapshotError> {
+        let next = self
+            .snapshot(base)?
+            .apply_relation_changes(changes.iter().cloned());
+        self.store_snapshot_with_parent(&next, base)?;
+        Ok(next.id())
+    }
+
+    /// Applies both entity and relation changes as one SQLite transaction.
+    ///
+    /// - `base`: Existing snapshot identity.
+    /// - `entity_changes`: Entity-to-revision changes.
+    /// - `relation_changes`: Typed relation changes.
+    ///
+    /// # Returns
+    /// The resulting immutable snapshot identity.
+    ///
+    /// # Errors
+    /// Returns an error when the base is unknown or SQLite rejects the transaction.
+    fn apply_changes_with_relations(
+        &self,
+        base: SnapshotId,
+        entity_changes: &[SnapshotChange],
+        relation_changes: &[SnapshotRelationChange],
+    ) -> Result<SnapshotId, SnapshotError> {
+        let next = self.snapshot(base)?.apply_changes_with_relations(
+            entity_changes.iter().copied(),
+            relation_changes.iter().cloned(),
+        );
+        self.store_snapshot_with_parent(&next, base)?;
+        Ok(next.id())
+    }
+
+    /// Reads typed relations from one exact retained snapshot.
+    ///
+    /// - `snapshot`: Exact snapshot identity.
+    ///
+    /// # Returns
+    /// Relations in deterministic order.
+    ///
+    /// # Errors
+    /// Returns an error when the snapshot is unavailable or storage is malformed.
+    fn relations(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotRelation>, SnapshotError> {
+        Ok(self.snapshot(snapshot)?.relations().cloned().collect())
+    }
+
     /// - `snapshot`: Operation input.
     ///
     /// The requested storage result.
@@ -221,15 +259,139 @@ impl SnapshotStore for SqliteStore {
         let connection = self
             .connection()
             .map_err(|error| SnapshotError::Backend(format!("{error:?}")))?;
-        let change_id = connection
+        let provenance = connection
             .query_row(
-                "SELECT candidate_id FROM project_effects
-                 WHERE successor_snapshot=? AND state='applied' ORDER BY candidate_id LIMIT 1",
+                "SELECT effects.candidate_id, candidates.semantic_operation
+                 FROM project_effects AS effects
+                 JOIN project_candidates AS candidates ON candidates.id=effects.candidate_id
+                 WHERE effects.successor_snapshot=? AND effects.state='applied'
+                 ORDER BY effects.candidate_id LIMIT 1",
                 params![snapshot.as_bytes().as_slice()],
-                |row| row.get::<_, String>(0),
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
             )
             .optional()
             .map_err(|error| SnapshotError::Backend(error.to_string()))?;
-        Ok(change_id.map(|change_id| SnapshotChangeProvenance { change_id }))
+        Ok(
+            provenance.map(|(change_id, semantic_operation)| SnapshotChangeProvenance {
+                change_id,
+                semantic_operation,
+            }),
+        )
     }
+}
+
+/// Verifies that a snapshot's persistent map root is present when referenced.
+///
+/// - `connection`: SQLite connection containing snapshot roots and nodes.
+/// - `snapshot`: Exact snapshot identity to check.
+///
+/// Unit when the snapshot uses a valid root reference or legacy flat index.
+///
+/// Returns a backend error for malformed or missing root nodes.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+fn validate_snapshot_root(
+    connection: &rusqlite::Connection,
+    snapshot: SnapshotId,
+) -> Result<(), SnapshotError> {
+    let root: Option<Vec<u8>> = connection
+        .query_row(
+            "SELECT node_id FROM snapshot_node_roots WHERE snapshot_id=?",
+            params![snapshot.as_bytes().as_slice()],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|error| SnapshotError::Backend(error.to_string()))?;
+    let Some(root) = root else {
+        return Ok(());
+    };
+    if root.len() != 32 {
+        return Err(SnapshotError::Backend(
+            "invalid stored snapshot node identity length".to_owned(),
+        ));
+    }
+    let present: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM snapshot_nodes WHERE id=?)",
+            params![root],
+            |row| row.get(0),
+        )
+        .map_err(|error| SnapshotError::Backend(error.to_string()))?;
+    if present {
+        Ok(())
+    } else {
+        Err(SnapshotError::Backend(
+            "missing snapshot root node".to_owned(),
+        ))
+    }
+}
+
+/// Persists a snapshot and its content-addressed binary map nodes.
+///
+/// - `transaction`: Transaction receiving the snapshot.
+/// - `snapshot`: Snapshot to persist.
+/// - `crate`: Internal visibility marker.
+///
+/// Unit after all immutable rows are prepared.
+///
+/// Returns a SQLite insertion error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub(crate) fn store_in_transaction(
+    transaction: &Transaction<'_>,
+    snapshot: &scriberig_store::Snapshot,
+) -> rusqlite::Result<()> {
+    let entries: Vec<_> = snapshot.iter().collect();
+    let root = crate::snapshot_node_store::store_node(transaction, &entries)?;
+    transaction.execute(
+        "INSERT OR IGNORE INTO snapshots(id) VALUES (?)",
+        params![snapshot.id().as_bytes().as_slice()],
+    )?;
+    transaction.execute(
+        "INSERT OR IGNORE INTO snapshot_node_roots(snapshot_id,node_id) VALUES (?,?)",
+        params![snapshot.id().as_bytes().as_slice(), root.as_slice()],
+    )?;
+    for (entity, revision) in entries {
+        transaction.execute(
+            "INSERT OR IGNORE INTO snapshot_entries(snapshot_id,entity,revision)
+             VALUES (?,?,?)",
+            params![
+                snapshot.id().as_bytes().as_slice(),
+                entity.as_bytes().as_slice(),
+                revision.as_bytes().as_slice()
+            ],
+        )?;
+    }
+    crate::snapshot_relations::store_relations_in_transaction(transaction, snapshot)?;
+    Ok(())
+}
+
+/// Stores one direct immutable snapshot-parent relation.
+///
+/// - `transaction`: Transaction receiving the relation.
+/// - `snapshot`: Child snapshot identity.
+/// - `parent`: Direct parent snapshot identity.
+///
+/// Unit after the relation is stored.
+///
+/// Returns a SQLite insertion error.
+/// - `crate`: Argument named `crate`.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub(crate) fn store_parent_in_transaction(
+    transaction: &Transaction<'_>,
+    snapshot: SnapshotId,
+    parent: SnapshotId,
+) -> rusqlite::Result<()> {
+    transaction.execute(
+        "INSERT OR IGNORE INTO snapshot_parents(snapshot_id,parent_id) VALUES (?,?)",
+        params![snapshot.as_bytes().as_slice(), parent.as_bytes().as_slice()],
+    )?;
+    Ok(())
 }

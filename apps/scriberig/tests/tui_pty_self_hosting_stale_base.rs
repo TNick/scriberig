@@ -1,7 +1,5 @@
 //! Verifies a reviewed PHP candidate cannot apply after its base advances.
 
-#[path = "tui_pty_support/onboarding_wait.rs"]
-mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -9,12 +7,12 @@ use std::fs;
 use std::sync::Arc;
 use std::time::Duration;
 
-use onboarding_wait::{wait_for_branch_completion, wait_for_onboarding};
 use scriberig_project::{CandidateValidation, ProjectService};
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
-use tui_pty_support::TuiPty;
+use tui_pty_support::onboarding_wait::{wait_for_branch_completion, wait_for_onboarding};
+use tui_pty_support::{TuiPty, candidate_review};
 
 /// Verifies stale review preserves the newer project and blocks PHP effects.
 #[test]
@@ -52,7 +50,7 @@ struct StaleScenario {
 /// The operation result.
 fn start_stale_scenario() -> StaleScenario {
     let mut tui = TuiPty::start_self_hosting();
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Onboard the current project.\r");
     let session = visible_session(&tui);
     wait_for_onboarding(&mut tui, session);
@@ -136,21 +134,20 @@ fn advance_canonical_project(
 ///
 /// - `tui`: Active native TUI with the agent candidate in its session.
 fn attempt_stale_apply(tui: &mut TuiPty) {
-    tui.send_slow(b"/changes\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    candidate_review::open_candidate_review(tui, "Validation: Passed");
     assert!(
-        tui.screen().contains("validation: Passed"),
+        tui.screen().contains("Validation: Passed"),
         "{}",
         tui.screen()
     );
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
-    tui.send(b"\r");
+    candidate_review::open_apply_confirmation(tui);
+    candidate_review::confirm_candidate_apply(tui);
     assert!(
         tui.read_until_for("stale_candidate", Duration::from_secs(30)),
         "{}",
         tui.diagnostic()
     );
+    candidate_review::assert_confirmation_closed(tui);
 }
 
 /// Verifies the stale Apply receipt and protects the newer project state.

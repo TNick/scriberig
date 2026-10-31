@@ -34,7 +34,7 @@ pub(super) fn apply_change(
     new_snapshot: SnapshotId,
     changed_nodes: &[EntityId],
 ) -> Result<Vec<EntityId>, PlanError> {
-    if index.source_snapshot != expected_base || index.evaluator_version != 1 {
+    if index.source_snapshot != expected_base || index.evaluator_version != 2 {
         return Err(PlanError::StaleRollupIndex);
     }
 
@@ -286,6 +286,9 @@ fn compute(
         contains_abandoned,
         child_counts: counts,
         unsatisfied_completion_gates: u32::try_from(unsatisfied).unwrap_or(u32::MAX),
+        entry_gates: plan.gate_counts(node_id, PlanGatePhase::Entry),
+        completion_gates: plan.gate_counts(node_id, PlanGatePhase::Completion),
+        evidence_count: plan.evidence_count(node_id),
     })
 }
 

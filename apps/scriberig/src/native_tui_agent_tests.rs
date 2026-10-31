@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use rpi_ai::providers::faux::FauxScript;
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackendComposition, ApplicationContext, ApplicationService,
     CapabilityContext, CapabilityId, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest,
@@ -77,11 +78,18 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
         model: "fake-model".to_owned(),
         upstream_credentials: None,
         upstream_enabled: false,
-        model_catalog: model_catalog_from_models(native_test_upstream_models()),
+        model_catalog: model_catalog_from_models(native_test_upstream_models()).clone(),
+        provider_extension_runtime: scriberig_app::ProviderExtensionRuntime::with_model_catalog(
+            model_catalog_from_models(native_test_upstream_models()).clone(),
+        ),
+        plugin_command_worker: std::sync::Mutex::new(None),
+        extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox::new(),
+        provider_lifecycle:
+            crate::native_tui_agent::provider_readiness::ProviderLifecycleState::new(),
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let context = ApplicationContext {
@@ -160,11 +168,31 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
     std::fs::remove_dir_all(root).expect("remove fixture");
 }
 
+#[path = "native_tui_agent_tests/continuation_divergence.rs"]
+mod continuation_divergence;
+#[path = "native_tui_agent_tests/continuation_fixture.rs"]
+mod continuation_fixture;
+#[path = "native_tui_agent_tests/continuation_lifecycle.rs"]
+mod continuation_lifecycle;
 #[path = "native_tui_agent_tests/decomposition.rs"]
 mod decomposition;
 #[path = "native_tui_agent_tests/failed_message.rs"]
 mod failed_message;
+#[path = "native_tui_agent_tests/model_property_request.rs"]
+mod model_property_request;
 #[path = "native_tui_agent_tests_part1.rs"]
 mod part1;
 #[path = "native_tui_agent_plan_tests.rs"]
 mod plan;
+#[path = "native_tui_agent_tests/readiness_generation.rs"]
+mod readiness_generation;
+#[path = "native_tui_agent_tests/upstream_activity.rs"]
+mod upstream_activity;
+#[path = "native_tui_agent_tests/upstream_budgets.rs"]
+mod upstream_budgets;
+#[path = "native_tui_agent_tests/upstream_cancellation.rs"]
+mod upstream_cancellation;
+#[path = "native_tui_agent_tests/upstream_fixture.rs"]
+mod upstream_fixture;
+#[path = "native_tui_agent_tests/upstream_surface_parity.rs"]
+mod upstream_surface_parity;

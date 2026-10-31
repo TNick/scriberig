@@ -45,7 +45,7 @@ type ChildDispatchFuture<'a> =
     clippy::too_many_lines,
     reason = "Child creation, context compilation, execution, and result settlement share one borrowed scope."
 )]
-pub(super) fn dispatch_child<'a, B: ApplicationBackend + Sync + 'a>(
+pub(super) fn dispatch_child<'a, B: ApplicationBackend + Send + Sync + 'static + 'a>(
     service: &'a ApplicationService<B>,
     context: &'a ApplicationContext,
     session: EntityId,
@@ -62,6 +62,18 @@ pub(super) fn dispatch_child<'a, B: ApplicationBackend + Sync + 'a>(
             return Err(AgentError::tool("branch depth limit reached"));
         }
         let child_request = child_request(request)?;
+        let child_binding = match &child_request.execution {
+            Some(selection) => Some(
+                scope
+                    .provider_resolver
+                    .as_ref()
+                    .ok_or_else(|| AgentError::tool("child model selection is unavailable"))?(
+                    selection,
+                )
+                .map_err(|_| AgentError::tool("child model selection is unavailable"))?,
+            ),
+            None => None,
+        };
         let child_handle = service
             .start_local_child_agent(
                 session,
@@ -88,6 +100,7 @@ pub(super) fn dispatch_child<'a, B: ApplicationBackend + Sync + 'a>(
             depth: scope.depth + 1,
             active_branches: Arc::clone(&scope.active_branches),
             semantic_scope: scope.semantic_scope.clone(),
+            provider_resolver: scope.provider_resolver.clone(),
         };
         let mut child_execution = BranchExecutionContext::new(
             session.to_string(),
@@ -103,8 +116,12 @@ pub(super) fn dispatch_child<'a, B: ApplicationBackend + Sync + 'a>(
         }
         let compiled_context =
             ContextCompiler::new(ContextPolicy::default()).compile(&child_execution);
-        let child_invocation =
-            invocation_for_child(invocation, child_handle.child_branch, compiled_context);
+        let child_invocation = invocation_for_child(
+            invocation,
+            child_handle.child_branch,
+            compiled_context,
+            child_binding.as_ref(),
+        );
         let child_result = execution::run_branch_with_semantic_broker(
             service,
             child_context,
@@ -200,7 +217,47 @@ fn child_request(request: &ToolRequest) -> Result<ChildRequest, AgentError> {
             .as_str()
             .ok_or_else(|| AgentError::tool("invalid expected result"))?
             .to_owned(),
+        execution: parse_child_execution(request.arguments.get("execution"))?,
     })
+}
+
+/// Parses the optional upstream model assignment requested for a child.
+///
+/// # Parameters
+/// - `value`: Optional provider-visible execution object.
+///
+/// # Returns
+/// The explicit provider/model assignment, when supplied.
+///
+/// # Errors
+/// Returns a tool error when the assignment is malformed or incomplete.
+fn parse_child_execution(
+    value: Option<&serde_json::Value>,
+) -> Result<Option<scriberig_session::ModelAssignment>, AgentError> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let provider_id = value["provider_id"]
+        .as_str()
+        .ok_or_else(|| AgentError::tool("invalid child provider selection"))?;
+    let model_id = value["model_id"]
+        .as_str()
+        .ok_or_else(|| AgentError::tool("invalid child model selection"))?;
+    let thinking_level = value
+        .get("thinking_level")
+        .filter(|level| !level.is_null())
+        .map(|level| {
+            level
+                .as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| AgentError::tool("invalid child thinking selection"))
+        })
+        .transpose()?;
+    Ok(Some(scriberig_session::ModelAssignment {
+        provider_id: provider_id.to_owned(),
+        model_id: model_id.to_owned(),
+        thinking_level,
+    }))
 }
 
 /// Copies exact parent provider selection onto a fresh child branch.
@@ -209,28 +266,57 @@ fn child_request(request: &ToolRequest) -> Result<ChildRequest, AgentError> {
 /// - `parent`: Parent invocation providing the selected provider/model policy.
 /// - `branch`: Durable `ScribeRig` child branch identity.
 /// - `context`: `ScribeRig`-compiled child context.
+/// - `binding`: Optional resolved provider/model binding for the child.
 ///
 /// # Returns
-/// A new branch invocation with no parent branch tools.
+/// A new branch invocation with no parent branch tools and its own branch
+/// activity sequence, because durable activity order is per branch.
 pub(super) fn invocation_for_child(
     parent: &UpstreamBranchInvocation,
     branch: EntityId,
     context: scriberig_agent_runtime::context::CompiledContext,
+    binding: Option<&scriberig_agent_runtime::ChildProviderBinding>,
 ) -> UpstreamBranchInvocation {
+    let provider = binding.as_ref().map_or_else(
+        || Arc::clone(&parent.provider),
+        |binding| Arc::clone(&binding.provider),
+    );
+    let model = binding
+        .as_ref()
+        .map_or_else(|| parent.model.clone(), |binding| binding.model.clone());
+    let request_secret = binding.as_ref().map_or_else(
+        || parent.request_secret.clone(),
+        |binding| binding.request_secret.clone(),
+    );
+    let bearer = binding
+        .as_ref()
+        .map_or(parent.bearer, |binding| binding.bearer);
+    let provider_profile = binding.as_ref().map_or_else(
+        || parent.provider_profile.clone(),
+        |binding| binding.provider_profile.clone(),
+    );
+    let thinking_level = binding
+        .as_ref()
+        .map_or(parent.thinking_level, |binding| binding.thinking_level);
     UpstreamBranchInvocation {
         branch,
-        provider: Arc::clone(&parent.provider),
-        model: parent.model.clone(),
-        request_secret: parent.request_secret.clone(),
-        bearer: parent.bearer,
-        applied_settings: parent.applied_settings.clone(),
-        provider_profile: parent.provider_profile.clone(),
-        thinking_level: parent.thinking_level,
+        provider,
+        model,
+        request_secret,
+        bearer,
+        applied_settings: None,
+        provider_profile,
+        thinking_level,
         context,
         tools: Vec::new(),
+        activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
+        provider_lifecycle: parent.provider_lifecycle.clone(),
     }
 }
 /// Creates a branch invocation template without its parent-specific tool set.
+///
+/// The template stays on the same branch, so it shares that branch's activity
+/// sequence with the model loop it feeds.
 ///
 /// # Parameters
 /// - `invocation`: Invocation whose provider policy is inherited by children.
@@ -240,5 +326,14 @@ pub(super) fn invocation_for_child(
 pub(super) fn invocation_without_tools(
     invocation: &UpstreamBranchInvocation,
 ) -> UpstreamBranchInvocation {
-    invocation_for_child(invocation, invocation.branch, invocation.context.clone())
+    UpstreamBranchInvocation {
+        activity: Arc::clone(&invocation.activity),
+        provider_lifecycle: None,
+        ..invocation_for_child(
+            invocation,
+            invocation.branch,
+            invocation.context.clone(),
+            None,
+        )
+    }
 }

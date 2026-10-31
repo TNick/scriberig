@@ -16,6 +16,7 @@ fn model_execution_records_are_explicit() {
     let record = ModelInvocation {
         id: invocation,
         branch,
+        operation: None,
         ordinal: 1,
         agent_profile: Some("default".to_owned()),
         context_fingerprint: Some("ctx".to_owned()),
@@ -49,6 +50,7 @@ fn model_invocation_defaults_missing_provider_identity() {
     let record = ModelInvocation {
         id: EntityId::from_bytes([11; 16]),
         branch: EntityId::from_bytes([12; 16]),
+        operation: None,
         ordinal: 0,
         agent_profile: None,
         context_fingerprint: None,
@@ -72,6 +74,7 @@ fn model_invocation_defaults_missing_provider_identity() {
     let decoded: ModelInvocation = serde_json::from_value(value).expect("legacy invocation");
 
     assert_eq!(decoded.provider_id, None);
+    assert_eq!(decoded.operation, None);
 
     let legacy_projection = serde_json::json!({
         "ordinal": 0,
@@ -146,6 +149,7 @@ fn session_execution_selection_is_optimistic_and_versioned() {
     let invocation = ModelInvocation {
         id: EntityId::from_bytes([8; 16]),
         branch: EntityId::from_bytes([9; 16]),
+        operation: None,
         ordinal: 1,
         agent_profile: None,
         context_fingerprint: None,

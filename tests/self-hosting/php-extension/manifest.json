@@ -57,10 +57,6 @@
     {
       "kind": "update",
       "path": "crates/scriberig-project/src/support.rs"
-    },
-    {
-      "kind": "create",
-      "path": "crates/scriberig-project/src/support_child_entity.rs"
     }
   ],
   "semantic_acceptance": [

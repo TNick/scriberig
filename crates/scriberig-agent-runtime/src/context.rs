@@ -50,8 +50,11 @@ impl ModelMessage {
     }
 }
 
+#[path = "context/compact_result.rs"]
+mod compact_result;
 #[path = "context/components.rs"]
 mod components;
+pub(super) use compact_result::compact_branch_result;
 #[path = "context/fingerprint.rs"]
 mod fingerprint;
 #[path = "context/tool_identity.rs"]
@@ -286,14 +289,7 @@ impl BranchExecutionContext {
         }
         if let Some(result_id) = resolved.result {
             if let Some(result) = source.result.as_ref().filter(|value| value.id == result_id) {
-                context.ancestor_results.push(CompactResultContext {
-                    handle: format!("branch-result:{}", result.id),
-                    revision: result
-                        .candidate_context
-                        .map(|candidate| candidate.candidate_snapshot.to_string()),
-                    summary: result.summary.clone().unwrap_or_default(),
-                    semantic_handles: result.result_handles.clone(),
-                });
+                context.ancestor_results.push(compact_branch_result(result));
             }
         }
         Ok(context)

@@ -337,9 +337,18 @@ fn resolve_render<O: OperationProvider>(
     provider: &O,
     request: &RenderRequest,
 ) -> Result<RenderRequest, ApplicationError> {
+    if !request.style.is_applied() {
+        // A provider holds no style configuration, so an unresolved selection
+        // here would mean a surface invented a style of its own.
+        return Err(ApplicationError::InvalidRequest {
+            operation: "render".to_owned(),
+            message: "the application must resolve the render style first".to_owned(),
+        });
+    }
     Ok(RenderRequest {
         snapshot: resolve_selector(provider, &request.snapshot)?,
         view: request.view.clone(),
+        style: request.style.clone(),
     })
 }
 

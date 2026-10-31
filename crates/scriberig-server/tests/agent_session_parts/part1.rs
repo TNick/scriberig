@@ -2,6 +2,9 @@
 
 use super::*;
 
+#[path = "part1/remote_plan.rs"]
+mod remote_plan;
+
 /// Verifies presentation preferences are principal scoped and revision checked.
 #[test]
 fn presentation_preferences_are_principal_scoped_and_revision_checked() {
@@ -107,12 +110,34 @@ fn agent_capabilities_are_discoverable_before_submission() {
                 .any(|capability| capability.id == expected && capability.available)
         );
     }
+    assert_eq!(value.cad_providers.len(), 1);
+    assert_eq!(
+        value.cad_providers[0].availability,
+        scriberig_protocol::CadProviderAvailability::Unavailable
+    );
+    assert_eq!(
+        value.cad_providers[0].format,
+        scriberig_protocol::CadProviderFormat::Dwg
+    );
+    assert!(!value.cad_providers[0].can_write);
 }
 
 /// Verifies embedded and transport-backed agent results remain deterministic.
 #[test]
 fn embedded_and_client_agent_results_are_conformant() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../tests/conformance/fixtures/agent-operation.json"
+    ))
+    .expect("shared browser/server agent fixture");
     let session = scriberig_core::EntityId::from_bytes([2; 16]);
+    let session_id = session.to_string();
+    let prompt = fixture["request"]["prompt"]
+        .as_str()
+        .expect("fixture prompt");
+    assert_eq!(
+        fixture["request"]["sessionId"].as_str(),
+        Some(session_id.as_str())
+    );
     let direct = ApplicationService::new(Fixture);
     let context = ApplicationContext {
         capabilities: CapabilityContext::new([
@@ -122,7 +147,7 @@ fn embedded_and_client_agent_results_are_conformant() {
         ..ApplicationContext::empty()
     };
     let direct_operation = direct
-        .start_agent(&context, session, "same prompt")
+        .start_agent(&context, session, prompt)
         .expect("direct operation");
     let direct_result = direct
         .operations()
@@ -134,11 +159,17 @@ fn embedded_and_client_agent_results_are_conformant() {
     let transport = scriberig_server::InProcessTransport::new(ApplicationService::new(Fixture));
     let remote = scriberig_client::Client::new(transport);
     let response = remote
-        .start_agent(session.to_string(), "same prompt")
+        .start_agent(session_id, prompt)
         .expect("transport operation");
     let remote_result = response.operation.agent_result.expect("remote result");
 
     assert_eq!(remote_result.final_output, direct_result.final_output);
+    assert_eq!(
+        direct_result.final_output,
+        fixture["expected"]["finalOutput"]
+            .as_str()
+            .expect("fixture final output")
+    );
     assert_eq!(remote_result.session.id, direct_result.session.to_string());
     assert_eq!(
         remote_result.root_branch.id,
@@ -197,6 +228,8 @@ fn protocol_plan_handlers_delegate_to_application_operations() {
     let Response::Plan(created) = created.response else {
         panic!("unexpected plan creation response");
     };
+    assert!(created.exact_revision.is_some());
+    assert!(created.nodes[0].exact_revision.is_some());
     assert_eq!(
         created.status,
         scriberig_protocol::SessionPlanStatus::Planned
@@ -221,6 +254,33 @@ fn protocol_plan_handlers_delegate_to_application_operations() {
         scriberig_protocol::SessionPlanStatus::Running
     );
     assert!(started_plan.coordinator_claim.is_some());
+    let appended = dispatcher.dispatch(RequestEnvelope {
+        version: ProtocolVersion::default(),
+        correlation_id: "append-plan-step".to_owned(),
+        request: Request::PlanMutation(SessionPlanMutationRequest {
+            session: SessionReference {
+                id: session.clone(),
+            },
+            plan: started_plan.id.clone(),
+            expected_revision: started_plan.revision,
+            mutation: SessionPlanMutation::AddNextStep {
+                node: SessionPlanNodeDraft {
+                    key: "follow-up".to_owned(),
+                    parent_index: None,
+                    title: "Follow up".to_owned(),
+                    purpose: "complete the remaining work".to_owned(),
+                    expected_result: None,
+                    semantic_scope: Vec::new(),
+                    assignment: None,
+                },
+            },
+        }),
+    });
+    let Response::Plan(appended) = appended.response else {
+        panic!("unexpected plan mutation response");
+    };
+    assert_eq!(appended.revision, started_plan.revision + 1);
+    assert_eq!(appended.nodes.len(), 2);
     let paused = dispatcher.dispatch(RequestEnvelope {
         version: ProtocolVersion::default(),
         correlation_id: "pause-plan".to_owned(),
@@ -228,8 +288,8 @@ fn protocol_plan_handlers_delegate_to_application_operations() {
             session: SessionReference {
                 id: session.clone(),
             },
-            plan: started_plan.id.clone(),
-            expected_revision: started_plan.revision,
+            plan: appended.id.clone(),
+            expected_revision: appended.revision,
             action: SessionPlanAction::Pause,
         }),
     });
@@ -264,83 +324,7 @@ fn protocol_plan_handlers_delegate_to_application_operations() {
     let Response::Session(read) = read.response else {
         panic!("unexpected session read response");
     };
-    assert_eq!(read.plans[0], assigned);
-}
-
-/// Exercises plan creation, start, read, and assignment through the Rust client.
-#[test]
-fn remote_client_can_create_start_read_and_assign_plan() {
-    let client = scriberig_client::Client::new(scriberig_server::InProcessTransport::new(
-        ApplicationService::new(Fixture),
-    ));
-    let session = "ent_61616161616161616161616161616161";
-    let started = client
-        .start_agent_with_handles(session, "plan root")
-        .expect("seed session");
-    let root = started.branch.expect("root branch");
-    let plan = client
-        .create_plan(SessionPlanCreateRequest {
-            session: SessionReference {
-                id: session.to_owned(),
-            },
-            anchor: SessionContinuationAnchor::BranchHead { branch: root.id },
-            goal: "remote plan".to_owned(),
-            nodes: vec![SessionPlanNodeDraft {
-                key: "node".to_owned(),
-                parent_index: None,
-                title: "Node".to_owned(),
-                purpose: "perform remote work".to_owned(),
-                expected_result: None,
-                semantic_scope: Vec::new(),
-                assignment: None,
-            }],
-            dependencies: Vec::new(),
-        })
-        .expect("create through client");
-    let running = client
-        .plan_lifecycle(SessionPlanLifecycleRequest {
-            session: SessionReference {
-                id: session.to_owned(),
-            },
-            plan: plan.id.clone(),
-            expected_revision: plan.revision,
-            action: SessionPlanAction::Start,
-        })
-        .expect("start through client");
-    let paused = client
-        .plan_lifecycle(SessionPlanLifecycleRequest {
-            session: SessionReference {
-                id: session.to_owned(),
-            },
-            plan: running.id.clone(),
-            expected_revision: running.revision,
-            action: SessionPlanAction::Pause,
-        })
-        .expect("pause through client");
-    let assigned = client
-        .set_plan_assignment(SessionPlanAssignmentRequest {
-            session: SessionReference {
-                id: session.to_owned(),
-            },
-            plan: paused.id.clone(),
-            node: paused.nodes[0].id.clone(),
-            expected_revision: paused.revision,
-            assignment: None,
-        })
-        .expect("assignment through client");
-    let read = client.read_session(session).expect("read through client");
-    assert_eq!(read.plans[0], assigned);
-    let new_session = client
-        .start_new_session_agent("new conversation", None)
-        .expect("new session through client");
-    let root = new_session.branch.expect("client root branch");
-    let continued = client
-        .continue_agent_at(
-            new_session.session.id,
-            SessionContinuationAnchor::BranchHead { branch: root.id },
-            "exact follow-up",
-            None,
-        )
-        .expect("exact continuation through client");
-    assert!(continued.branch.is_some());
+    let mut assigned_without_history = assigned;
+    assigned_without_history.history.clear();
+    assert_eq!(read.plans[0], assigned_without_history);
 }

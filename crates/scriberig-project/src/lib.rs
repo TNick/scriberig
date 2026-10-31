@@ -1,144 +1,102 @@
 //! Provides the shared project scan and semantic onboarding service.
 
-use std::fmt::{Display, Formatter};
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use scriberig_core::{ProjectId, SnapshotId};
-use scriberig_store::{RootStore, Snapshot, SnapshotChange};
-use scriberig_store_sqlite::{ProjectEntityRecord, ProjectFileRecord, ProjectRecord, SqliteStore};
+use scriberig_store_sqlite::SqliteStore;
 
+mod artifact;
+#[path = "artifact_service.rs"]
+mod artifact_service;
+pub use artifact_service::{ArtifactSynchronizationState, ArtifactSynchronizationStatus};
 #[path = "support.rs"]
 mod support;
-use support::import_file;
+pub use artifact::{
+    ArtifactCapability, ArtifactExternalReference, ArtifactFidelity, ArtifactGroupingDiagnostic,
+    ArtifactId, ArtifactKind, ArtifactManifest, ArtifactMemberDescriptor, ArtifactMemberKey,
+    ArtifactMemberPage, ArtifactSourceEvidence, OpaquePreservation, cad_provider_artifact_fidelity,
+};
+mod cad_bounds;
+mod cad_find;
+mod cad_query;
+mod cad_read;
 #[path = "candidate.rs"]
 mod candidate;
+mod document_find;
+mod document_read;
+mod docx_candidate;
+mod docx_candidate_helpers;
+mod docx_source_reconciliation;
+mod dxf_candidate;
+mod dxf_candidate_errors;
+mod dxf_candidate_semantic;
+mod geopackage_attribute_candidate;
+mod geopackage_candidate;
+mod geopackage_query;
+mod geopackage_read;
+#[path = "import_service.rs"]
+mod import_service;
 #[path = "manifest.rs"]
 mod manifest;
 mod project_security;
 #[path = "project_views.rs"]
 mod project_views;
+mod qgis_candidate;
+mod qgis_read;
 #[path = "scan_manifest.rs"]
 mod scan_manifest;
+mod source_watch;
+mod spreadsheet_read;
+mod types;
+mod xlsx_candidate;
+mod xlsx_rename_candidate;
+pub use cad_bounds::{CadBounds2D, CadBoundsEntityPage, CadBoundsQueryRequest};
+pub use cad_find::{CadTextMatch, CadTextSearch, MAX_CAD_SEARCH_PAGE};
+pub use cad_read::{CadDrawingView, CadEntityPage, MAX_CAD_ENTITY_PAGE};
 pub use candidate::{
     CandidateApplyReport, CandidateValidation, CandidateValidationProfile, ProjectCandidate,
-    ProjectSourceChange, ProjectSourceChangeKind, ProjectSourceEffect, ProjectSourceEffectKind,
+    ProjectMaterializationPath, ProjectMaterializationReceipt, ProjectSourceChange,
+    ProjectSourceChangeKind, ProjectSourceEffect, ProjectSourceEffectKind, SemanticCandidateChange,
 };
+pub use document_find::{
+    DocumentParagraphMatch, DocumentParagraphSearch, MAX_DOCUMENT_SEARCH_PAGE,
+};
+pub use document_read::{
+    DocumentBlockView, DocumentCellView, DocumentRowView, DocumentSectionView, DocumentStyleView,
+    DocumentTableView, DocumentTreeView,
+};
+pub use geopackage_attribute_candidate::GeoPackageFeatureAttributeEdit;
+pub use geopackage_query::{
+    GeoPackageFeatureQuery, GeoPackageFeatureQueryPage, GeoQueryProvenance, GeoQueryStrategy,
+};
+pub use geopackage_read::{GeoPackageCatalog, GeoPackageLayerSummary, MAX_GEOPACKAGE_LAYER_PAGE};
 pub use manifest::{ProjectManifestEntry, ProjectManifestPage, ProjectManifestSummary};
 pub use project_views::{ProjectSourceProjection, ProjectSymbol};
+pub use qgis_read::QgisProjectRead;
+pub use source_watch::{ProjectSourceObservation, ProjectSourceObservationResult};
+pub use spreadsheet_read::{
+    MAX_SPREADSHEET_CELL_PAGE, MAX_SPREADSHEET_SEARCH_PAGE, SpreadsheetCellMatch,
+    SpreadsheetCellPage, SpreadsheetCellSearch, SpreadsheetWorkbookSummary,
+    SpreadsheetWorksheetSummary,
+};
+pub use types::{
+    ImportDiagnostic, ImportReport, ProjectError, ProjectFileRename, ProjectWorkspace, ScanFile,
+    ScanOptions, ScanReport,
+};
 #[path = "errors.rs"]
 mod errors;
-use errors::{git_error, missing_project, promotion_error, storage_error};
+use errors::{git_error, storage_error};
 
 /// Shared project onboarding service used by CLI, HTTP, and TUI surfaces.
 #[derive(Clone, Debug)]
 pub struct ProjectService {
     /// Shared durable SQLite catalog and object store.
     store: Arc<SqliteStore>,
+    /// Shared exact-digest source watcher coordination state.
+    source_watch: Arc<Mutex<source_watch::ProjectSourceWatchCoordinator>>,
+    /// Explicit host-injected providers for optional external CAD formats.
+    cad_provider_registry: scriberig_domain_cad::CadProviderRegistry,
 }
-
-/// Selects which filesystem files a project scan persists.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct ScanOptions {
-    /// Restricts the manifest to files tracked by the Git index.
-    pub git_tracked: bool,
-}
-
-/// A scanned project file with exact source bytes and classification.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ScanFile {
-    /// Project-relative POSIX path.
-    pub relative_path: String,
-    /// Exact source bytes.
-    pub bytes: Vec<u8>,
-    /// Selected adapter identifier.
-    pub adapter: String,
-    /// Stable scan classification.
-    pub status: String,
-}
-
-/// Result of registering and persisting a project scan.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ScanReport {
-    /// Registered project record.
-    pub project: ProjectRecord,
-    /// Persisted deterministic scan files.
-    pub files: Vec<ScanFile>,
-    /// Whether the manifest was restricted to Git-indexed files.
-    pub git_tracked: bool,
-}
-
-/// Result of promoting one project import.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ImportReport {
-    /// Project after successful import.
-    pub project: ProjectRecord,
-    /// Number of source files imported.
-    pub files: usize,
-    /// Number of semantic entities promoted.
-    pub entities: usize,
-    /// Promoted immutable snapshot.
-    pub snapshot: SnapshotId,
-}
-
-/// Resolves the exact active semantic workspace for one imported project.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProjectWorkspace {
-    /// Canonical project catalog record.
-    pub project: ProjectRecord,
-    /// Current immutable project snapshot.
-    pub snapshot: SnapshotId,
-    /// Semantic source root used to begin navigation.
-    pub root_entity: scriberig_core::EntityId,
-}
-
-/// Describes one recoverable or terminal import diagnostic.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ImportDiagnostic {
-    /// Project-relative file path.
-    pub path: String,
-    /// Adapter that produced the diagnostic.
-    pub adapter: String,
-    /// Import stage that failed.
-    pub stage: String,
-    /// Stable diagnostic category.
-    pub code: String,
-    /// Safe diagnostic message.
-    pub message: String,
-    /// Whether editing the source and retrying may succeed.
-    pub retryable: bool,
-}
-
-/// Reports a project onboarding failure.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProjectError {
-    /// Stable failure category.
-    pub code: &'static str,
-    /// Safe human-readable failure detail.
-    pub message: String,
-    /// Structured diagnostics suitable for agents and product surfaces.
-    pub diagnostics: Vec<ImportDiagnostic>,
-}
-
-impl Display for ProjectError {
-    /// Formats the onboarding failure.
-    ///
-    /// - `self`: Onboarding failure to format.
-    /// - `formatter`: Formatting destination.
-    ///
-    /// A formatting result.
-    ///
-    /// Returns a formatting error when the destination rejects output.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{}: {}", self.code, self.message)
-    }
-}
-
-impl std::error::Error for ProjectError {}
 
 impl ProjectService {
     /// Creates a project service over a shared SQLite store.
@@ -150,7 +108,125 @@ impl ProjectService {
     /// # Returns
     /// The operation result.
     pub fn new(store: Arc<SqliteStore>) -> Self {
-        Self { store }
+        Self {
+            store,
+            source_watch: Arc::new(Mutex::new(
+                source_watch::ProjectSourceWatchCoordinator::default(),
+            )),
+            cad_provider_registry: scriberig_domain_cad::CadProviderRegistry::new(),
+        }
+    }
+
+    /// Configures host-injected providers for optional CAD project imports.
+    ///
+    /// # Parameters
+    /// - `registry`: Initialized providers and safe initialization failure states.
+    ///
+    /// # Returns
+    /// The project service configured to use this registry during imports.
+    #[must_use]
+    pub fn with_cad_provider_registry(
+        mut self,
+        registry: scriberig_domain_cad::CadProviderRegistry,
+    ) -> Self {
+        self.cad_provider_registry = registry;
+        self
+    }
+
+    /// Classifies a watcher event against committed candidate output receipts.
+    ///
+    /// Candidate application holds this coordinator across filesystem writes
+    /// and project refresh. Concurrent event handlers wait for exact receipts
+    /// before deciding whether a write should be re-imported.
+    ///
+    /// # Parameters
+    /// - `project`: Project owning the observed source.
+    /// - `path`: Project-relative source path reported by the watcher.
+    /// - `observed_digest`: Exact current file digest, or `None` when absent.
+    ///
+    /// # Returns
+    /// Whether the event is a candidate self-write or an external change.
+    ///
+    /// # Errors
+    /// Returns an error if the live source watcher coordinator was poisoned.
+    pub fn classify_source_observation(
+        &self,
+        project: scriberig_core::ProjectId,
+        path: &str,
+        observed_digest: Option<[u8; 32]>,
+    ) -> Result<ProjectSourceObservation, ProjectError> {
+        let mut coordinator = self.source_watch.lock().map_err(|_| ProjectError {
+            code: "source_watch_unavailable",
+            message: "project source watcher coordinator is unavailable".to_owned(),
+            diagnostics: Vec::new(),
+        })?;
+        Ok(coordinator.classify(project, path, observed_digest))
+    }
+
+    /// Serializes a source event with candidate writes and imports external changes.
+    ///
+    /// The watcher should call this method for source events. Candidate writes
+    /// and the scan/import for external events share one lock, so a candidate
+    /// cannot pass its base-snapshot check while a watcher import is in flight.
+    ///
+    /// # Parameters
+    /// - `project`: Project owning the observed source.
+    /// - `path`: Project-relative source path reported by the watcher.
+    /// - `observed_digest`: Exact observed file digest, or `None` when absent.
+    ///
+    /// # Returns
+    /// The classification and the new snapshot for an imported external change.
+    ///
+    /// # Errors
+    /// Returns a structured error when coordination, scan, or import fails.
+    pub fn handle_source_observation(
+        &self,
+        project: scriberig_core::ProjectId,
+        path: &str,
+        observed_digest: Option<[u8; 32]>,
+    ) -> Result<ProjectSourceObservationResult, ProjectError> {
+        let mut coordinator = self.source_watch.lock().map_err(|_| ProjectError {
+            code: "source_watch_unavailable",
+            message: "project source watcher coordinator is unavailable".to_owned(),
+            diagnostics: Vec::new(),
+        })?;
+        let observation = coordinator.classify(project, path, observed_digest);
+        if observation == ProjectSourceObservation::SelfWrite {
+            return Ok(ProjectSourceObservationResult {
+                observation,
+                imported_snapshot: None,
+            });
+        }
+        if let Some(digest) = observed_digest {
+            if let Some(candidate) =
+                self.reconcile_external_docx_observation(project, path, digest)?
+            {
+                let validated = self.validate_candidate_profile_cancellable(
+                    &candidate.id,
+                    crate::CandidateValidationProfile::DocxPackage,
+                    &std::sync::atomic::AtomicBool::new(false),
+                )?;
+                let applied = self.apply_candidate_with_coordinator(
+                    &validated,
+                    &sr_projection_fs::LocalFileSystem,
+                    &mut coordinator,
+                )?;
+                return Ok(ProjectSourceObservationResult {
+                    observation,
+                    imported_snapshot: Some(applied.successor_snapshot),
+                });
+            }
+        }
+        let workspace = self.workspace(project)?;
+        self.scan(
+            Some(workspace.project.name.clone()),
+            &workspace.project.path,
+        )?;
+        let imported = self.import(project)?;
+        Ok(ProjectSourceObservationResult {
+            observation,
+            imported_snapshot: Some(imported.snapshot),
+        })
     }
 
     /// Registers and persists a deterministic filesystem scan.
@@ -192,6 +268,36 @@ impl ProjectService {
         path: impl AsRef<Path>,
         options: ScanOptions,
     ) -> Result<ScanReport, ProjectError> {
+        self.scan_with_renames(name, path, options, &[])
+    }
+
+    /// Scans a project and carries source identities across explicit file renames.
+    ///
+    /// Rename evidence applies only when the old path exists in the previous
+    /// persisted scan, the old path is absent from the new scan, and the new
+    /// path is newly present with the same adapter. This allows content to
+    /// change during the rename without guessing identity from filename or
+    /// similarity.
+    ///
+    /// # Parameters
+    /// - `name`: Optional display name for a new project.
+    /// - `path`: Filesystem project path.
+    /// - `options`: File-selection policy for the persisted manifest.
+    /// - `renames`: Explicit previous-path to current-path observations.
+    ///
+    /// # Returns
+    /// The registered project and selected deterministic scan files.
+    ///
+    /// # Errors
+    /// Returns a structured error for invalid rename evidence or filesystem,
+    /// Git, or storage failures.
+    pub fn scan_with_renames(
+        &self,
+        name: Option<String>,
+        path: impl AsRef<Path>,
+        options: ScanOptions,
+        renames: &[ProjectFileRename],
+    ) -> Result<ScanReport, ProjectError> {
         let path = path.as_ref();
         let display_name = name
             .or_else(|| {
@@ -209,160 +315,6 @@ impl ProjectService {
         } else {
             None
         };
-        self.persist_scan(&project, tracked.as_ref(), options.git_tracked)
-    }
-
-    /// Imports the persisted scan into an immutable project snapshot.
-    ///
-    /// - `project`: Stable project identity to import.
-    ///
-    /// Import counts and the promoted snapshot.
-    ///
-    /// Returns a structured validation, storage, or promotion failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn import(&self, project: ProjectId) -> Result<ImportReport, ProjectError> {
-        let files = self.store.project_files(project).map_err(storage_error)?;
-        self.import_file_records(project, &files)
-    }
-
-    /// Imports only when the latest persisted manifest matches its exact digest.
-    ///
-    /// - `project`: Project owning the persisted scan.
-    /// - `manifest_id`: Digest returned by the scan manifest summary.
-    ///
-    /// Import counts and the promoted immutable snapshot.
-    ///
-    /// Returns a structured error when the project is missing, the manifest is
-    /// stale, or importing the captured manifest fails.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn import_manifest(
-        &self,
-        project: ProjectId,
-        manifest_id: &str,
-    ) -> Result<ImportReport, ProjectError> {
-        let files = self.store.project_files(project).map_err(storage_error)?;
-        if manifest::digest(project, &files) != manifest_id {
-            return Err(ProjectError {
-                code: "manifest_changed",
-                message: "persisted project manifest no longer matches the reviewed scan".into(),
-                diagnostics: Vec::new(),
-            });
-        }
-        self.import_file_records(project, &files)
-    }
-
-    /// Imports the exact file records captured by one persisted manifest read.
-    ///
-    /// - `project`: Project being imported.
-    /// - `files`: Immutable records captured from one persisted manifest read.
-    ///
-    /// Import counts and the promoted immutable snapshot.
-    ///
-    /// Returns a structured validation, storage, or promotion failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn import_file_records(
-        &self,
-        project: ProjectId,
-        files: &[ProjectFileRecord],
-    ) -> Result<ImportReport, ProjectError> {
-        let record = self
-            .store
-            .project(project)
-            .map_err(storage_error)?
-            .ok_or_else(|| missing_project(project))?;
-        for file in files {
-            project_security::require_public_path(&record.path.join(&file.relative_path))?;
-        }
-        if files.is_empty() {
-            return Err(ProjectError {
-                code: "scan_required",
-                message: "scan the project before importing".to_owned(),
-                diagnostics: Vec::new(),
-            });
-        }
-        let old_entities = self
-            .store
-            .project_entities(project)
-            .map_err(storage_error)?;
-        let base = record
-            .current_snapshot
-            .unwrap_or_else(|| Snapshot::empty().id());
-        let root = support::project_root(project)?;
-        let expected = self.store.read_root(&root);
-        let mut revisions = Vec::new();
-        let mut changes = old_entities
-            .iter()
-            .map(|entity| SnapshotChange::Remove(entity.entity))
-            .collect::<Vec<_>>();
-        let mut ownership = Vec::<ProjectEntityRecord>::new();
-        for file in files.iter().filter(|file| file.status == "ready") {
-            ownership.extend(import_file(project, file, &mut revisions, &mut changes)?);
-        }
-        let snapshot = self
-            .store
-            .apply_project_import(
-                project, root, expected, base, &revisions, &changes, &ownership,
-            )
-            .map_err(|error| promotion_error(format!("{error:?}")))?;
-        let project_record = self
-            .store
-            .project(project)
-            .map_err(storage_error)?
-            .ok_or_else(|| missing_project(project))?;
-        Ok(ImportReport {
-            project: project_record,
-            files: files.iter().filter(|file| file.status == "ready").count(),
-            entities: ownership.len(),
-            snapshot,
-        })
-    }
-
-    /// Resolves an imported project's current snapshot and semantic root.
-    ///
-    /// - `project`: Project whose active workspace should be resolved.
-    ///
-    /// The project record, current snapshot, and semantic root entity.
-    ///
-    /// Returns a structured error when the project is missing or not imported.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn workspace(&self, project: ProjectId) -> Result<ProjectWorkspace, ProjectError> {
-        let record = self
-            .store
-            .project(project)
-            .map_err(storage_error)?
-            .ok_or_else(|| missing_project(project))?;
-        let snapshot = record.current_snapshot.ok_or_else(|| ProjectError {
-            code: "project_not_imported",
-            message: "project has no current semantic snapshot".to_owned(),
-            diagnostics: Vec::new(),
-        })?;
-        let root_entity = self
-            .store
-            .project_source_root(project)
-            .map_err(storage_error)?;
-        let root_entity = root_entity
-            .map(|entity| entity.entity)
-            .ok_or_else(|| ProjectError {
-                code: "project_root_unavailable",
-                message: "project has no semantic source root".to_owned(),
-                diagnostics: Vec::new(),
-            })?;
-        Ok(ProjectWorkspace {
-            project: record,
-            snapshot,
-            root_entity,
-        })
+        self.persist_scan(&project, tracked.as_ref(), options.git_tracked, renames)
     }
 }

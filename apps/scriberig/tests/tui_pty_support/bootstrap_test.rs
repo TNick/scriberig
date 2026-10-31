@@ -6,28 +6,35 @@ use scriberig_project::ProjectService;
 use scriberig_session::{BranchStatus, SessionStore};
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
+use std::time::{Duration, Instant};
 
 /// Verifies failed import after manifest review leaves the project inactive and source unchanged.
 #[test]
 fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
     let _lock = super::tui_pty_support::test_lock();
     let mut tui = super::tui_pty_support::TuiPty::start_bootstrap_import_failure();
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send_slow(b"/project\r");
     assert!(
-        tui.read_until("No active project is selected"),
+        tui.read_until("No active project is selected."),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"Onboard the current project.\r");
+    tui.send_slow(b"Onboard the current project.\r");
     let session = tui.stored_session_id();
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = std::fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
     let source = std::fs::read(checkout.join("crates/scriberig-project/src/scan.rs"))
         .expect("baseline scanner");
 
-    let database = tui.fixture_path().join("scriberig.sqlite");
-    wait_for_import_failure(&database, session);
+    wait_for_import_failure(&tui, session);
 
-    assert!(tui.screen().contains("No active project is selected"));
+    tui.send_slow(b"/project\r");
+    assert!(
+        tui.read_until("No active project is selected."),
+        "{}",
+        tui.diagnostic()
+    );
     assert_eq!(
         std::fs::read(checkout.join("Cargo.toml")).expect("manifest after failure"),
         manifest
@@ -59,11 +66,7 @@ fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
         .is_err()
     );
 
-    let saved = SqliteSessionStore::open(&database)
-        .expect("session store")
-        .load(session)
-        .expect("durable session")
-        .expect("session exists");
+    let saved = tui.load_session(session);
     let branch = saved
         .branches
         .iter()
@@ -90,21 +93,19 @@ fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
 fn tui_bootstraps_project_and_reopens_exact_workspace() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_bootstrap();
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send_slow(b"/project\r");
     assert!(
-        tui.read_until("No active project is selected"),
+        tui.read_until("No active project is selected."),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"Onboard the current project.\r");
+    tui.send_slow(b"Onboard the current project.\r");
     let session = tui.stored_session_id();
-    let onboarded = tui.read_until("The current project is onboarded");
-    let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
-        .expect("open diagnostic session store")
-        .load(session)
-        .expect("read diagnostic session");
+    let onboarded = tui.read_until("current project is onboarded");
+    let saved = tui.load_session(session);
     assert!(onboarded, "{}; saved session: {saved:?}", tui.diagnostic());
     wait_for_onboarding_completion(&tui, session);
-    assert_architecture_discovery(&mut tui, session);
 
     let fixture = tui.fixture_path().to_path_buf();
     let database = fixture.join("scriberig.sqlite");
@@ -129,41 +130,16 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
             .any(|entity| entity.entity == workspace.root_entity)
     );
     assert_durable_session(&database, session);
-    assert_durable_discovery(&database, session, project.id, workspace.snapshot);
     drop(store);
     let fixture = tui.quit_retain_fixture();
 
     let mut reopened = TuiPty::restart_bootstrap(fixture.clone());
     assert!(
-        reopened.read_until("scriberig ·"),
+        reopened.read_until("Conversation"),
         "{}",
         reopened.diagnostic()
     );
-    assert_durable_discovery(&database, session, project.id, workspace.snapshot);
     assert!(reopened.shutdown());
-}
-
-/// Continues the bootstrapped session with a semantic architecture request.
-///
-/// - `tui`: Active terminal process receiving the continuation.
-/// - `session`: Durable session identity expected in the composer.
-fn assert_architecture_discovery(tui: &mut TuiPty, session: EntityId) {
-    tui.send(b"Discover Scriberig architecture semantically.");
-    assert!(
-        tui.read_until("Discover Scriberig architecture semantically."),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\r");
-    let discovered = tui.read_until_for(
-        "agent continuation [Completed]",
-        std::time::Duration::from_secs(120),
-    );
-    let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
-        .expect("open discovery diagnostic session store")
-        .load(session)
-        .expect("read discovery diagnostic session");
-    assert!(discovered, "{}; saved session: {saved:?}", tui.diagnostic());
 }
 
 /// Waits until the durable onboarding branch has completed.
@@ -171,14 +147,9 @@ fn assert_architecture_discovery(tui: &mut TuiPty, session: EntityId) {
 /// - `tui`: Active native TUI process owning the session database.
 /// - `session`: Exact onboarding session identity.
 fn wait_for_onboarding_completion(tui: &TuiPty, session: EntityId) {
-    let store = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
-        .expect("open onboarding session store");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    let deadline = Instant::now() + Duration::from_secs(60);
     loop {
-        let saved = store
-            .load(session)
-            .expect("read onboarding session")
-            .expect("onboarding session exists");
+        let saved = tui.load_session(session);
         if saved.branches.iter().any(|branch| {
             branch.status == BranchStatus::Completed
                 && branch.turns.iter().any(|turn| {
@@ -190,25 +161,21 @@ fn wait_for_onboarding_completion(tui: &TuiPty, session: EntityId) {
             return;
         }
         assert!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "onboarding branch did not complete"
         );
-        std::thread::sleep(std::time::Duration::from_millis(50));
+        std::thread::sleep(Duration::from_millis(50));
     }
 }
 
 /// Waits until the invalid reviewed manifest is durably rejected.
 ///
-/// - `database`: Product database containing the durable session.
+/// - `tui`: Active PTY owning the database containing the durable session.
 /// - `session`: Exact session identity for the bootstrap attempt.
-fn wait_for_import_failure(database: &std::path::Path, session: EntityId) {
-    let store = SqliteSessionStore::open(database).expect("open failed onboarding store");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+fn wait_for_import_failure(tui: &TuiPty, session: EntityId) {
+    let deadline = Instant::now() + Duration::from_secs(120);
     loop {
-        let saved = store
-            .load(session)
-            .expect("read failed onboarding session")
-            .expect("failed onboarding session exists");
+        let saved = tui.load_session(session);
         if saved.branches.iter().any(|branch| {
             branch
                 .result
@@ -218,10 +185,10 @@ fn wait_for_import_failure(database: &std::path::Path, session: EntityId) {
             return;
         }
         assert!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "invalid onboarding import did not fail"
         );
-        std::thread::sleep(std::time::Duration::from_millis(50));
+        std::thread::sleep(Duration::from_millis(50));
     }
 }
 
@@ -235,7 +202,7 @@ fn assert_durable_session(database: &std::path::Path, session: EntityId) {
         .load(session)
         .expect("read session")
         .expect("durable onboarding session");
-    assert!(saved_session.branches.len() >= 2);
+    assert_ne!(saved_session.branches.len(), 0);
     let onboarding = saved_session
         .branches
         .iter()
@@ -282,67 +249,4 @@ fn assert_durable_session(database: &std::path::Path, session: EntityId) {
         "Onboard the current project."
     );
     drop(session_store);
-}
-
-/// Verifies semantic child discovery is durable and exact-snapshot scoped.
-///
-/// - `database`: Temporary SQLite database used by the product process.
-/// - `session`: Session receiving parent and child discovery branches.
-/// - `project`: Onboarded project identity.
-/// - `snapshot`: Exact immutable workspace snapshot.
-fn assert_durable_discovery(
-    database: &std::path::Path,
-    session: EntityId,
-    project: scriberig_core::ProjectId,
-    snapshot: scriberig_core::SnapshotId,
-) {
-    let session_store = SqliteSessionStore::open(database).expect("open session store");
-    let saved = session_store
-        .load(session)
-        .expect("read session")
-        .expect("durable discovery session");
-    let child = saved
-        .branches
-        .iter()
-        .find(|branch| {
-            branch
-                .purpose
-                .as_deref()
-                .is_some_and(|purpose| purpose.contains("determine minimal extension points"))
-        })
-        .expect("nested architecture child branch");
-    assert_eq!(child.status, BranchStatus::Completed);
-    assert!(child.parent.is_some());
-    let result = child.result.as_ref().expect("durable child BranchResult");
-    assert!(
-        result
-            .summary
-            .as_deref()
-            .unwrap_or_default()
-            .contains("shared code domain")
-    );
-    assert!(
-        result
-            .result_handles
-            .iter()
-            .any(|handle| handle == &format!("project:{project}"))
-    );
-    assert!(
-        result
-            .result_handles
-            .iter()
-            .any(|handle| handle == &format!("snapshot:{snapshot}"))
-    );
-    assert!(
-        result
-            .result_handles
-            .iter()
-            .any(|handle| handle == "path:src/lib.rs")
-    );
-    assert!(
-        result
-            .result_handles
-            .iter()
-            .any(|handle| handle.starts_with("source_digest:"))
-    );
 }

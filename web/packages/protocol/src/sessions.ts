@@ -1,6 +1,42 @@
 /** @file Defines navigation-oriented session and branch summaries. */
-import type { BranchId, EntityId, MigrationId, OperationId, SessionId, SnapshotId } from "./ids";
 import type { SessionPlan } from "./session-plans";
+export type {
+  SessionContinuationAnchor,
+  SessionCoordinatorClaim,
+  SessionPlanAttemptSummary,
+  SessionPlanAttemptsResponse,
+  SessionPlanAttemptsRequest,
+  SessionPlanDetailsRequest,
+  SessionPlanDetailsResponse,
+  SessionPlanGraphView,
+  SessionPlanNodeView,
+  SessionPlanView,
+  SessionPlanViewRequest,
+  SessionExpectedResult,
+  SessionModelAssignment,
+  SessionPlanDependency,
+  SessionPlanEvidenceAssociation,
+  SessionPlanEvidenceKind,
+  SessionPlanEvidenceOwner,
+  SessionPlanEvidenceReference,
+  SessionPlanEvidenceRole,
+  SessionPlanGate,
+  SessionPlanGateCounts,
+  SessionPlanGatePhase,
+  SessionPlanGateRequirement,
+  SessionPlanGateWaiver,
+  SessionPlanMutation,
+  SessionPlanMutationRequest,
+  SessionPlanNodeDraft,
+  SessionPlanNodeStatus,
+  SessionPlanSemanticPredicate,
+  SessionPlanStatus,
+  SessionPlanStatusCounts,
+  SessionPlanSummary,
+  SessionSemanticReference,
+  SessionWorkerClaim,
+} from "./plan-semantics";
+import type { BranchId, EntityId, MigrationId, OperationId, SessionId, SnapshotId } from "./ids";
 export * from "./session-plans";
 /** Session summary for navigation. */
 export interface SessionSummary {
@@ -26,6 +62,7 @@ export interface SessionActivityItem {
   session: string;
   sequence: number;
   branch: string;
+  operation?: string;
   parent?: string;
   kind:
     | "HumanInput"
@@ -133,6 +170,12 @@ export interface ModelRequestDetailResponse {
   model: string;
   providerId?: string;
   thinkingLevel?: string;
+  /** Upstream catalog generation used to resolve the request, when available. */
+  catalogRevision?: number;
+  /** Exact upstream model-runtime Git revision used for this product build. */
+  upstreamRuntimeRevision?: string;
+  /** Safe public provider response identity, when supplied by the provider. */
+  providerResponseId?: string;
   profile?: ModelContextRevisionReference;
   activeComponents?: readonly ModelContextRevisionReference[];
   messages: readonly ModelRequestMessageDetail[];

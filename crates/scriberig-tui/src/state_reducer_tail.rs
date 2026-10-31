@@ -15,6 +15,15 @@ use super::*;
 #[allow(clippy::too_many_lines)] // The action routing table is kept exhaustive in one match.
 pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Effect>> {
     match action {
+        Action::StatusMessage(message) => {
+            state.recovery_message = None;
+            state.shell_message = message;
+            Some(vec![Effect::None])
+        }
+        Action::RecoveryRecordsLoaded(message) => {
+            state.recovery_message = Some(message);
+            Some(vec![Effect::None])
+        }
         Action::CapabilitiesLoaded(capabilities) => Some(capabilities_loaded(state, capabilities)),
         Action::PresentationPreferencesLoaded(response) => Some(
             super::state_presentation::apply_shared_preferences(state, response),

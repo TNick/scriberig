@@ -19,6 +19,11 @@ export function AppShell({
 }): ReactElement {
   const routes = [
     "projects",
+    "artifacts",
+    "document",
+    "cad",
+    "spreadsheet",
+    "geo",
     "raw",
     "semantic",
     "projection",

@@ -15,6 +15,11 @@ use vt100::Parser;
 #[path = "tui_pty_support/lifecycle.rs"]
 mod lifecycle;
 
+#[allow(dead_code)]
+#[path = "tui_pty_support/candidate_review.rs"]
+pub mod candidate_review;
+#[path = "tui_pty_support/onboarding_wait.rs"]
+pub(crate) mod onboarding_wait;
 #[path = "tui_pty_support/driver.rs"]
 mod tui_pty_driver;
 #[path = "tui_pty_support/fixture.rs"]
@@ -28,8 +33,15 @@ mod self_hosting;
 mod startup;
 #[path = "tui_pty_support/startup_arithmetic.rs"]
 mod startup_arithmetic;
+#[path = "tui_pty_support/startup_model_config.rs"]
+mod startup_model_config;
 #[path = "tui_pty_support/startup_options.rs"]
 mod startup_options;
+#[cfg(feature = "provider-package-worker-tests")]
+#[path = "tui_pty_support/startup_plugin.rs"]
+mod startup_plugin;
+#[path = "tui_pty_support/startup_rich.rs"]
+mod startup_rich;
 
 /// Owns one real terminal session used by native TUI workflow tests.
 pub struct TuiPty {
